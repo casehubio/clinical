@@ -58,15 +58,15 @@ This repo is one component of the casehubio multi-repo platform. **Before implem
 
 **Platform architecture (fetch before any implementation decision):**
 ```
-https://raw.githubusercontent.com/casehubio/parent/main/docs/PLATFORM.md
+/Users/mdproctor/claude/casehub/parent/docs/PLATFORM.md
 ```
 
 **Foundation repo deep-dives:**
-- casehub-engine: `https://raw.githubusercontent.com/casehubio/parent/main/docs/repos/casehub-engine.md`
-- casehub-ledger: `https://raw.githubusercontent.com/casehubio/parent/main/docs/repos/casehub-ledger.md`
-- casehub-work: `https://raw.githubusercontent.com/casehubio/parent/main/docs/repos/casehub-work.md`
-- casehub-qhorus: `https://raw.githubusercontent.com/casehubio/parent/main/docs/repos/casehub-qhorus.md`
-- casehub-connectors: `https://raw.githubusercontent.com/casehubio/parent/main/docs/repos/casehub-connectors.md`
+- casehub-engine: `/Users/mdproctor/claude/casehub/parent/docs/repos/casehub-engine.md`
+- casehub-ledger: `/Users/mdproctor/claude/casehub/parent/docs/repos/casehub-ledger.md`
+- casehub-work: `/Users/mdproctor/claude/casehub/parent/docs/repos/casehub-work.md`
+- casehub-qhorus: `/Users/mdproctor/claude/casehub/parent/docs/repos/casehub-qhorus.md`
+- casehub-connectors: `/Users/mdproctor/claude/casehub/parent/docs/repos/casehub-connectors.md`
 
 ---
 
@@ -113,8 +113,8 @@ This is an application, not a framework. If the capability requires knowledge of
 
 | Document | What it covers |
 |----------|---------------|
-| `https://raw.githubusercontent.com/casehubio/parent/main/docs/use-case-analysis.md` | Use case scoring, clinical trial selection rationale (§8.1), GCP compliance gap analysis |
-| `https://raw.githubusercontent.com/casehubio/parent/main/docs/tutorial-strategy.md` | Clinical trial showcase scenario (§7), multi-site demonstration design, ClinicalAgent comparison |
+| `/Users/mdproctor/claude/casehub/parent/docs/use-case-analysis.md` | Use case scoring, clinical trial selection rationale (§8.1), GCP compliance gap analysis |
+| `/Users/mdproctor/claude/casehub/parent/docs/tutorial-strategy.md` | Clinical trial showcase scenario (§7), multi-site demonstration design, ClinicalAgent comparison |
 
 ---
 
