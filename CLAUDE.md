@@ -56,6 +56,8 @@ Run `add-dir /Users/mdproctor/claude/casehub/clinical` before any other work.
 
 This repo is one component of the casehubio multi-repo platform. **Before implementing anything — any feature, SPI, data model, or abstraction — run the Platform Coherence Protocol.**
 
+> **Platform docs:** Paths below are local (use `Read`). If the path does not exist — standalone clone on another machine — replace `/Users/mdproctor/claude/casehub/parent/docs/` with `https://raw.githubusercontent.com/casehubio/parent/main/docs/` and use `WebFetch`.
+
 **Platform architecture (fetch before any implementation decision):**
 ```
 /Users/mdproctor/claude/casehub/parent/docs/PLATFORM.md
