@@ -87,4 +87,21 @@ class TrialResourceTest {
         .then()
             .statusCode(400);
     }
+
+    @Test
+    void post_trial_missing_phase_returns_400() {
+        given()
+            .contentType("application/json")
+            .body("""
+                {
+                  "protocolId": "ONCOL-NO-PHASE",
+                  "sponsor": "Acme",
+                  "targetEnrollment": 100
+                }
+                """)
+        .when()
+            .post("/trials")
+        .then()
+            .statusCode(400);
+    }
 }

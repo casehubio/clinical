@@ -49,6 +49,9 @@ public class PatientResource {
         PatientEnrollment enrollment = PatientEnrollment.findById(enrollmentId);
         if (enrollment == null || !enrollment.siteId.equals(siteId))
             return Response.status(Response.Status.NOT_FOUND).build();
+        TrialSite site = TrialSite.findById(siteId);
+        if (site == null || !site.trialId.equals(trialId))
+            return Response.status(Response.Status.NOT_FOUND).build();
         return Response.ok(enrollment).build();
     }
 }

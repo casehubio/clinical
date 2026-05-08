@@ -95,4 +95,34 @@ class PatientResourceTest {
         .then()
             .statusCode(404);
     }
+
+    @Test
+    void get_enrollment_via_wrong_trial_returns_404() {
+        // Create trial A with a site and patient
+        String trialLocA = given()
+            .contentType("application/json")
+            .body("{\"protocolId\":\"WRONG-TRIAL-A-" + UUID.randomUUID() + "\",\"phase\":\"PHASE_I\",\"sponsor\":\"T\",\"targetEnrollment\":5}")
+        .when().post("/trials").then().statusCode(201).extract().header("Location");
+        UUID tidA = UUID.fromString(trialLocA.substring(trialLocA.lastIndexOf('/') + 1));
+        String siteLocA = given()
+            .contentType("application/json")
+            .body("{\"investigatorId\":\"pi-a\"}")
+        .when().post("/trials/{id}/sites", tidA).then().statusCode(201).extract().header("Location");
+        UUID sidA = UUID.fromString(siteLocA.substring(siteLocA.lastIndexOf('/') + 1));
+        String patientLoc = given()
+            .contentType("application/json")
+            .body("{\"patientId\":\"PAT-CROSS\"}")
+        .when().post("/trials/{t}/sites/{s}/patients", tidA, sidA).then().statusCode(201).extract().header("Location");
+        UUID enrollmentId = UUID.fromString(patientLoc.substring(patientLoc.lastIndexOf('/') + 1));
+
+        // Create trial B — try to access the patient via trial B
+        String trialLocB = given()
+            .contentType("application/json")
+            .body("{\"protocolId\":\"WRONG-TRIAL-B-" + UUID.randomUUID() + "\",\"phase\":\"PHASE_I\",\"sponsor\":\"T\",\"targetEnrollment\":5}")
+        .when().post("/trials").then().statusCode(201).extract().header("Location");
+        UUID tidB = UUID.fromString(trialLocB.substring(trialLocB.lastIndexOf('/') + 1));
+
+        given().when().get("/trials/{t}/sites/{s}/patients/{e}", tidB, sidA, enrollmentId)
+        .then().statusCode(404);
+    }
 }

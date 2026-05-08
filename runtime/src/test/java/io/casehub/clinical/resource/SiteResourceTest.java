@@ -13,9 +13,7 @@ class SiteResourceTest {
     private String createTrial() {
         return given()
             .contentType("application/json")
-            .body("""
-                {"protocolId":"SITE-TEST","phase":"PHASE_II","sponsor":"Test","targetEnrollment":10}
-                """)
+            .body("{\"protocolId\":\"SITE-TEST-" + UUID.randomUUID() + "\",\"phase\":\"PHASE_II\",\"sponsor\":\"Test\",\"targetEnrollment\":10}")
         .when()
             .post("/trials")
         .then()

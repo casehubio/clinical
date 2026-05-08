@@ -6,6 +6,7 @@ import io.casehub.clinical.entity.ClinicalTrial;
 import jakarta.transaction.Transactional;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Positive;
 import jakarta.ws.rs.*;
 import jakarta.ws.rs.core.*;
@@ -19,7 +20,7 @@ public class TrialResource {
 
     public record RegisterTrialRequest(
         @NotBlank String protocolId,
-        TrialPhase phase,
+        @NotNull TrialPhase phase,
         @NotBlank String sponsor,
         @Positive int targetEnrollment
     ) {}
