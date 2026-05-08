@@ -29,10 +29,6 @@ class PatientResourceTest {
 
     @Test
     void enroll_patient_returns_201_with_location() {
-        UUID siteId = createTrialAndSite();
-
-        // Get trialId from the site
-        // Use a fresh trial+site with known trialId via separate helper
         String trialLoc = given()
             .contentType("application/json")
             .body("{\"protocolId\":\"ENROLL-001-" + UUID.randomUUID() + "\",\"phase\":\"PHASE_I\",\"sponsor\":\"T\",\"targetEnrollment\":5}")
