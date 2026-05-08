@@ -8,6 +8,7 @@
     <groupId>io.casehub</groupId>
     <artifactId>casehub-clinical-parent</artifactId>
     <version>0.1-SNAPSHOT</version>
+    <relativePath>../pom.xml</relativePath>
   </parent>
 
   <artifactId>casehub-clinical-api</artifactId>
