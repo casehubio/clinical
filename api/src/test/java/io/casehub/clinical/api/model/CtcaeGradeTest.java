@@ -24,9 +24,11 @@ class CtcaeGradeTest {
     }
 
     @Test
-    void all_grades_have_labels() {
-        for (CtcaeGrade grade : CtcaeGrade.values()) {
-            assertThat(grade.label()).isNotBlank();
-        }
+    void grades_have_correct_ctcae_labels() {
+        assertThat(CtcaeGrade.GRADE_1.label()).isEqualTo("Mild");
+        assertThat(CtcaeGrade.GRADE_2.label()).isEqualTo("Moderate");
+        assertThat(CtcaeGrade.GRADE_3.label()).isEqualTo("Severe");
+        assertThat(CtcaeGrade.GRADE_4.label()).isEqualTo("Life-threatening");
+        assertThat(CtcaeGrade.GRADE_5.label()).isEqualTo("Death");
     }
 }

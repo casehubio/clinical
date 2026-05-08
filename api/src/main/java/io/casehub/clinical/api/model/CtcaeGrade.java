@@ -19,6 +19,7 @@ public enum CtcaeGrade {
         this.sla = sla;
     }
 
+    /** CTCAE v5.0 human-readable grade name, e.g. "Severe". Used in reports and audit records. */
     public String label() { return label; }
 
     /** GCP-mandated reporting SLA. Empty for grades 1 and 2 (non-serious). */
