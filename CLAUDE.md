@@ -1,5 +1,7 @@
 # clinical Workspace
 
+**Name:** clinical
+
 **Project repo:** /Users/mdproctor/claude/casehub/clinical
 **Workspace type:** public
 
@@ -118,6 +120,19 @@ This is an application, not a framework. If the capability requires knowledge of
 | `/Users/mdproctor/claude/casehub/parent/docs/use-case-analysis.md` | Use case scoring, clinical trial selection rationale (§8.1), GCP compliance gap analysis |
 | `/Users/mdproctor/claude/casehub/parent/docs/tutorial-strategy.md` | Clinical trial showcase scenario (§7), multi-site demonstration design, ClinicalAgent comparison |
 
+## External Reference Standards
+
+Consult these before making domain model, compliance, or grading decisions:
+
+| Standard / Reference | What it covers | Use for |
+|----------------------|---------------|---------|
+| [ICH E6(R3) GCP](https://www.ich.org/page/efficacy-guidelines) | Good Clinical Practice — authoritative source for trial conduct, adverse event reporting obligations, PI responsibilities | Compliance requirements, SLA derivation, PI authorisation obligations |
+| [CTCAE v5.0](https://ctep.cancer.gov/protocoldevelopment/electronic_applications/ctc.htm) | NCI Common Terminology Criteria for Adverse Events — Grade 1–5 definitions and severity thresholds | `CtcaeGrade` enum, SLA assignments per grade |
+| [21 CFR Part 312](https://www.ecfr.gov/current/title-21/chapter-I/subchapter-D/part-312) | FDA IND requirements — expedited safety reporting, protocol amendments, sponsor obligations | FDA reporting SLAs, audit trail requirements |
+| [FHIR ResearchStudy / ResearchSubject](https://hl7.org/fhir/researchstudy.html) | HL7 FHIR standard data model for clinical trials and subjects | Domain model field names and relationships — canonical reference for what fields a trial/site/patient needs |
+| [ClinicalAgent (arXiv 2404.14777)](https://arxiv.org/abs/2404.14777) | Peer-reviewed open-source baseline (ACM BCB '24) | Comparison baseline — what casehub-clinical must structurally exceed |
+| [OpenStudyBuilder](https://github.com/NovoNordisk-OpenSource/openstudybuilder) | Open source CDISC-based clinical study management (Novo Nordisk) | Reference implementation for trial protocol and study design data models |
+
 ---
 
 ## What casehub-clinical Must Build
@@ -221,6 +236,27 @@ JAVA_HOME=/Library/Java/JavaVirtualMachines/graalvm-25.jdk/Contents/Home  # nati
 
 **Use `mvn` not `./mvnw`** — maven wrapper not configured on this machine.
 
+## Build Commands
+
+```bash
+# Build and test api/ module only
+mvn install -pl api --batch-mode
+
+# Build and test runtime/ module (api must be installed first if not cached)
+mvn install -pl api --batch-mode && mvn test -pl runtime --batch-mode
+
+# Full reactor test (both modules)
+mvn test --batch-mode
+
+# Test a single class (runtime)
+mvn test -pl runtime -Dtest=TrialResourceTest --batch-mode
+
+# Compile only (no tests)
+mvn compile -pl api,runtime --batch-mode
+```
+
+**Important:** `mvn test -pl runtime` requires `api` to be installed in the local Maven repo first. Run `mvn install -pl api` if you get ClassNotFound errors for `io.casehub.clinical.api.*`.
+
 ---
 
 ## Work Tracking
@@ -232,3 +268,42 @@ JAVA_HOME=/Library/Java/JavaVirtualMachines/graalvm-25.jdk/Contents/Home  # nati
 - Before implementation begins — check for an active issue. If none, run issue-workflow Phase 1 before writing any code.
 - Before any commit — confirm issue linkage.
 - All commits reference an issue — `Refs #N` or `Closes #N`.
+- All commits must also reference the parent epic — include the epic issue number in the commit message or PR description.
+
+---
+
+## Development Workflow
+
+### Platform Coherence
+Before implementing any feature, SPI, data model, or abstraction — run the Platform Coherence Protocol in `/Users/mdproctor/claude/casehub/parent/docs/PLATFORM.md`. Check capability ownership, boundary rules, and consistency with existing patterns. Update platform docs if new patterns are established.
+
+### TDD
+Every implementation plan must include tests at all levels:
+- **Unit tests** — pure logic, no I/O, fast
+- **Integration tests** (`@QuarkusTest` with H2) — Panache, REST, CDI wiring
+- **End-to-end tests** — full stack, happy path through the showcase scenario
+- **Robustness tests** — boundary conditions, invalid input, missing data
+- **Correctness tests** — SLA deadline computation, state machine transitions, JQ mappings
+
+Tests are not optional and are not deferred to a follow-up. They are part of the implementation plan from the start.
+
+### IntelliJ MCP Tools
+Two IntelliJ MCPs are available: `mcp__intellij` and `mcp__intellij-index`.
+
+**Always check both are available before starting implementation work.** If either is unavailable, stop and report before proceeding.
+
+**Prefer IntelliJ tools over Bash** for all operations they support — file creation, symbol search, rename refactoring, find references, go to definition, build, diagnostics. IntelliJ tools are more correct, context-aware, and less error-prone than shell equivalents.
+
+### Code Review
+Before marking any task complete, invoke `superpowers:requesting-code-review` to review the implementation for quality, correctness, and platform consistency.
+
+### Documentation Maintenance
+After every implementation session:
+- Revise all affected documentation to reflect code changes
+- Check cross-references are correct (file paths, class names, issue numbers)
+- Address drift, staleness, redundancy, duplication, and gaps
+- Update platform docs if new patterns or conventions were established
+- Update CLAUDE.md if build commands, conventions, or structure changed
+
+### External Reference Standards
+Before making domain model, compliance, or grading decisions — consult the standards listed in the "External Reference Standards" section above.
