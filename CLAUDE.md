@@ -196,7 +196,7 @@ Trial-level binding fires on aggregated context from all site sub-cases — no s
 
 | Capability | Foundation prerequisite |
 |-----------|------------------------|
-| Site-level sub-case orchestration | Sub-case ✅ DONE (engine#195) |
+| Site-level sub-case orchestration | engine#195 = scaffold only (SubCase model, Stage.subCases, CasePlanModel) — execution wiring (SubCaseExecutionHandler, blackboard↔runtime integration) pending engine#112 ❌ BLOCKED |
 | Adverse event SLA WorkItem | casehub-work ✅ production |
 | PI authorisation commitment lifecycle | P0 complete (engine#186 ✅, qhorus ✅) |
 | GDPR consent withdrawal (Art.17) | LedgerErasureService ✅ |
@@ -204,7 +204,7 @@ Trial-level binding fires on aggregated context from all site sub-cases — no s
 | EU AI Act Art.12 ComplianceSupplement | casehub-ledger ✅ |
 | Trust-weighted safety agent routing | P1.3 TrustWeightedSelectionStrategy wired in engine |
 | LLM protocol amendment supervisor | LlmPlanningStrategy SPI (engine) |
-| HITL WorkItem → case signal (IRB gate) | casehub-work-adapter wiring pending |
+| HITL WorkItem → case signal (IRB gate) | casehub-work-adapter wiring pending — tracked casehubio/work#136 ❌ BLOCKED |
 
 ### Showcase Scenario
 
