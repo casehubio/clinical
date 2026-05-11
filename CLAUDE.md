@@ -236,6 +236,16 @@ JAVA_HOME=/Library/Java/JavaVirtualMachines/graalvm-25.jdk/Contents/Home  # nati
 
 **Use `mvn` not `./mvnw`** — maven wrapper not configured on this machine.
 
+**Flyway migration numbering (clinical-specific):**
+casehub-work's Flyway migrations occupy `classpath:db/migration` at V1–V21+ (Quarkus scans transitive JARs). Clinical domain migrations must use **V100–V999** to avoid version conflicts. V1000–V1003 are reserved for casehub-ledger base tables. V1004+ are reserved for consumer-owned ledger subclass join tables (e.g. `ae_ledger_entry`).
+
+**Two-datasource architecture:**
+clinical uses two persistence units following the AML pattern:
+- **Default datasource** — clinical domain entities (`io.casehub.clinical.entity`) + casehub-work entities (`io.casehub.work.runtime.model`)
+- **`qhorus` named datasource** — casehub-ledger entities; directed by `casehub.ledger.datasource=qhorus`
+
+Both datasources run Flyway at startup. The qhorus datasource receives all migrations at `classpath:db/migration` (including V100+ domain migrations and V1004+ ledger join tables) — this creates redundant tables in the qhorus H2 DB during tests, which is harmless.
+
 ## Build Commands
 
 ```bash
