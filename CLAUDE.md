@@ -58,19 +58,19 @@ Run `add-dir /Users/mdproctor/claude/casehub/clinical` before any other work.
 
 This repo is one component of the casehubio multi-repo platform. **Before implementing anything — any feature, SPI, data model, or abstraction — run the Platform Coherence Protocol.**
 
-> **Platform docs:** Paths below are local (use `Read`). If the path does not exist — standalone clone on another machine — replace `/Users/mdproctor/claude/casehub/parent/docs/` with `https://raw.githubusercontent.com/casehubio/parent/main/docs/` and use `WebFetch`.
+> **Platform docs:** Local paths use `~/claude/casehub/parent/docs/` as root. If a path doesn't exist, the parent repo isn't cloned locally — fetch from `https://raw.githubusercontent.com/casehubio/parent/main/docs/<path>` instead.
 
 **Platform architecture (fetch before any implementation decision):**
 ```
-/Users/mdproctor/claude/casehub/parent/docs/PLATFORM.md
+~/claude/casehub/parent/docs/PLATFORM.md
 ```
 
 **Foundation repo deep-dives:**
-- casehub-engine: `/Users/mdproctor/claude/casehub/parent/docs/repos/casehub-engine.md`
-- casehub-ledger: `/Users/mdproctor/claude/casehub/parent/docs/repos/casehub-ledger.md`
-- casehub-work: `/Users/mdproctor/claude/casehub/parent/docs/repos/casehub-work.md`
-- casehub-qhorus: `/Users/mdproctor/claude/casehub/parent/docs/repos/casehub-qhorus.md`
-- casehub-connectors: `/Users/mdproctor/claude/casehub/parent/docs/repos/casehub-connectors.md`
+- casehub-engine: `~/claude/casehub/parent/docs/repos/casehub-engine.md`
+- casehub-ledger: `~/claude/casehub/parent/docs/repos/casehub-ledger.md`
+- casehub-work: `~/claude/casehub/parent/docs/repos/casehub-work.md`
+- casehub-qhorus: `~/claude/casehub/parent/docs/repos/casehub-qhorus.md`
+- casehub-connectors: `~/claude/casehub/parent/docs/repos/casehub-connectors.md`
 
 ---
 
@@ -117,8 +117,8 @@ This is an application, not a framework. If the capability requires knowledge of
 
 | Document | What it covers |
 |----------|---------------|
-| `/Users/mdproctor/claude/casehub/parent/docs/use-case-analysis.md` | Use case scoring, clinical trial selection rationale (§8.1), GCP compliance gap analysis |
-| `/Users/mdproctor/claude/casehub/parent/docs/tutorial-strategy.md` | Clinical trial showcase scenario (§7), multi-site demonstration design, ClinicalAgent comparison |
+| `~/claude/casehub/parent/docs/use-case-analysis.md` | Use case scoring, clinical trial selection rationale (§8.1), GCP compliance gap analysis |
+| `~/claude/casehub/parent/docs/tutorial-strategy.md` | Clinical trial showcase scenario (§7), multi-site demonstration design, ClinicalAgent comparison |
 
 ## External Reference Standards
 
@@ -275,7 +275,7 @@ mvn compile -pl api,runtime --batch-mode
 ## Development Workflow
 
 ### Platform Coherence
-Before implementing any feature, SPI, data model, or abstraction — run the Platform Coherence Protocol in `/Users/mdproctor/claude/casehub/parent/docs/PLATFORM.md`. Check capability ownership, boundary rules, and consistency with existing patterns. Update platform docs if new patterns are established.
+Before implementing any feature, SPI, data model, or abstraction — run the Platform Coherence Protocol in `~/claude/casehub/parent/docs/PLATFORM.md`. Check capability ownership, boundary rules, and consistency with existing patterns. Update platform docs if new patterns are established.
 
 ### TDD
 Every implementation plan must include tests at all levels:
