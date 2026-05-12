@@ -33,6 +33,17 @@ Run `add-dir /Users/mdproctor/claude/casehub/clinical` before any other work.
 - `blog/` — project diary entries with INDEX.md
 - `design/` — epic journal (created by `epic` at branch start)
 
+## Git Discipline
+
+Two git repositories are active in every session:
+- **Workspace** (`/Users/mdproctor/claude/public/casehub/clinical`) — methodology artifacts: handover, blog, specs, plans, ADRs
+- **Project repo** (`/Users/mdproctor/claude/casehub/clinical`) — source code
+
+Before any git operation, run `git rev-parse --show-toplevel` to confirm which repo is currently active. Do not assume — the session may have opened in either. cd to the correct repo before staging:
+- Source code commits → project repo
+- Methodology artifacts → workspace
+
+
 ## Rules
 
 - All methodology artifacts go here, not in the project repo
@@ -43,11 +54,11 @@ Run `add-dir /Users/mdproctor/claude/casehub/clinical` before any other work.
 
 | Artifact   | Destination | Notes |
 |------------|-------------|-------|
-| adr        | workspace   | |
-| blog       | workspace   | |
-| design     | workspace   | |
+| adr        | project     | lands in `docs/adr/` |
+| blog       | project     | published externally via publish-blog (blog-routing.yaml) |
+| design     | workspace   | merged into DESIGN.md at epic close |
 | snapshots  | workspace   | |
-| specs      | workspace   | |
+| specs      | project     | lands in `docs/specs/` |
 | handover   | workspace   | |
 
 ---
