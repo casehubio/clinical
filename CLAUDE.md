@@ -237,14 +237,29 @@ JAVA_HOME=/Library/Java/JavaVirtualMachines/graalvm-25.jdk/Contents/Home  # nati
 **Use `mvn` not `./mvnw`** — maven wrapper not configured on this machine.
 
 **Flyway migration numbering (clinical-specific):**
-casehub-work's Flyway migrations occupy `classpath:db/migration` at V1–V21+ (Quarkus scans transitive JARs). Clinical domain migrations must use **V100–V999** to avoid version conflicts. V1000–V1003 are reserved for casehub-ledger base tables. V1004+ are reserved for consumer-owned ledger subclass join tables (e.g. `ae_ledger_entry`).
+casehub-work's Flyway migrations occupy `classpath:db/migration` at V1–V21+ (Quarkus scans transitive JARs). Clinical domain migrations must use **V100–V999** to avoid version conflicts. V1000–V1004 are reserved for casehub-ledger base tables (V1004 = `actor_identity.sql`). V1005+ are reserved for consumer-owned ledger subclass join tables (e.g. `ae_ledger_entry` at V1005).
 
 **Two-datasource architecture:**
 clinical uses two persistence units following the AML pattern:
-- **Default datasource** — clinical domain entities (`io.casehub.clinical.entity`) + casehub-work entities (`io.casehub.work.runtime.model`)
-- **`qhorus` named datasource** — casehub-ledger entities; directed by `casehub.ledger.datasource=qhorus`
+- **Default datasource** — clinical domain entities (`io.casehub.clinical.entity`) + casehub-work entities (`io.casehub.work.runtime` — full package, not just `.model`)
+- **`qhorus` named datasource** — casehub-ledger entities + clinical ledger subclasses (`io.casehub.clinical.ledger`); directed by `casehub.ledger.datasource=qhorus`
 
-Both datasources run Flyway at startup. The qhorus datasource receives all migrations at `classpath:db/migration` (including V100+ domain migrations and V1004+ ledger join tables) — this creates redundant tables in the qhorus H2 DB during tests, which is harmless.
+**LedgerEntry subclasses** (e.g. `AdverseEventLedgerEntry`) must live in `io.casehub.clinical.ledger`, NOT in `io.casehub.clinical.entity`. Panache entities cannot span two persistence units — if the same package is listed in both PU package configs, Quarkus throws `IllegalStateException` at build time.
+
+**CDI wiring:** `JpaLedgerEntryRepository` is `@Alternative`. Add to both `application.properties` files:
+```properties
+quarkus.arc.selected-alternatives=io.casehub.ledger.runtime.repository.jpa.JpaLedgerEntryRepository
+```
+Quarkus ArC ignores `beans.xml` `<alternatives>` — the config property is required.
+
+**Multi-datasource test XA:** Any `@Transactional` method writing to both datasources requires XA in test properties:
+```properties
+quarkus.datasource.jdbc.transactions=xa
+quarkus.datasource.qhorus.jdbc.transactions=xa
+```
+H2 supports XA; without this Agroal throws "Failed to enlist" with no hint about the fix.
+
+Both datasources run Flyway at startup. The qhorus datasource receives all migrations at `classpath:db/migration` (including V100+ domain migrations and V1005+ ledger join tables) — this creates redundant tables in the qhorus H2 DB during tests, which is harmless.
 
 ## Build Commands
 
