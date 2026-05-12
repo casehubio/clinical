@@ -36,7 +36,7 @@ public class AdverseEvent extends PanacheEntityBase {
     @Column(name = "reported_at", nullable = false)
     public Instant reportedAt;
 
-    /** Null for Grade 1 and 2 (no GCP SLA). Computed from reportedAt + grade.sla(). */
+    /** Computed as reportedAt + grade.sla(). Present for all grades per GCP ICH E6(R3) §5.17. */
     @Column(name = "sla_deadline")
     public Instant slaDeadline;
 }
