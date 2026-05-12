@@ -7,20 +7,35 @@ import static org.assertj.core.api.Assertions.assertThat;
 class CtcaeGradeTest {
 
     @Test
-    void grade1_and_2_have_no_sla() {
-        assertThat(CtcaeGrade.GRADE_1.sla()).isEmpty();
-        assertThat(CtcaeGrade.GRADE_2.sla()).isEmpty();
+    void grade1_has_7day_sla() {
+        assertThat(CtcaeGrade.GRADE_1.sla()).hasValue(Duration.ofDays(7));
     }
 
     @Test
-    void grade3_and_4_have_24h_sla() {
-        assertThat(CtcaeGrade.GRADE_3.sla()).contains(Duration.ofHours(24));
-        assertThat(CtcaeGrade.GRADE_4.sla()).contains(Duration.ofHours(24));
+    void grade2_has_7day_sla() {
+        assertThat(CtcaeGrade.GRADE_2.sla()).hasValue(Duration.ofDays(7));
+    }
+
+    @Test
+    void grade3_has_24h_sla() {
+        assertThat(CtcaeGrade.GRADE_3.sla()).hasValue(Duration.ofHours(24));
+    }
+
+    @Test
+    void grade4_has_24h_sla() {
+        assertThat(CtcaeGrade.GRADE_4.sla()).hasValue(Duration.ofHours(24));
     }
 
     @Test
     void grade5_has_1h_sla() {
-        assertThat(CtcaeGrade.GRADE_5.sla()).contains(Duration.ofHours(1));
+        assertThat(CtcaeGrade.GRADE_5.sla()).hasValue(Duration.ofHours(1));
+    }
+
+    @Test
+    void all_grades_have_non_empty_sla() {
+        for (CtcaeGrade grade : CtcaeGrade.values()) {
+            assertThat(grade.sla()).as("Grade %s must have SLA", grade).isPresent();
+        }
     }
 
     @Test
