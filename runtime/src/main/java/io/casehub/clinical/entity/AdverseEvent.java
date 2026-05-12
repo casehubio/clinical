@@ -39,4 +39,8 @@ public class AdverseEvent extends PanacheEntityBase {
     /** Computed as reportedAt + grade.sla(). Present for all grades per GCP ICH E6(R3) §5.17. */
     @Column(name = "sla_deadline")
     public Instant slaDeadline;
+
+    /** WorkItem id created by AdverseEventService for GCP SLA tracking. Null until service call. */
+    @Column(name = "work_item_id")
+    public UUID workItemId;
 }
