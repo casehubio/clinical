@@ -2,9 +2,12 @@ package io.casehub.clinical.resource;
 
 import io.quarkus.test.junit.QuarkusTest;
 import org.junit.jupiter.api.Test;
+import java.time.Duration;
+import java.time.Instant;
 import java.util.UUID;
 
 import static io.restassured.RestAssured.given;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.hamcrest.Matchers.*;
 
 /**
@@ -98,5 +101,79 @@ class ShowcaseScenarioTest {
             .body("patientId", equalTo(patientId))
             .body("enrollmentStatus", equalTo("CANDIDATE"))
             .body("consentStatus", equalTo("PENDING"));
+    }
+
+    @Test
+    void site_a_grade3_ae_gets_24h_sla_and_workItemId() {
+        String trialLoc = given()
+            .contentType("application/json")
+            .body("""
+                {
+                  "protocolId": "SHOWCASE-SAE-2026-%s",
+                  "phase": "PHASE_III",
+                  "sponsor": "Acme Oncology",
+                  "targetEnrollment": 300
+                }
+                """.formatted(UUID.randomUUID()))
+            .when().post("/trials").then().statusCode(201).extract().header("Location");
+        UUID trialId = UUID.fromString(trialLoc.substring(trialLoc.lastIndexOf('/') + 1));
+
+        UUID siteAId = addSite(trialId, "pi-showcase-sae-001");
+        UUID patientA = enrollPatient(trialId, siteAId, "PATIENT-SAE-A-001-" + UUID.randomUUID());
+
+        String slaDeadlineStr = given()
+            .contentType("application/json")
+            .body("""
+                {"grade":"GRADE_3","occurredAt":"%s"}
+                """.formatted(Instant.now().minus(Duration.ofHours(2))))
+            .when()
+                .post("/trials/{t}/sites/{s}/patients/{e}/adverse-events",
+                      trialId, siteAId, patientA)
+            .then()
+                .statusCode(201)
+                .body("workItemId", notNullValue())
+                .body("grade", equalTo("GRADE_3"))
+                .extract().path("slaDeadline");
+
+        Instant deadline = Instant.parse(slaDeadlineStr);
+        Duration gap = Duration.between(Instant.now(), deadline);
+        assertThat(gap.toHours()).isBetween(23L, 24L);
+    }
+
+    @Test
+    void site_b_grade5_ae_gets_1h_urgent_sla() {
+        String trialLoc = given()
+            .contentType("application/json")
+            .body("""
+                {
+                  "protocolId": "SHOWCASE-DEATH-2026-%s",
+                  "phase": "PHASE_III",
+                  "sponsor": "Acme Oncology",
+                  "targetEnrollment": 300
+                }
+                """.formatted(UUID.randomUUID()))
+            .when().post("/trials").then().statusCode(201).extract().header("Location");
+        UUID trialId = UUID.fromString(trialLoc.substring(trialLoc.lastIndexOf('/') + 1));
+
+        UUID siteBId = addSite(trialId, "pi-showcase-g5-001");
+        UUID patientB = enrollPatient(trialId, siteBId, "PATIENT-G5-B-001-" + UUID.randomUUID());
+
+        String slaDeadlineStr = given()
+            .contentType("application/json")
+            .body("""
+                {"grade":"GRADE_5","occurredAt":"%s"}
+                """.formatted(Instant.now().minus(Duration.ofMinutes(30))))
+            .when()
+                .post("/trials/{t}/sites/{s}/patients/{e}/adverse-events",
+                      trialId, siteBId, patientB)
+            .then()
+                .statusCode(201)
+                .body("workItemId", notNullValue())
+                .body("grade", equalTo("GRADE_5"))
+                .extract().path("slaDeadline");
+
+        Instant deadline = Instant.parse(slaDeadlineStr);
+        Duration gap = Duration.between(Instant.now(), deadline);
+        assertThat(gap.toMinutes()).isBetween(55L, 65L);
     }
 }
