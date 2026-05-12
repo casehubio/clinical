@@ -6,7 +6,7 @@
 
   <groupId>io.casehub</groupId>
   <artifactId>casehub-clinical-parent</artifactId>
-  <version>0.1-SNAPSHOT</version>
+  <version>0.2-SNAPSHOT</version>
   <packaging>pom</packaging>
 
   <name>CaseHub Clinical :: Parent</name>
@@ -38,6 +38,16 @@
         <groupId>io.casehub</groupId>
         <artifactId>casehub-clinical-api</artifactId>
         <version>${project.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>io.casehub</groupId>
+        <artifactId>casehub-work</artifactId>
+        <version>${version.io.casehub}</version>
+      </dependency>
+      <dependency>
+        <groupId>io.casehub</groupId>
+        <artifactId>casehub-ledger</artifactId>
+        <version>${version.io.casehub}</version>
       </dependency>
       <dependency>
         <groupId>org.assertj</groupId>
