@@ -93,9 +93,21 @@ type: java
 
 ---
 
+## Agentic Harness Goals
+
+**Read first:** `~/claude/casehub/parent/docs/AGENTIC-HARNESS-GUIDE.md`
+
+**Primary goal:** Reference architecture and field showcase for Java developers in regulated healthcare — demonstrating that GCP, FDA, and GDPR requirements are structurally satisfied by CaseHub where workflow-based LLM systems cannot.
+
+**Secondary goal:** LLM and human tutorial material, produced as a by-product of building the application correctly. The tutorial structure emerges from the layered adoption sequence — do not design for the tutorial.
+
+**LAYER-LOG.md** (`LAYER-LOG.md` at project root) is the primary new artifact. A layer is not complete until its entry is written. See the AML reference implementation and `docs/protocols/universal/layer-log.md` in casehub-parent for the format.
+
+---
+
 ## What This Project Is
 
-`casehub-clinical` is the **clinical trial coordination application** built on the CaseHub platform foundation. It is the market entry demonstration for CaseHub in regulated healthcare — showing that GCP, FDA, and GDPR requirements cannot be met by workflow-based LLM systems and are structurally satisfied by CaseHub's foundation.
+`casehub-clinical` is an **agentic harness for clinical trial coordination** built on the CaseHub platform foundation. It coordinates eligibility screening agents, safety monitoring agents, PI authorisation gates, and IRB approval gates — producing an FDA-compliant, GDPR-aware, independently verifiable audit trail. Field showcase and tutorial for Java developers in regulated healthcare.
 
 This is an **application layer**, not a framework. The foundation provides coordination, accountability, audit, and compliance primitives. casehub-clinical provides the clinical trial domain logic: what a trial protocol is, how a site manages patient enrollment, how adverse events escalate, and how the FDA audit trail is constructed.
 
@@ -128,8 +140,12 @@ This is an application, not a framework. If the capability requires knowledge of
 
 | Document | What it covers |
 |----------|---------------|
+| `~/claude/casehub/parent/docs/AGENTIC-HARNESS-GUIDE.md` | Goals, what to produce, retroactive work instructions, layer maintenance |
+| `~/claude/casehub/parent/docs/repos/casehub-clinical.md` | Harness structure, tutorial layers table, layer status |
 | `~/claude/casehub/parent/docs/use-case-analysis.md` | Use case scoring, clinical trial selection rationale (§8.1), GCP compliance gap analysis |
-| `~/claude/casehub/parent/docs/tutorial-strategy.md` | Clinical trial showcase scenario (§7), multi-site demonstration design, ClinicalAgent comparison |
+| `~/claude/casehub/parent/docs/tutorial-strategy.md` | Clinical tutorial layers §7 — teaching objectives and code sketches per layer |
+| `~/claude/casehub/parent/docs/protocols/casehub/HARNESS-INDEX.md` | CaseHub app protocols |
+| `~/claude/casehub/parent/docs/protocols/universal/INDEX.md` | Universal Java/Quarkus protocols |
 
 ## External Reference Standards
 
