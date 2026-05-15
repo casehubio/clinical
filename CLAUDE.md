@@ -69,19 +69,19 @@ Before any git operation, run `git rev-parse --show-toplevel` to confirm which r
 
 This repo is one component of the casehubio multi-repo platform. **Before implementing anything — any feature, SPI, data model, or abstraction — run the Platform Coherence Protocol.**
 
-> **Platform docs:** Local paths use `~/claude/casehub/parent/docs/` as root. If a path doesn't exist, the parent repo isn't cloned locally — fetch from `https://raw.githubusercontent.com/casehubio/parent/main/docs/<path>` instead.
+> **Platform docs:** Local paths use `../parent/docs/` as root. If a path doesn't exist, the parent repo isn't cloned locally — fetch from `https://raw.githubusercontent.com/casehubio/parent/main/docs/<path>` instead.
 
 **Platform architecture (fetch before any implementation decision):**
 ```
-~/claude/casehub/parent/docs/PLATFORM.md
+../parent/docs/PLATFORM.md
 ```
 
 **Foundation repo deep-dives:**
-- casehub-engine: `~/claude/casehub/parent/docs/repos/casehub-engine.md`
-- casehub-ledger: `~/claude/casehub/parent/docs/repos/casehub-ledger.md`
-- casehub-work: `~/claude/casehub/parent/docs/repos/casehub-work.md`
-- casehub-qhorus: `~/claude/casehub/parent/docs/repos/casehub-qhorus.md`
-- casehub-connectors: `~/claude/casehub/parent/docs/repos/casehub-connectors.md`
+- casehub-engine: `../parent/docs/repos/casehub-engine.md`
+- casehub-ledger: `../parent/docs/repos/casehub-ledger.md`
+- casehub-work: `../parent/docs/repos/casehub-work.md`
+- casehub-qhorus: `../parent/docs/repos/casehub-qhorus.md`
+- casehub-connectors: `../parent/docs/repos/casehub-connectors.md`
 
 ---
 
@@ -95,7 +95,7 @@ type: java
 
 ## Agentic Harness Goals
 
-**Read first:** `~/claude/casehub/parent/docs/AGENTIC-HARNESS-GUIDE.md`
+**Read first:** `../parent/docs/AGENTIC-HARNESS-GUIDE.md`
 
 **Primary goal:** Reference architecture and field showcase for Java developers in regulated healthcare — demonstrating that GCP, FDA, and GDPR requirements are structurally satisfied by CaseHub where workflow-based LLM systems cannot.
 
@@ -140,12 +140,12 @@ This is an application, not a framework. If the capability requires knowledge of
 
 | Document | What it covers |
 |----------|---------------|
-| `~/claude/casehub/parent/docs/AGENTIC-HARNESS-GUIDE.md` | Goals, what to produce, retroactive work instructions, layer maintenance |
-| `~/claude/casehub/parent/docs/repos/casehub-clinical.md` | Harness structure, tutorial layers table, layer status |
-| `~/claude/casehub/parent/docs/use-case-analysis.md` | Use case scoring, clinical trial selection rationale (§8.1), GCP compliance gap analysis |
-| `~/claude/casehub/parent/docs/tutorial-strategy.md` | Clinical tutorial layers §7 — teaching objectives and code sketches per layer |
-| `~/claude/casehub/parent/docs/protocols/casehub/HARNESS-INDEX.md` | CaseHub app protocols |
-| `~/claude/casehub/parent/docs/protocols/universal/INDEX.md` | Universal Java/Quarkus protocols |
+| `../parent/docs/AGENTIC-HARNESS-GUIDE.md` | Goals, what to produce, retroactive work instructions, layer maintenance |
+| `../parent/docs/repos/casehub-clinical.md` | Harness structure, tutorial layers table, layer status |
+| `../parent/docs/use-case-analysis.md` | Use case scoring, clinical trial selection rationale (§8.1), GCP compliance gap analysis |
+| `../parent/docs/tutorial-strategy.md` | Clinical tutorial layers §7 — teaching objectives and code sketches per layer |
+| `../parent/docs/protocols/casehub/HARNESS-INDEX.md` | CaseHub app protocols |
+| `../parent/docs/protocols/universal/INDEX.md` | Universal Java/Quarkus protocols |
 
 ## External Reference Standards
 
@@ -327,7 +327,7 @@ mvn compile -pl api,runtime --batch-mode
 ## Development Workflow
 
 ### Platform Coherence
-Before implementing any feature, SPI, data model, or abstraction — run the Platform Coherence Protocol in `~/claude/casehub/parent/docs/PLATFORM.md`. Check capability ownership, boundary rules, and consistency with existing patterns. Update platform docs if new patterns are established.
+Before implementing any feature, SPI, data model, or abstraction — run the Platform Coherence Protocol in `../parent/docs/PLATFORM.md`. Check capability ownership, boundary rules, and consistency with existing patterns. Update platform docs if new patterns are established.
 
 ### TDD
 Every implementation plan must include tests at all levels:
