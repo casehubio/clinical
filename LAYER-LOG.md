@@ -1,0 +1,314 @@
+# casehub-clinical Agentic Harness — Layer Log
+
+Structured record of what was built at each layer, optimised for LLM consumption and future tutorial generation. Correlates with blog entries in the workspace `blog/`, git history, and GitHub issues.
+
+Each entry documents one layer of the adoption sequence — ordered for learning, not for chronology. Entries are written when work on a layer begins; sections marked `🔲` are placeholders with context for future sessions to fill in.
+
+Cross-references:
+- Blog entries: workspace `blog/` (staged; published to mdproctor.github.io via `publish-blog`)
+- Design specs: workspace `specs/` and promoted to project `docs/specs/`
+- Tutorial teaching objectives: `../parent/docs/tutorial-strategy.md §7`
+- AML reference implementation: `../aml/LAYER-LOG.md` (Layers 1 and 2 complete)
+- Platform compliance gap analysis: `docs/use-case-analysis.md §8.1` in casehub-parent
+
+**Architectural note — no NaiveXxxService pattern:** casehub-clinical uses Panache Active Record entities as domain objects directly (documented exception in CLAUDE.md: no downstream consumers, application tier only). There is no `NaiveClinicalService.java` with `@DefaultBean` displacement as in AML. The "naive" layer IS the entities + REST API with no CaseHub foundation modules wired. This divergence is intentional — document it in each layer entry rather than treating it as a gap.
+
+---
+
+## Layer 1 — Naive Java (no CaseHub)
+
+**Completed:** 2026-05-08 (Epic 1: scaffold `[8f628a8]`; Epic 2: domain model `[488ea67]`)
+**Issues:** casehubio/clinical#1 (Epic 1), casehubio/clinical#2 (Epic 2)
+**Blog:** `blog/2026-05-08-mdp01-clinical-foundation.md` — module split decision, FHIR validation, Quarkus surprises
+**Key files:**
+- `api/src/main/java/io/casehub/clinical/api/ClinicalCapabilities.java` — 8 capability tag string constants for the engine
+- `api/src/main/java/io/casehub/clinical/api/ClinicalTrustDimensions.java` — 3 trust dimension constants (`safety-accuracy`, `eligibility-precision`, `protocol-adherence`)
+- `api/src/main/java/io/casehub/clinical/api/model/CtcaeGrade.java` — Grade 1–5 with CTCAE v5.0 SLA durations; Grade 3/4 = 24h, Grade 5 = 1h (internal), Grade 1/2 = 7d
+- `api/src/main/java/io/casehub/clinical/api/model/` — `TrialPhase`, `EnrollmentStatus`, `ConsentStatus`, `DeviationSeverity`, `PiApprovalStatus`, `IrbDecision`, `AeOutcome`, `EventActuality`
+- `runtime/src/main/java/io/casehub/clinical/entity/ClinicalTrial.java` — trial: protocolId, phase, sponsor, targetEnrollment, status
+- `runtime/src/main/java/io/casehub/clinical/entity/TrialSite.java` — investigator site: trialId, investigatorId, status
+- `runtime/src/main/java/io/casehub/clinical/entity/PatientEnrollment.java` — per-patient: siteId, patientId, consentStatus, enrollmentStatus
+- `runtime/src/main/java/io/casehub/clinical/entity/AdverseEvent.java` — safety event: enrollmentId, grade, occurredAt, reportedAt, slaDeadline, workItemId
+- `runtime/src/main/java/io/casehub/clinical/entity/ProtocolDeviation.java` — deviation: type, severity, piApprovalStatus, reportedAt
+- `runtime/src/main/java/io/casehub/clinical/entity/IrbApproval.java` — ethics gate: reviewType, committeeId, decisionDeadline, decision
+- `runtime/src/main/java/io/casehub/clinical/resource/TrialResource.java` — POST/GET `/trials` and `/trials/{id}`
+- `runtime/src/main/java/io/casehub/clinical/resource/SiteResource.java` — POST/GET `/trials/{id}/sites` and `/trials/{id}/sites/{id}`
+- `runtime/src/main/java/io/casehub/clinical/resource/PatientResource.java` — POST/GET patients; POST adverse events (delegates to service in Layer 2)
+- `runtime/src/test/java/io/casehub/clinical/resource/ShowcaseScenarioTest.java` — 3-site oncology scenario: register trial, 3 independent sites, enroll patients, verify ownership chain
+
+### What it shows
+
+The clinical domain model with no CaseHub foundation modules: six JPA entities, all domain enums sourced from FHIR R5 and CTCAE v5.0, capability tag constants, and a REST API that persists entities directly with no accountability, SLA, or audit wiring. Three REST resources expose the trial, site, and patient enrollment lifecycle. The 3-site showcase test registers a trial, adds independent sites, and enrolls patients.
+
+This is the baseline every subsequent layer improves. The gaps are structural — the REST API for enrollment calls `enrollment.persist()` directly. No record exists of who enrolled a patient or when. No SLA governs how long an adverse event review can sit. No formal obligation exists when a deviation occurs. These absences are the teaching mechanism for Layers 2–5.
+
+### The gap comments
+
+Clinical does not use the `NaiveXxxService @DefaultBean` pattern (see architectural note above). The Layer 1 code has no explicit gap comments. The gaps visible in Layer 1 are architectural, not annotated:
+
+- `PatientEnrollment.persist()` called directly — no attribution, no audit record. Who enrolled this patient? No record.
+- `AdverseEvent` entity exists with no SLA enforcement — a safety officer can sit on a Grade 3 event indefinitely. GCP ICH E6(R3) §5.17 requires reporting within 24 hours. Nothing enforces this.
+- `ProtocolDeviation` records that a deviation occurred — no named PI is required to take formal responsibility. A log entry proves the deviation was noticed, not that anyone was accountable for it.
+- `IrbApproval` holds a `decisionDeadline` field — nothing fires if the deadline passes.
+- No tamper-evident audit trail exists anywhere in Layer 1. ClinicalAgent has the same gap. The Merkle chain comes in Layer 4.
+
+These gaps map directly to the compliance gap table in `docs/use-case-analysis.md §8.1` in casehub-parent.
+
+### Key wiring
+
+**Module split with Active Record exception.** Platform protocol requires `api/` (pure Java, no JPA) + `runtime/` (Quarkus app, entities, migrations). casehub-clinical applies the exception: no downstream consumers exist, so Panache Active Record entities in `runtime/` serve directly as domain objects. `api/` holds only enums and constants. This is documented in CLAUDE.md; downstream JPA complexity does not apply. Contrast with AML where `api/` also holds service interfaces.
+
+**FHIR R5 validation of domain model.** Domain fields were validated against FHIR R5 `ResearchStudy`, `ResearchSubject`, and `AdverseEvent` before writing entities. Three gaps surfaced: `targetEnrollment` was missing (needed to know when `enrollment-complete` goal is met), `EnrollmentStatus` needed a full state machine (not just `ConsentStatus`), and `AdverseEvent` needed two timing fields (`occurredAt` vs `reportedAt` — GCP tracks both). The entity set reflects FHIR R5 field names and semantics.
+
+**`CtcaeGrade` SLA sourcing.** Grades 3 and 4 trigger 24-hour expedited reporting per ICH E6(R3) §5.17. Grade 5 uses a 1-hour internal SLA — product policy stricter than GCP minimum; the Javadoc says so explicitly. Grades 1 and 2 carried `null` SLA initially (wrong — fixed in Epic 4 before Layer 2 shipped). The SLA values are defined in the enum and used throughout Layers 2 and 4.
+
+**`quarkus-hibernate-validator` is not included by default.** `quarkus-rest` does not pull in Bean Validation. `@NotBlank`, `@NotNull`, `@Valid` compile and wire silently but do nothing without `quarkus-hibernate-validator`. A missing required field returns 200. Adding the dependency is required.
+
+**Greenfield multi-module compile ordering.** `mvn compile -pl api,runtime` fails on a fresh checkout with `NoSuchFileException` if `api/` has no compiled classes yet. Quarkus `generate-code` scans `api/target/classes` before the Java compiler runs. Fix: `mvn install -pl api` first, then proceed. Resolves once `api/` has real sources.
+
+### Gotchas
+
+- **Symptom:** `@NotBlank`, `@NotNull`, `@Valid` annotations compile and wire but a missing required field returns 200.
+  **Cause:** `quarkus-rest` does not include Bean Validation. The validation infrastructure is absent, not misconfigured.
+  **Fix:** Add `quarkus.hibernate.validator` (or `quarkus-hibernate-validator`) to `runtime/pom.xml`.
+
+- **Symptom:** `mvn compile -pl api,runtime` fails with `NoSuchFileException` pointing at `api/target/classes` on a fresh clone or after `mvn clean`.
+  **Cause:** Quarkus `generate-code` goal on `runtime` scans `api/target/classes` before javac runs. Empty target directory causes failure.
+  **Fix:** Two-phase build: `mvn install -pl api`, then `mvn compile -pl runtime`. Self-resolves once `api/` has compiled output in the local Maven repo.
+
+- **Symptom:** Ownership check on GET patient returns 200 for patients belonging to a different trial when the caller knows a valid siteId.
+  **Cause:** Initial GET handler validated `enrollment.siteId == siteId` but did not validate `site.trialId == trialId`. Ownership chain was asymmetric.
+  **Fix:** Add `TrialSite.findById(siteId)` + `site.trialId.equals(trialId)` check to every GET that traverses the ownership hierarchy. Commit `328d449`.
+
+### Pattern to replicate (in another domain)
+
+1. Create `api/` Maven module — pure Java, zero framework imports, zero JPA. Holds domain enums and capability/trust constants only (clinical variant — AML also puts service interfaces here).
+2. Source domain enums from authoritative standards before writing code. For clinical: FHIR R5 field names, CTCAE v5.0 grade definitions, ICH E6(R3) SLA obligations. The standard is the spec.
+3. Define `CtcaeGrade` (or equivalent) with SLA durations embedded as `Duration` values — these anchor every SLA computation in Layers 2 and 4.
+4. Create `runtime/` Maven module with Quarkus and Panache Active Record. Domain entities go here directly if no downstream JPA consumers exist.
+5. Write Flyway migrations in `V100–V999` range if casehub-work will be added later — it occupies V1–V21+ and Quarkus scans transitive JARs.
+6. Implement REST resources calling Panache directly (`Entity.persist()`) — no service layer yet. This is the Layer 1 state.
+7. Add `quarkus-hibernate-validator` immediately — not optional.
+8. Write a showcase test that exercises the full domain hierarchy end-to-end (trial → site → patient → adverse event). This test grows with each layer.
+9. Validate the ownership chain in every GET handler: each path segment must be validated against its parent, not just its own existence.
+
+---
+
+## Layer 2 — + casehub-work (adverse event SLA enforcement)
+
+**Completed:** 2026-05-12 (Epic 4: `[2696f98]`, `[b6ea707]`, `[15e274b]`)
+**Note:** Layer 2 (casehub-work) and Layer 4 (casehub-ledger) were built simultaneously in Epic 4. They are separate tutorial entries in teaching order; both reference Epic 4 as the source.
+**Issue:** casehubio/clinical#4
+**Blog:** `blog/2026-05-12-mdp02-adverse-event-sla-wiring.md` — Flyway collision, escalation as deployment config, ledger field discovery
+**Design spec:** workspace `specs/2026-05-11-epic4-adverse-event-escalation-design.md`
+**Key files:**
+- `runtime/src/main/java/io/casehub/clinical/service/AdverseEventService.java` — creates WorkItem with grade-keyed `claimDeadline`; writes ledger entry; persists entity — one `@Transactional` call
+- `runtime/src/main/resources/db/migration/V106__adverse_event_work_item_id.sql` — adds `work_item_id UUID` to `adverse_event` table
+
+### What it shows
+
+Adds `casehub-work` to create a formal safety officer `WorkItem` with a grade-keyed `claimDeadline` — the GCP ICH E6(R3) adverse event reporting SLA. Grade 3/4 = 24 hours. Grade 5 (death) = 1 hour. Grade 1/2 = 7 days. The `AdverseEvent` entity now carries a `workItemId` — the caller can track the safety review independently of the event.
+
+This closes the most visible gap in Layer 1: a Grade 3 adverse event could sit indefinitely. Now the platform escalates if the SLA deadline passes. ClinicalAgent has no equivalent — this single wiring delivers more structural regulatory value than ClinicalAgent's entire codebase.
+
+### The gap comments
+
+Layer 1 has no explicit gap comments (see architectural note). The Layer 1 absence that Layer 2 closes:
+
+```
+// Layer 1: adverse event persisted directly — no SLA, no formal obligation
+// POST /adverse-events → ae.persist() → 201
+
+// Layer 2: adverse event routed through AdverseEventService
+// → WorkItem with claimDeadline = reportedAt + grade.sla()
+// → Platform escalates on miss; clinical code does not change between deployments
+```
+
+`reportedAt` is set server-side — the client-supplied value is ignored. This anchors the SLA clock to the server's notion of when the event was documented, not the client's.
+
+### Key wiring
+
+**Flyway version collision — clinical domain migrations must start at V100.** casehub-work ships Flyway migrations in its JAR at `classpath:db/migration`, V1 through V21+. Quarkus Flyway scans transitive JARs for that path — not just application resources. Clinical's initial domain migrations were V1–V6 (wrong) and renamed to V100–V105 before Epic 4 landed. Any harness adding casehub-work must start its domain migrations at V100 or higher. This is documented in CLAUDE.md.
+
+**`casehub-work-api` safe in `api/`, `casehub-work` (JPA runtime) only in `runtime/`.** Same pattern as AML Layer 2. `casehub-work-api` contains only request/response types (no JPA) — safe to add to the pure Java module. `casehub-work` with JPA entities goes in `runtime/pom.xml` only.
+
+**`WorkItemCreateRequest` — key fields.** No builder yet (tracked in casehubio/work#168). Pass `null` for unused fields. Key fields for adverse event routing:
+- `claimDeadline` = `ae.reportedAt + ae.grade.sla().orElseThrow()`
+- `category` = `"adverse-event"`
+- `candidateGroups` = `"safety-officers"` for Grade 1/2; `"dsmb,safety-officers"` for Grade ≥ 3
+- `callerRef` = `"clinical:adverse-event/" + ae.id`
+
+**Escalation policy is deployment configuration, not clinical code.** What happens when `claimDeadline` passes is wired via `EscalationPolicy` SPI at deployment time — spawn a DSMB WorkItem, fire a notification, etc. Clinical sets `candidateGroups` and `claimDeadline`. Different trial types or phases carry different escalation configs. casehub-connectors safety officer notification is deferred to casehubio/clinical#11.
+
+**Hibernate scan packages — not applicable for this layer.** Clinical uses Panache Active Record (no explicit scan packages required) — unlike AML which required `io.casehub.work.runtime.model,io.casehub.work.runtime.filter`. This divergence is because clinical's Panache entities are in the same module as the runtime, not in a separate app module.
+
+### Gotchas
+
+- **Symptom:** Flyway startup fails with "Found more than one migration with version 1" after adding casehub-work.
+  **Cause:** casehub-work ships `V1` through `V21+` at `classpath:db/migration`. Quarkus Flyway scans that path in all transitive JARs. If clinical also has a `V1` migration, both are found and Flyway refuses to start.
+  **Fix:** Rename all clinical domain migrations to V100–V999 before adding casehub-work. Convention documented in CLAUDE.md. Applies to all casehub harnesses.
+
+- **Symptom:** Flyway reports V1004 is already applied when trying to create `V1004__ae_ledger_entry.sql`.
+  **Cause:** casehub-ledger added `V1004__actor_identity.sql` after the convention "V1004+ for consumer-owned ledger joins" was written. The convention predated the ledger's own use of V1004.
+  **Fix:** Consumer-owned ledger subclass join tables start at V1005. `ae_ledger_entry` is at `V1005__ae_ledger_entry.sql`. CLAUDE.md updated. (This gotcha belongs to Layer 4 but surfaces at the same time as this layer since both were built in Epic 4.)
+
+- **Symptom:** `AdverseEventService.reportAdverseEvent` throws "Failed to enlist. Check if a connection from another datasource is already enlisted to the same transaction" in tests.
+  **Cause:** This method writes to two datasources (default for domain entity, qhorus for ledger entry) in one `@Transactional` call. Agroal's default local-transaction mode does not allow a second datasource to join an existing JTA transaction. H2 supports XA; Agroal just doesn't use it by default.
+  **Fix:** Add to test `application.properties`: `quarkus.datasource.jdbc.transactions=xa` and `quarkus.datasource.qhorus.jdbc.transactions=xa`. (Also a Layer 4 concern — included here because it blocks this layer's tests.)
+
+### Pattern to replicate (in another domain)
+
+1. Rename all existing domain Flyway migrations to V100+ before adding casehub-work
+2. Add `casehub-work-api` to `api/pom.xml`; add `casehub-work` to `runtime/pom.xml`
+3. Implement a `@ApplicationScoped` service for the SLA-bearing domain event (adverse event, investigation, deviation):
+   - Set `reportedAt` server-side — never trust the client's clock for SLA anchoring
+   - Compute `slaDeadline` from the domain's severity/grade enum SLA duration
+   - Create `WorkItemCreateRequest` with `claimDeadline = slaDeadline`, `candidateGroups` matching the domain's reviewer pool, `callerRef` as a URI for the domain entity
+   - Persist the domain entity with `workItemId` set from the created WorkItem
+4. Add XA transaction config to test `application.properties` if writing to two datasources in one `@Transactional` method
+5. Test: unit-test the service (grade → claimDeadline arithmetic); `@QuarkusTest` asserting `workItemId` is set and `slaDeadline` is correct for each severity level; extend the showcase test with SLA assertions
+
+---
+
+## Layer 3 — + casehub-qhorus (PI authorisation for protocol deviations)
+
+**Completed:** 🔲 in progress — Epic 5 scaffolded 2026-05-15, no Java committed yet
+**Issue:** casehubio/clinical#5 (Epic 5: PI authorisation)
+**Blog:** `blog/2026-05-15-mdp01-protocol-deviation-accountability.md` — design intent and classification problem
+**Key files:**
+- `runtime/src/main/java/io/casehub/clinical/entity/ProtocolDeviation.java` — entity exists from Layer 1; `piApprovalStatus` field is the hook
+- 🔲 `runtime/src/main/java/io/casehub/clinical/service/ProtocolDeviationService.java` — not yet built; issues COMMAND to named PI; creates formal Commitment with deadline
+- 🔲 `runtime/src/main/java/io/casehub/clinical/resource/DeviationResource.java` — not yet built; `POST /trials/{id}/sites/{id}/deviations`
+
+### What it shows
+
+Adds `casehub-qhorus` to issue a formal COMMAND to the named Principal Investigator when a protocol deviation is classified. The COMMAND creates a formal Commitment with a deadline — the PI must acknowledge, assess, and respond. This is what GCP ICH E6(R3) actually requires: not a log entry proving the deviation was noticed, but a named person formally on record.
+
+ClinicalAgent logs deviations. Logging proves notice. The COMMAND proves accountability — a named PI with a traceable obligation and a deadline the platform will escalate if missed. The distinction is structural; no amount of logging sophistication can close this gap.
+
+Layer 3 goes between Layers 2 and 4 in tutorial order even though it was started after Layer 4 was built. The teaching sequence is: SLA enforcement (Layer 2) → formal obligation (Layer 3) → tamper-evident audit (Layer 4).
+
+### The gap comments
+
+🔲 To be written when `ProtocolDeviationService` is built. The gap to close from Layer 1:
+
+```
+// Layer 1 gap: ProtocolDeviation.persist() — records that a deviation occurred,
+// no named PI, no formal commitment, no deadline.
+// In a GCP audit: proves notice, not accountability.
+```
+
+Expected Layer 3 replacement: COMMAND issued to `deviation.siteInvestigatorId`, Commitment created with `responseDeadline` set per deviation severity, `piApprovalStatus` updated to `PENDING_PI_RESPONSE`. Blog entry `2026-05-15-mdp01-protocol-deviation-accountability.md` documents the classification decision needed first: some deviations close at site level; others require sponsor/IRB escalation with different deadlines and responsible parties.
+
+### Key wiring
+
+🔲 To fill in when built. Expected wiring concerns:
+- COMMAND routing — which qhorus channel receives the PI commitment? Likely `pi-authorisation` matching the capability tag in `ClinicalCapabilities`.
+- `responseDeadline` — not uniform. Minor deviations: site PI resolves within a short window. Significant deviations requiring protocol amendment: may escalate to sponsor with a longer deadline. Classification logic precedes the COMMAND issue.
+- Whether `ProtocolDeviation.piApprovalStatus` transitions are driven by COMMAND lifecycle events or by a polling/callback from qhorus. See casehub-qhorus foundation pattern.
+
+### Gotchas
+
+🔲 To fill in when built. Expected gotchas based on Epic 5 day-zero blog:
+- Deviation classification is the hard part — `DeviationSeverity` already exists as an enum; whether the COMMAND routing and `responseDeadline` are derived from it or from a separate classification step is TBD.
+- See `runtime/src/main/java/io/casehub/clinical/entity/ProtocolDeviation.java` for the current `piApprovalStatus` hook — check whether the state machine on `PiApprovalStatus` needs extending before the COMMAND is wired.
+
+### Pattern to replicate (in another domain)
+
+🔲 To fill in when built. Sketch from design intent:
+
+1. Add `casehub-qhorus-api` to `api/pom.xml`; add `casehub-qhorus` to `runtime/pom.xml`
+2. Implement a `@ApplicationScoped` service that receives a classified domain event (deviation, compliance escalation, etc.) and issues a COMMAND to the named responsible party
+3. Set `responseDeadline` from the domain's severity/urgency classification — not uniform; map severity levels to deadline durations before writing service code
+4. Persist the domain entity with status set to `PENDING_PI_RESPONSE` (or equivalent)
+5. 🔲 Wire Commitment lifecycle events back to domain entity status updates (mechanism TBD — qhorus callback or polling)
+6. Test: verify COMMAND is issued with correct responsible party and deadline; verify entity status transitions
+
+---
+
+## Layer 4 — + casehub-ledger (FDA tamper-evident audit trail)
+
+**Completed:** 2026-05-12 (Epic 4: `[a6e5055]` — built simultaneously with Layer 2)
+**Note:** Layer 4 (casehub-ledger) and Layer 2 (casehub-work) were built simultaneously in Epic 4. They are separate tutorial entries in teaching order; the log entry for Layer 2 covers the Flyway and XA gotchas that also apply here.
+**Issue:** casehubio/clinical#4
+**Blog:** `blog/2026-05-12-mdp02-adverse-event-sla-wiring.md` — three casehub-ledger surprises
+**Key files:**
+- `runtime/src/main/java/io/casehub/clinical/ledger/AdverseEventLedgerEntry.java` — ledger subclass in the `ledger` package (not `entity`)
+- `runtime/src/main/resources/db/migration/V1005__ae_ledger_entry.sql` — join table for `AdverseEventLedgerEntry`
+
+### What it shows
+
+Adds `casehub-ledger` to write a tamper-evident `AdverseEventLedgerEntry` into the Merkle audit chain when an adverse event is reported. The entry is written in the same `@Transactional` call as the WorkItem creation and entity persist. A ledger write failure rolls back everything — no partial state.
+
+This closes the "no audit trail" gap from Layer 1: the complete decision chain for every adverse event at every site is now independently verifiable by the FDA. ClinicalAgent has no equivalent. The Merkle chain means no post-hoc modification is undetectable.
+
+### The gap comments
+
+The Layer 1 absence that Layer 4 closes: the adverse event was persisted with no tamper-evident record. Any database modification (intentional or accidental) is undetectable. The ledger entry provides independent verifiability.
+
+```
+// Layer 1: ae.persist() — no audit trail
+// Any post-hoc modification is undetectable; FDA cannot independently verify the record
+
+// Layer 4: AdverseEventLedgerEntry written to Merkle chain in same transaction
+// Independently verifiable; modification of either record is detectable
+```
+
+### Key wiring
+
+**`AdverseEventLedgerEntry` must be in a separate package from domain entities.** Panache entities cannot span two persistence units. `AdverseEventLedgerEntry` extends `LedgerEntry` (qhorus PU) — if it lives in `io.casehub.clinical.entity` (listed in both PUs), Quarkus fails the build immediately: "Panache entities do not support being attached to several persistence units." The fix: `io.casehub.clinical.ledger` package, listed only under the qhorus PU configuration.
+
+```properties
+# Default PU: clinical domain entities
+quarkus.hibernate-orm.packages=io.casehub.clinical.entity
+# qhorus PU: ledger subclasses only
+quarkus.hibernate-orm.qhorus.packages=io.casehub.ledger.runtime.entity,io.casehub.clinical.ledger
+```
+
+**`beans.xml` `<alternatives>` is silently ignored by Quarkus ArC.** `JpaLedgerEntryRepository` is `@Alternative @ApplicationScoped`. Standard CDI wires it via `<alternatives>` in `beans.xml`. Quarkus ArC ignores `beans.xml` alternatives — the application starts cleanly with no warning, then CDI fails with "Unsatisfied dependency for type LedgerEntryRepository." The actual fix is an `application.properties` entry:
+
+```properties
+quarkus.arc.selected-alternatives=io.casehub.ledger.runtime.repository.jpa.JpaLedgerEntryRepository
+```
+
+This must be in both `application.properties` (runtime) and test `application.properties`.
+
+**`LedgerEntry` fields — no builder, no documented list.** `LedgerEntryRepository.save()` expects `id`, `subjectId`, `sequenceNumber`, `entryType`, `actorId`, `actorType`, `actorRole`, and `occurredAt` — all set by the caller. No builder, no factory, no documented required fields list at the time of writing. The only usage example was a test helper method in `LedgerPrivacyWiringIT.java` (in casehub-ledger source). Found by reading source.
+
+**V1004 is taken by casehub-ledger.** The convention "V1004+ for consumer-owned ledger subclass join tables" was written before casehub-ledger added `V1004__actor_identity.sql`. Consumer join tables start at V1005. `AdverseEventLedgerEntry` join table is at `V1005__ae_ledger_entry.sql`. CLAUDE.md updated.
+
+**XA transactions required for dual-datasource writes in tests.** See Layer 2 Gotchas — applies here identically. `reportAdverseEvent` writes to two datasources in one `@Transactional` call. Test `application.properties` must include:
+
+```properties
+quarkus.datasource.jdbc.transactions=xa
+quarkus.datasource.qhorus.jdbc.transactions=xa
+```
+
+### Gotchas
+
+- **Symptom:** Quarkus build fails with "Panache entities do not support being attached to several persistence units" when `AdverseEventLedgerEntry` is in `io.casehub.clinical.entity`.
+  **Cause:** The package is listed in both the default PU and the qhorus PU. Panache entities cannot be scanned by two PUs simultaneously.
+  **Fix:** Move `AdverseEventLedgerEntry` to `io.casehub.clinical.ledger`. List that package only under the qhorus PU. Do not list it in the default PU packages.
+
+- **Symptom:** Application starts cleanly but CDI fails at injection point with "Unsatisfied dependency for type LedgerEntryRepository" or "Ambiguous dependencies".
+  **Cause:** `JpaLedgerEntryRepository` is `@Alternative @ApplicationScoped`. Quarkus ArC ignores `beans.xml` `<alternatives>` entirely — no warning is emitted. The alternative is not activated.
+  **Fix:** Add `quarkus.arc.selected-alternatives=io.casehub.ledger.runtime.repository.jpa.JpaLedgerEntryRepository` to both `application.properties` and test `application.properties`. Do not rely on `beans.xml`.
+
+- **Symptom:** LedgerEntry write succeeds but required fields (`sequenceNumber`, `actorId`, `actorType`) are null, causing downstream validation or Merkle computation to fail.
+  **Cause:** No builder or documented required field list. Easy to miss non-obvious required fields without a reference implementation.
+  **Fix:** Find `LedgerPrivacyWiringIT.java` in casehub-ledger source — the test helper method is the only documented usage example at time of writing. Copy the field list; do not rely on documentation.
+
+### Pattern to replicate (in another domain)
+
+1. Add `casehub-ledger` to `runtime/pom.xml`
+2. Create a ledger subclass in a dedicated package (e.g. `io.casehub.{domain}.ledger`, not `.entity`):
+   - Extends `LedgerEntry`
+   - `@DiscriminatorValue("YOUR_EVENT_TYPE")`
+   - Domain-specific fields: event id, subject id, severity/grade, timing fields
+3. Add the ledger package only to the qhorus PU packages config — never to the default PU
+4. Add `quarkus.arc.selected-alternatives=io.casehub.ledger.runtime.repository.jpa.JpaLedgerEntryRepository` to both `application.properties` files
+5. Add XA transaction config to test properties (see Layer 2 pattern step 4)
+6. Create Flyway join table migration at V1005+ (V1004 is taken by casehub-ledger itself)
+7. Populate all required `LedgerEntry` fields before calling `save()` — reference `LedgerPrivacyWiringIT.java` in casehub-ledger for the required field list
+8. Wrap domain entity persist, WorkItem creation, and ledger write in a single `@Transactional` method — atomic or nothing
+9. Test: verify the `LedgerEntry` is written with correct fields; verify that a simulated ledger write failure rolls back the entity persist and WorkItem creation
