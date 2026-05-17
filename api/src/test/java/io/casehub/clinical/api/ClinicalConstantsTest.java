@@ -1,10 +1,14 @@
 package io.casehub.clinical.api;
 
+import io.casehub.clinical.api.model.DeviationSeverity;
 import io.casehub.clinical.api.model.EscalationRequirement;
 import io.casehub.clinical.api.model.PiApprovalStatus;
+import io.casehub.clinical.api.model.TrialPhase;
+import io.casehub.clinical.api.spi.DeviationContext;
 import org.junit.jupiter.api.Test;
 
 import java.util.Set;
+import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -50,5 +54,27 @@ class ClinicalConstantsTest {
             EscalationRequirement.SPONSOR_NOTIFICATION,
             EscalationRequirement.IRB_REVIEW
         );
+    }
+
+    @Test
+    void deviationContextCarriesAllFields() {
+        var ctx = new DeviationContext(
+            UUID.randomUUID(), UUID.randomUUID(), UUID.randomUUID(),
+            "PROT-001", TrialPhase.PHASE_II, DeviationSeverity.MAJOR,
+            "sample-window"
+        );
+        assertThat(ctx.severity()).isEqualTo(DeviationSeverity.MAJOR);
+        assertThat(ctx.phase()).isEqualTo(TrialPhase.PHASE_II);
+    }
+
+    @Test
+    void protocolDeviationResolvedEventCarriesEscalation() {
+        var event = new ProtocolDeviationResolvedEvent(
+            UUID.randomUUID(), UUID.randomUUID(),
+            DeviationSeverity.CRITICAL, EscalationRequirement.IRB_REVIEW,
+            PiApprovalStatus.ESCALATED
+        );
+        assertThat(event.escalationRequirement()).isEqualTo(EscalationRequirement.IRB_REVIEW);
+        assertThat(event.terminalStatus()).isEqualTo(PiApprovalStatus.ESCALATED);
     }
 }
