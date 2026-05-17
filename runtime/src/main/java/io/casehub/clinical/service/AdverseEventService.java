@@ -49,7 +49,9 @@ public class AdverseEventService {
             null,
             null,
             null,
-            null
+            null,
+            null,  // parentId (UUID) — added in casehub-work 0.2-SNAPSHOT
+            null   // labels (List<String>) — added in casehub-work 0.2-SNAPSHOT
         ));
         ae.workItemId = workItem.id;
         ae.persist();
