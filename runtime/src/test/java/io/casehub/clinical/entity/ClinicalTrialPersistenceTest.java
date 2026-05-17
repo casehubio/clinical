@@ -6,6 +6,8 @@ import jakarta.inject.Inject;
 import jakarta.persistence.EntityManager;
 import jakarta.transaction.Transactional;
 import org.junit.jupiter.api.Test;
+import java.time.Instant;
+import java.time.temporal.ChronoUnit;
 import java.util.UUID;
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -59,5 +61,43 @@ class ClinicalTrialPersistenceTest {
         TrialSite found = em.find(TrialSite.class, site.id);
         assertThat(found.trialId).isEqualTo(trial.id);
         assertThat(found.investigatorId).isEqualTo("pi-alice-001");
+    }
+
+    @Test
+    @Transactional
+    void protocolDeviationPersistsWithCommandedFields() {
+        ClinicalTrial trial = new ClinicalTrial();
+        trial.id = UUID.randomUUID();
+        trial.protocolId = "PROT-001";
+        trial.phase = TrialPhase.PHASE_II;
+        trial.sponsor = "Sponsor";
+        trial.targetEnrollment = 10;
+        trial.status = TrialStatus.ACTIVE;
+        em.persist(trial);
+
+        TrialSite site = new TrialSite();
+        site.id = UUID.randomUUID();
+        site.trialId = trial.id;
+        site.investigatorId = "pi-001";
+        em.persist(site);
+
+        ProtocolDeviation dev = new ProtocolDeviation();
+        dev.id = UUID.randomUUID();
+        dev.siteId = site.id;
+        dev.deviationType = "sample-window";
+        dev.severity = DeviationSeverity.MAJOR;
+        dev.piApprovalStatus = PiApprovalStatus.COMMANDED;
+        dev.piCommandChannelName = "clinical/deviation/" + dev.id + "/pi-oversight";
+        dev.commandedAt = Instant.now();
+        dev.responseDeadline = Instant.now().plus(72, ChronoUnit.HOURS);
+        dev.escalationRequirement = EscalationRequirement.SPONSOR_NOTIFICATION;
+        em.persist(dev);
+        em.flush();
+        em.clear();
+
+        ProtocolDeviation loaded = em.find(ProtocolDeviation.class, dev.id);
+        assertThat(loaded.piApprovalStatus).isEqualTo(PiApprovalStatus.COMMANDED);
+        assertThat(loaded.escalationRequirement).isEqualTo(EscalationRequirement.SPONSOR_NOTIFICATION);
+        assertThat(loaded.piCommandChannelName).startsWith("clinical/deviation/");
     }
 }

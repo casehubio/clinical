@@ -1,9 +1,11 @@
 package io.casehub.clinical.entity;
 
 import io.casehub.clinical.api.model.DeviationSeverity;
+import io.casehub.clinical.api.model.EscalationRequirement;
 import io.casehub.clinical.api.model.PiApprovalStatus;
 import io.quarkus.hibernate.orm.panache.PanacheEntityBase;
 import jakarta.persistence.*;
+import java.time.Instant;
 import java.util.UUID;
 
 @Entity
@@ -26,4 +28,17 @@ public class ProtocolDeviation extends PanacheEntityBase {
     @Enumerated(EnumType.STRING)
     @Column(name = "pi_approval_status", nullable = false)
     public PiApprovalStatus piApprovalStatus = PiApprovalStatus.PENDING;
+
+    @Column(name = "pi_command_channel_name")
+    public String piCommandChannelName;
+
+    @Column(name = "commanded_at")
+    public Instant commandedAt;
+
+    @Column(name = "response_deadline")
+    public Instant responseDeadline;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "escalation_requirement")
+    public EscalationRequirement escalationRequirement;
 }
