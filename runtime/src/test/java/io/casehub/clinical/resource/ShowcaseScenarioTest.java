@@ -1,6 +1,9 @@
 package io.casehub.clinical.resource;
 
+import io.casehub.clinical.service.PiResponseListener;
+import io.casehub.qhorus.api.message.MessageType;
 import io.quarkus.test.junit.QuarkusTest;
+import jakarta.inject.Inject;
 import org.junit.jupiter.api.Test;
 import java.time.Duration;
 import java.time.Instant;
@@ -17,6 +20,8 @@ import static org.hamcrest.Matchers.*;
  */
 @QuarkusTest
 class ShowcaseScenarioTest {
+
+    @Inject PiResponseListener piResponseListener;
 
     @Test
     void three_site_oncology_trial_registers_correctly() {
@@ -103,6 +108,10 @@ class ShowcaseScenarioTest {
             .body("consentStatus", equalTo("PENDING"));
     }
 
+    private String extractId(String location) {
+        return location.substring(location.lastIndexOf('/') + 1);
+    }
+
     @Test
     void site_a_grade3_ae_gets_24h_sla_and_workItemId() {
         String trialLoc = given()
@@ -175,5 +184,75 @@ class ShowcaseScenarioTest {
         Instant deadline = Instant.parse(slaDeadlineStr);
         Duration gap = Duration.between(Instant.now(), deadline);
         assertThat(gap.toMinutes()).isBetween(55L, 65L);
+    }
+
+    @Test
+    void site_c_pi_authorisation_minor_approved_critical_escalated() {
+        // Register a fresh trial for this scenario
+        String trialLoc = given()
+            .contentType("application/json")
+            .body("""
+                {
+                  "protocolId": "SHOWCASE-PI-AUTH-2026-%s",
+                  "phase": "PHASE_III",
+                  "sponsor": "Acme Oncology",
+                  "targetEnrollment": 300
+                }
+                """.formatted(UUID.randomUUID()))
+            .when().post("/trials").then().statusCode(201).extract().header("Location");
+        UUID trialId = UUID.fromString(extractId(trialLoc));
+        UUID siteCId = addSite(trialId, "pi-site-c-003");
+
+        // POST MINOR deviation — expect COMMANDED with NONE escalation
+        String minorLoc = given()
+            .contentType("application/json")
+            .body("{\"deviationType\":\"sample-window-minor\",\"severity\":\"MINOR\"}")
+            .when().post("/trials/{t}/sites/{s}/deviations", trialId, siteCId)
+            .then()
+                .statusCode(201)
+                .body("piApprovalStatus", equalTo("COMMANDED"))
+                .body("escalationRequirement", equalTo("NONE"))
+            .extract().header("Location");
+        String minorId = extractId(minorLoc);
+
+        // POST CRITICAL deviation — expect COMMANDED with IRB_REVIEW escalation
+        String criticalLoc = given()
+            .contentType("application/json")
+            .body("{\"deviationType\":\"protocol-endpoint-critical\",\"severity\":\"CRITICAL\"}")
+            .when().post("/trials/{t}/sites/{s}/deviations", trialId, siteCId)
+            .then()
+                .statusCode(201)
+                .body("piApprovalStatus", equalTo("COMMANDED"))
+                .body("escalationRequirement", equalTo("IRB_REVIEW"))
+            .extract().header("Location");
+        String criticalId = extractId(criticalLoc);
+
+        // PI responds DONE to the minor deviation
+        piResponseListener.process(
+            "clinical/deviation/" + minorId + "/pi-oversight",
+            MessageType.DONE,
+            "human:site-c-pi"
+        );
+
+        // Minor deviation should now be APPROVED (no escalation requirement)
+        given().when()
+            .get("/trials/{t}/sites/{s}/deviations/{d}", trialId, siteCId, minorId)
+            .then()
+                .statusCode(200)
+                .body("piApprovalStatus", equalTo("APPROVED"));
+
+        // PI responds DONE to the critical deviation
+        piResponseListener.process(
+            "clinical/deviation/" + criticalId + "/pi-oversight",
+            MessageType.DONE,
+            "human:site-c-pi"
+        );
+
+        // Critical deviation should now be ESCALATED (forwarded to IRB)
+        given().when()
+            .get("/trials/{t}/sites/{s}/deviations/{d}", trialId, siteCId, criticalId)
+            .then()
+                .statusCode(200)
+                .body("piApprovalStatus", equalTo("ESCALATED"));
     }
 }
