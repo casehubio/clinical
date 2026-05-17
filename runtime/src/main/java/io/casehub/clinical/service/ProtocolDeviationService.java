@@ -61,7 +61,8 @@ public class ProtocolDeviationService {
 
         var channel = channelService.findByName(channelName).orElseThrow();
         Instant now = Instant.now();
-        String content = buildCommandContent(deviation, now, requirements);
+        Instant responseDeadline = now.plus(requirements.piResponseDeadline());
+        String content = buildCommandContent(deviation, responseDeadline);
 
         messageService.send(
             channel.id,
@@ -77,7 +78,7 @@ public class ProtocolDeviationService {
 
         deviation.piCommandChannelName = channelName;
         deviation.commandedAt = now;
-        deviation.responseDeadline = now.plus(requirements.piResponseDeadline());
+        deviation.responseDeadline = responseDeadline;
         deviation.escalationRequirement = requirements.escalationRequirement();
         deviation.piApprovalStatus = PiApprovalStatus.COMMANDED;
         deviation.persist();
@@ -102,12 +103,11 @@ public class ProtocolDeviationService {
         );
     }
 
-    private String buildCommandContent(ProtocolDeviation dev, Instant now,
-                                       DeviationResponseRequirements req) {
+    private String buildCommandContent(ProtocolDeviation dev, Instant responseDeadline) {
         return "{\"deviationId\":\"" + dev.id
             + "\",\"deviationType\":\"" + dev.deviationType
             + "\",\"severity\":\"" + dev.severity
-            + "\",\"responseDeadline\":\"" + now.plus(req.piResponseDeadline())
+            + "\",\"responseDeadline\":\"" + responseDeadline
             + "\"}";
     }
 
