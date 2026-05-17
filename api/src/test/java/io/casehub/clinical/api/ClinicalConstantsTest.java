@@ -1,6 +1,11 @@
 package io.casehub.clinical.api;
 
+import io.casehub.clinical.api.model.EscalationRequirement;
+import io.casehub.clinical.api.model.PiApprovalStatus;
 import org.junit.jupiter.api.Test;
+
+import java.util.Set;
+
 import static org.assertj.core.api.Assertions.assertThat;
 
 class ClinicalConstantsTest {
@@ -22,5 +27,28 @@ class ClinicalConstantsTest {
         assertThat(ClinicalTrustDimensions.SAFETY_ACCURACY).isEqualTo("safety-accuracy");
         assertThat(ClinicalTrustDimensions.ELIGIBILITY_PRECISION).isEqualTo("eligibility-precision");
         assertThat(ClinicalTrustDimensions.PROTOCOL_ADHERENCE).isEqualTo("protocol-adherence");
+    }
+
+    @Test
+    void piApprovalStatusHasAllSixValues() {
+        var values = Set.of(PiApprovalStatus.values());
+        assertThat(values).containsExactlyInAnyOrder(
+            PiApprovalStatus.PENDING,
+            PiApprovalStatus.COMMANDED,
+            PiApprovalStatus.APPROVED,
+            PiApprovalStatus.REJECTED,
+            PiApprovalStatus.EXPIRED,
+            PiApprovalStatus.ESCALATED
+        );
+    }
+
+    @Test
+    void escalationRequirementHasAllValues() {
+        var values = Set.of(EscalationRequirement.values());
+        assertThat(values).containsExactlyInAnyOrder(
+            EscalationRequirement.NONE,
+            EscalationRequirement.SPONSOR_NOTIFICATION,
+            EscalationRequirement.IRB_REVIEW
+        );
     }
 }
