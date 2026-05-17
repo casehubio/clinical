@@ -12,14 +12,24 @@ public class ClinicalInboundNormaliser implements InboundNormaliser {
 
     @Override
     public NormalisedMessage normalise(ChannelRef channel, InboundHumanMessage raw) {
-        MessageType type = detectType(raw.content());
+        // Only apply clinical decision parsing to PI oversight channels.
+        // Other channels default to QUERY to avoid misclassifying unrelated messages.
+        MessageType type = isOversightChannel(channel.name())
+            ? detectDecision(raw.content())
+            : MessageType.QUERY;
         return new NormalisedMessage(type, raw.content(), "human:" + raw.externalSenderId());
     }
 
-    private MessageType detectType(String content) {
+    private boolean isOversightChannel(String channelName) {
+        return channelName != null && channelName.contains("/pi-oversight");
+    }
+
+    private MessageType detectDecision(String content) {
         if (content == null) return MessageType.QUERY;
-        if (content.contains("\"decision\":\"APPROVED\"")) return MessageType.DONE;
-        if (content.contains("\"decision\":\"REJECTED\"")) return MessageType.DECLINE;
+        // Tolerate whitespace around the colon — {"decision" : "APPROVED"} is valid JSON.
+        String normalised = content.replaceAll("\\s", "");
+        if (normalised.contains("\"decision\":\"APPROVED\"")) return MessageType.DONE;
+        if (normalised.contains("\"decision\":\"REJECTED\"")) return MessageType.DECLINE;
         return MessageType.QUERY;
     }
 }

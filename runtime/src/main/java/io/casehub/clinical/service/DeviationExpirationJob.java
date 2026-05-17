@@ -44,13 +44,21 @@ public class DeviationExpirationJob {
             .list();
 
         for (ProtocolDeviation d : overdue) {
-            d.piApprovalStatus = PiApprovalStatus.EXPIRED;
-            commitmentService.fail(d.id.toString());
-            resolvedEvent.fireAsync(new ProtocolDeviationResolvedEvent(
-                d.id, d.siteId, d.severity,
-                d.escalationRequirement != null ? d.escalationRequirement : EscalationRequirement.NONE,
-                PiApprovalStatus.EXPIRED
-            ));
+            try {
+                d.piApprovalStatus = PiApprovalStatus.EXPIRED;
+                commitmentService.fail(d.id.toString());
+                resolvedEvent.fireAsync(new ProtocolDeviationResolvedEvent(
+                    d.id, d.siteId, d.severity,
+                    d.escalationRequirement != null ? d.escalationRequirement : EscalationRequirement.NONE,
+                    PiApprovalStatus.EXPIRED
+                ));
+            } catch (Exception e) {
+                // Log and continue — one failure must not roll back status updates for other deviations.
+                // The deviation remains COMMANDED and will be retried on the next scheduled run.
+                d.piApprovalStatus = PiApprovalStatus.COMMANDED;
+                org.jboss.logging.Logger.getLogger(DeviationExpirationJob.class)
+                    .errorf(e, "Failed to expire deviation %s — will retry next run", d.id);
+            }
         }
     }
 }
