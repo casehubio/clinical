@@ -32,6 +32,12 @@
       <artifactId>casehub-ledger</artifactId>
     </dependency>
 
+    <!-- Layer 3: formal PI obligation tracking via COMMAND lifecycle -->
+    <dependency>
+      <groupId>io.casehub</groupId>
+      <artifactId>casehub-qhorus</artifactId>
+    </dependency>
+
     <dependency>
       <groupId>io.quarkus</groupId>
       <artifactId>quarkus-hibernate-orm-panache</artifactId>
