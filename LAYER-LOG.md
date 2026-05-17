@@ -172,57 +172,109 @@ Layer 1 has no explicit gap comments (see architectural note). The Layer 1 absen
 
 ## Layer 3 — + casehub-qhorus (PI authorisation for protocol deviations)
 
-**Completed:** 🔲 in progress — Epic 5 scaffolded 2026-05-15, no Java committed yet
+**Completed:** 2026-05-17 (Epic 5: `[55c90d5]`)
 **Issue:** casehubio/clinical#5 (Epic 5: PI authorisation)
+**Design spec:** workspace `specs/2026-05-15-epic5-pi-authorisation-design.md`
 **Blog:** `blog/2026-05-15-mdp01-protocol-deviation-accountability.md` — design intent and classification problem
 **Key files:**
-- `runtime/src/main/java/io/casehub/clinical/entity/ProtocolDeviation.java` — entity exists from Layer 1; `piApprovalStatus` field is the hook
-- 🔲 `runtime/src/main/java/io/casehub/clinical/service/ProtocolDeviationService.java` — not yet built; issues COMMAND to named PI; creates formal Commitment with deadline
-- 🔲 `runtime/src/main/java/io/casehub/clinical/resource/DeviationResource.java` — not yet built; `POST /trials/{id}/sites/{id}/deviations`
+- `api/src/main/java/io/casehub/clinical/api/spi/DeviationResponsePolicy.java` — SPI: deployers configure deadline + escalation per trial/site/phase/severity
+- `api/src/main/java/io/casehub/clinical/api/spi/DeviationContext.java` — policy input: deviation identity, trial, site, phase, severity, type
+- `api/src/main/java/io/casehub/clinical/api/spi/DeviationResponseRequirements.java` — policy output: piResponseDeadline (Duration) + escalationRequirement
+- `api/src/main/java/io/casehub/clinical/api/model/EscalationRequirement.java` — NONE, SPONSOR_NOTIFICATION, IRB_REVIEW
+- `api/src/main/java/io/casehub/clinical/api/ProtocolDeviationResolvedEvent.java` — CDI event fired on terminal state; consumed by Epic 6 (IRB) and Epic 13 (sponsor notification)
+- `runtime/src/main/java/io/casehub/clinical/service/DefaultDeviationResponsePolicy.java` — @DefaultBean; reads deadlines from MicroProfile Config; MINOR→7d/NONE, MAJOR→72h/SPONSOR_NOTIFICATION, CRITICAL→24h/IRB_REVIEW
+- `runtime/src/main/java/io/casehub/clinical/service/ClinicalInboundNormaliser.java` — InboundNormaliser SPI: maps `{"decision":"APPROVED"}` → DONE, `{"decision":"REJECTED"}` → DECLINE (scoped to /pi-oversight channels)
+- `runtime/src/main/java/io/casehub/clinical/service/ProtocolDeviationService.java` — creates per-deviation channel, sends COMMAND, writes ledger entry, sets COMMANDED state
+- `runtime/src/main/java/io/casehub/clinical/service/PiResponseListener.java` — process() called by tests; @ObservesAsync commented pending qhorus#153
+- `runtime/src/main/java/io/casehub/clinical/service/DeviationExpirationJob.java` — @Scheduled hourly; marks overdue COMMANDED deviations EXPIRED
+- `runtime/src/main/java/io/casehub/clinical/resource/DeviationResource.java` — POST + GET /trials/{t}/sites/{s}/deviations
+- `runtime/src/main/resources/db/migration/default/V107__alter_protocol_deviation_add_commitment_fields.sql` — 4 new columns on protocol_deviation
+- `runtime/src/main/resources/db/migration/qhorus/V1006__protocol_deviation_ledger_entry.sql` — join table for ProtocolDeviationLedgerEntry
 
 ### What it shows
 
-Adds `casehub-qhorus` to issue a formal COMMAND to the named Principal Investigator when a protocol deviation is classified. The COMMAND creates a formal Commitment with a deadline — the PI must acknowledge, assess, and respond. This is what GCP ICH E6(R3) actually requires: not a log entry proving the deviation was noticed, but a named person formally on record.
+Adds `casehub-qhorus` to issue a formal COMMAND to the named PI when a deviation is reported. The COMMAND creates a formal Commitment with a GCP-compliant deadline. The PI's structured JSON response (via `InboundNormaliser` SPI) updates the deviation status. Downstream epics consume `ProtocolDeviationResolvedEvent` without modifying this layer.
 
-ClinicalAgent logs deviations. Logging proves notice. The COMMAND proves accountability — a named PI with a traceable obligation and a deadline the platform will escalate if missed. The distinction is structural; no amount of logging sophistication can close this gap.
+ClinicalAgent logs deviations. Logging proves notice. The COMMAND proves accountability — a named PI with a traceable obligation and a deadline the platform escalates if missed.
 
-Layer 3 goes between Layers 2 and 4 in tutorial order even though it was started after Layer 4 was built. The teaching sequence is: SLA enforcement (Layer 2) → formal obligation (Layer 3) → tamper-evident audit (Layer 4).
+Layer 3 goes between Layers 2 and 4 in tutorial order even though it was built after Layer 4. The teaching sequence: SLA enforcement (Layer 2) → formal obligation (Layer 3) → tamper-evident audit (Layer 4).
 
 ### The gap comments
 
-🔲 To be written when `ProtocolDeviationService` is built. The gap to close from Layer 1:
-
 ```
-// Layer 1 gap: ProtocolDeviation.persist() — records that a deviation occurred,
+// Layer 1: ProtocolDeviation.persist() — records a deviation occurred,
 // no named PI, no formal commitment, no deadline.
 // In a GCP audit: proves notice, not accountability.
-```
 
-Expected Layer 3 replacement: COMMAND issued to `deviation.siteInvestigatorId`, Commitment created with `responseDeadline` set per deviation severity, `piApprovalStatus` updated to `PENDING_PI_RESPONSE`. Blog entry `2026-05-15-mdp01-protocol-deviation-accountability.md` documents the classification decision needed first: some deviations close at site level; others require sponsor/IRB escalation with different deadlines and responsible parties.
+// Layer 3: ProtocolDeviationService.reportDeviation()
+// → channel clinical/deviation/{id}/pi-oversight created (QUERY,COMMAND only)
+// → COMMAND sent to site.investigatorId with correlationId = deviation.id
+// → Commitment auto-opened by MessageService.send() (COMMAND type + correlationId)
+// → piApprovalStatus = COMMANDED; responseDeadline = now + policy.evaluate(context).piResponseDeadline()
+// → ProtocolDeviationLedgerEntry written (FDA audit trail)
+```
 
 ### Key wiring
 
-🔲 To fill in when built. Expected wiring concerns:
-- COMMAND routing — which qhorus channel receives the PI commitment? Likely `pi-authorisation` matching the capability tag in `ClinicalCapabilities`.
-- `responseDeadline` — not uniform. Minor deviations: site PI resolves within a short window. Significant deviations requiring protocol amendment: may escalate to sponsor with a longer deadline. Classification logic precedes the COMMAND issue.
-- Whether `ProtocolDeviation.piApprovalStatus` transitions are driven by COMMAND lifecycle events or by a polling/callback from qhorus. See casehub-qhorus foundation pattern.
+**Per-deviation channel, not per-site.** Channel naming: `clinical/deviation/{deviationId}/pi-oversight`. Per-site channels were considered but rejected: `ChannelGateway.receiveHumanMessage()` passes `correlationId=null` to `MessageService` (qhorus#154), so the deviation can only be identified from the channel name, not from the message. Per-deviation channels make the mapping unambiguous regardless of this gap.
+
+**`MessageService.send()` auto-opens Commitment on COMMAND type.** No explicit `commitmentService.open()` call needed in the service. The switch in `MessageService.send()`:
+```java
+case COMMAND -> commitmentService.open(UUID.randomUUID(), correlationId, channelId, ...)
+```
+The correlationId passed is `deviation.id.toString()` — this is the key for all future commitment operations (fulfill, decline, fail).
+
+**`PiResponseListener` must close the Commitment explicitly.** Because `receiveHumanMessage()` passes `correlationId=null`, `MessageService.send()` on the PI's response does NOT auto-fulfill/decline the Commitment. `PiResponseListener.process()` calls `commitmentService.fulfill(deviationId.toString())` for DONE and `commitmentService.decline(deviationId.toString())` for DECLINE. The `commitmentService` methods are idempotent for already-terminal or non-existent commitments.
+
+**`ClinicalInboundNormaliser` scoped to `/pi-oversight` channels.** The `InboundNormaliser` SPI is application-wide — all channels use the registered implementation. Scoping to oversight channel names prevents misclassifying messages on unrelated channels.
+
+**`DeviationResponsePolicy` SPI with `@DefaultBean`.** Deployers override by providing an `@ApplicationScoped` bean without `@DefaultBean`. The default uses MicroProfile Config `Duration` properties:
+```properties
+casehub.clinical.deviation.minor.deadline=PT168H
+casehub.clinical.deviation.major.deadline=PT72H
+casehub.clinical.deviation.critical.deadline=PT24H
+```
+
+**`@ObservesAsync MessageReceivedEvent` commented out — blocked on qhorus#153.** The full CDI event chain (receiveHumanMessage → MessageReceivedEvent CDI event → PiResponseListener.process()) requires qhorus to fire a CDI event when an inbound message arrives. Until qhorus#153 ships, `process()` is called directly from tests. The integration test (`PiResponseListenerIntegrationTest`) is `@Disabled` with the qhorus issue reference.
+
+**Flyway migration structure revised.** Adding both `casehub-qhorus` and `casehub-work` to the classpath causes a Flyway version collision: both ship migrations at `classpath:db/migration` with overlapping version numbers (V1–V9 and V1–V21). Fix: restructure clinical migrations into datasource-scoped subdirectories:
+- `db/migration/default/` — clinical domain migrations (V100–V107); Flyway location set explicitly
+- `db/migration/qhorus/` — clinical ledger join tables (V1005, V1006); Flyway scans this + qhorus jar
+Tests use `drop-and-create` + Flyway disabled to avoid the classpath conflict.
+
+**`LedgerEntry` field types differ from documentation.** `subjectId` is `UUID` (not `String`). `entryType` is `LedgerEntryType` enum (not `String`). `sequenceNumber` is `int` (not `long`). Find the reference usage in `LedgerPrivacyWiringIT.java` in casehub-ledger source — the only documented usage at time of writing.
 
 ### Gotchas
 
-🔲 To fill in when built. Expected gotchas based on Epic 5 day-zero blog:
-- Deviation classification is the hard part — `DeviationSeverity` already exists as an enum; whether the COMMAND routing and `responseDeadline` are derived from it or from a separate classification step is TBD.
-- See `runtime/src/main/java/io/casehub/clinical/entity/ProtocolDeviation.java` for the current `piApprovalStatus` hook — check whether the state machine on `PiApprovalStatus` needs extending before the COMMAND is wired.
+- **Symptom:** Flyway startup fails with "Found more than one migration with version 1" after adding both casehub-work and casehub-qhorus.
+  **Cause:** Both JARs ship migrations at `classpath:db/migration`. Quarkus Flyway scans all JARs on the classpath for that location. V1–V9 (qhorus) collides with V1–V21 (casehub-work).
+  **Fix:** Move all application migrations into datasource-scoped subdirectories (`db/migration/default/`, `db/migration/qhorus/`). Configure `quarkus.flyway.locations=classpath:db/migration/default` for the default datasource. Configure `quarkus.flyway.qhorus.locations=classpath:db/migration,classpath:db/migration/qhorus` for the qhorus datasource. Disable Flyway in tests (`quarkus.flyway.migrate-at-start=false`) and use `drop-and-create` instead. AML has the same latent issue — tracked casehubio/aml#20.
+
+- **Symptom:** Application starts cleanly but startup logs show `ConfigValidationException` for `casehub.qhorus.reactive.enabled`.
+  **Cause:** qhorus no longer exposes this config key in its model. The property was needed in an earlier qhorus version to suppress reactive extension activation.
+  **Fix:** Remove `casehub.qhorus.reactive.enabled=false` from `application.properties`. Keep `quarkus.datasource.reactive=false` and `quarkus.datasource.qhorus.reactive=false` — those are standard Quarkus properties and still apply.
+
+- **Symptom:** PI APPROVED/REJECTED response via `ChannelGateway.receiveHumanMessage()` does not close the Commitment — it remains OPEN.
+  **Cause:** `receiveHumanMessage()` calls `messageService.send()` with `correlationId=null`. The auto-state-machine in `MessageService.send()` does nothing for DONE/DECLINE messages without a correlationId. (qhorus#154 tracks the fix.)
+  **Fix:** `PiResponseListener.process()` calls `commitmentService.fulfill(deviationId.toString())` or `.decline()` directly. The `correlationId = deviation.id.toString()` is the known key set when the COMMAND was issued.
+
+- **Symptom:** `ClinicalInboundNormaliser` maps messages on non-PI channels to DONE or DECLINE if content happens to contain `"decision":"APPROVED"`.
+  **Cause:** `InboundNormaliser` is a global singleton — every channel uses it.
+  **Fix:** Scope the detection to channels whose name contains `/pi-oversight`. Any other channel defaults to QUERY.
 
 ### Pattern to replicate (in another domain)
 
-🔲 To fill in when built. Sketch from design intent:
-
 1. Add `casehub-qhorus-api` to `api/pom.xml`; add `casehub-qhorus` to `runtime/pom.xml`
-2. Implement a `@ApplicationScoped` service that receives a classified domain event (deviation, compliance escalation, etc.) and issues a COMMAND to the named responsible party
-3. Set `responseDeadline` from the domain's severity/urgency classification — not uniform; map severity levels to deadline durations before writing service code
-4. Persist the domain entity with status set to `PENDING_PI_RESPONSE` (or equivalent)
-5. 🔲 Wire Commitment lifecycle events back to domain entity status updates (mechanism TBD — qhorus callback or polling)
-6. Test: verify COMMAND is issued with correct responsible party and deadline; verify entity status transitions
+2. Restructure migrations into datasource subdirectories before the classpath collision manifests (see Gotchas)
+3. Define a `DeviationResponsePolicy`-equivalent SPI in `api/spi/` — takes a context record with enough fields to scope deadline by domain attributes; returns deadline + downstream action
+4. Implement `@DefaultBean` policy reading deadlines from MicroProfile Config with ISO-8601 Duration defaults
+5. Create a per-entity oversight channel: `{domain}/{entity-type}/{id}/pi-oversight` with `allowedTypes=QUERY,COMMAND` and `ChannelSemantic.APPEND`
+6. Send COMMAND via `MessageService.send()` with `correlationId = entity.id.toString()` and `target = responsibleParty` — auto-opens Commitment
+7. Store channel name + commandedAt + responseDeadline + escalation requirement on the domain entity
+8. Implement `InboundNormaliser` SPI scoped to oversight channels — map domain-specific response format to DONE/DECLINE/QUERY
+9. Implement response listener with explicit `commitmentService.fulfill()` / `commitmentService.decline()` calls (do not rely on auto-state-machine — correlationId lost in human inbound path until qhorus#154)
+10. Implement expiration job: `@Scheduled @Transactional`, per-item try/catch, call `commitmentService.fail(entity.id.toString())` on each expired entity
+11. Test: write response listener unit tests calling `process()` directly; write `@Disabled` integration test for the full qhorus#153 CDI chain
 
 ---
 
