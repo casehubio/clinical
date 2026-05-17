@@ -264,15 +264,24 @@ JAVA_HOME=/Library/Java/JavaVirtualMachines/graalvm-25.jdk/Contents/Home  # nati
 
 **Use `mvn` not `./mvnw`** — maven wrapper not configured on this machine.
 
-**Flyway migration numbering (clinical-specific):**
-casehub-work's Flyway migrations occupy `classpath:db/migration` at V1–V21+ (Quarkus scans transitive JARs). Clinical domain migrations must use **V100–V999** to avoid version conflicts. V1000–V1004 are reserved for casehub-ledger base tables (V1004 = `actor_identity.sql`). V1005+ are reserved for consumer-owned ledger subclass join tables (e.g. `ae_ledger_entry` at V1005).
+**Flyway migration structure (clinical-specific):**
+casehub-work (V1–V21+) and casehub-qhorus (V1–V9) both ship migrations at `classpath:db/migration`. When both are on the classpath, Flyway finds duplicate version numbers and fails at startup. Clinical avoids this by placing migrations in datasource-scoped subdirectories:
+
+- `db/migration/default/` — clinical domain migrations (V100–V107+). Default datasource Flyway configured as: `quarkus.flyway.locations=classpath:db/migration/default`
+- `db/migration/qhorus/` — clinical ledger subclass join tables (V1005+). qhorus datasource Flyway configured as: `quarkus.flyway.qhorus.locations=classpath:db/migration,classpath:db/migration/qhorus` (includes qhorus jar migrations)
+
+Version range conventions still apply within each directory:
+- V100–V999: clinical domain tables (default datasource)
+- V1005+: consumer-owned ledger subclass join tables (qhorus datasource); V1000–V1004 are casehub-ledger base tables
+
+**Tests use `drop-and-create` + Flyway disabled.** Both H2 databases use `quarkus.flyway.migrate-at-start=false` and `quarkus.hibernate-orm.database.generation=drop-and-create`. The classpath migration collision cannot be resolved in tests without excluding JARs from scanning. AML has the same latent issue — tracked casehubio/aml#20.
 
 **Two-datasource architecture:**
-clinical uses two persistence units following the AML pattern:
+clinical uses two persistence units:
 - **Default datasource** — clinical domain entities (`io.casehub.clinical.entity`) + casehub-work entities (`io.casehub.work.runtime` — full package, not just `.model`)
-- **`qhorus` named datasource** — casehub-ledger entities + clinical ledger subclasses (`io.casehub.clinical.ledger`); directed by `casehub.ledger.datasource=qhorus`
+- **`qhorus` named datasource** — qhorus entities (`io.casehub.qhorus.runtime`) + casehub-ledger entities + clinical ledger subclasses (`io.casehub.clinical.ledger`); directed by `casehub.ledger.datasource=qhorus`
 
-**LedgerEntry subclasses** (e.g. `AdverseEventLedgerEntry`) must live in `io.casehub.clinical.ledger`, NOT in `io.casehub.clinical.entity`. Panache entities cannot span two persistence units — if the same package is listed in both PU package configs, Quarkus throws `IllegalStateException` at build time.
+**LedgerEntry subclasses** (e.g. `AdverseEventLedgerEntry`, `ProtocolDeviationLedgerEntry`) must live in `io.casehub.clinical.ledger`, NOT in `io.casehub.clinical.entity`. Panache entities cannot span two persistence units — if the same package is listed in both PU package configs, Quarkus throws `IllegalStateException` at build time.
 
 **CDI wiring:** `JpaLedgerEntryRepository` is `@Alternative`. Add to both `application.properties` files:
 ```properties
@@ -287,7 +296,7 @@ quarkus.datasource.qhorus.jdbc.transactions=xa
 ```
 H2 supports XA; without this Agroal throws "Failed to enlist" with no hint about the fix.
 
-Both datasources run Flyway at startup. The qhorus datasource receives all migrations at `classpath:db/migration` (including V100+ domain migrations and V1005+ ledger join tables) — this creates redundant tables in the qhorus H2 DB during tests, which is harmless.
+**Reactive suppression:** `quarkus.datasource.reactive=false` and `quarkus.datasource.qhorus.reactive=false` are required in test `application.properties` to prevent startup failure in the JDBC-only test environment. Do NOT add `casehub.qhorus.reactive.enabled=false` — this key no longer exists in qhorus config model and causes `ConfigValidationException`.
 
 ## Build Commands
 
