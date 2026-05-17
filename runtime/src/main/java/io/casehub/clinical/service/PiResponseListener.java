@@ -50,8 +50,9 @@ public class PiResponseListener {
                 && deviation.escalationRequirement != EscalationRequirement.NONE;
             deviation.piApprovalStatus = needsEscalation
                 ? PiApprovalStatus.ESCALATED : PiApprovalStatus.APPROVED;
-            // Close the Commitment in qhorus — receiveHumanMessage() passes correlationId=null
-            // (qhorus#154), so auto-fulfillment via MessageService does not fire. We close it here.
+            // Auto-fulfillment via MessageService now fires when ClinicalInboundNormaliser returns
+            // DONE with a correlationId (qhorus#154 shipped). This explicit call is redundant and
+            // will be removed when casehubio/clinical#16 closes.
             commitmentService.fulfill(deviationId.toString());
         } else {
             deviation.piApprovalStatus = PiApprovalStatus.REJECTED;

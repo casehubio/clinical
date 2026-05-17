@@ -18,7 +18,7 @@ class PiResponseListenerIntegrationTest {
         // TODO when qhorus#153 ships:
         // 1. reportDeviation() → COMMANDED
         // 2. channelGateway.receiveHumanMessage(channelRef,
-        //        new InboundHumanMessage("pi-001", "{\"decision\":\"APPROVED\"}", Instant.now(), Map.of()))
+        //        new InboundHumanMessage("pi-001", "{\"decision\":\"APPROVED\"}", Instant.now(), Map.of(), deviation.id.toString()))
         // 3. ClinicalInboundNormaliser maps to DONE
         // 4. messageService.send() auto-fulfills Commitment
         // 5. MessageReceivedEvent CDI event fires in receiveHumanMessage()

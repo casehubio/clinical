@@ -216,7 +216,7 @@ Layer 3 goes between Layers 2 and 4 in tutorial order even though it was built a
 
 ### Key wiring
 
-**Per-deviation channel, not per-site.** Channel naming: `clinical/deviation/{deviationId}/pi-oversight`. Per-site channels were considered but rejected: `ChannelGateway.receiveHumanMessage()` passes `correlationId=null` to `MessageService` (qhorus#154), so the deviation can only be identified from the channel name, not from the message. Per-deviation channels make the mapping unambiguous regardless of this gap.
+**Per-deviation channel, not per-site.** Channel naming: `clinical/deviation/{deviationId}/pi-oversight`. Per-site channels were considered but rejected: even though qhorus#154 now threads `correlationId` through `receiveHumanMessage()`, per-deviation channels remain the correct design — they make the deviation identity unambiguous regardless of whether the backend supplies a correlationId, and they scope `allowedTypes` correctly for the oversight semantic.
 
 **`MessageService.send()` auto-opens Commitment on COMMAND type.** No explicit `commitmentService.open()` call needed in the service. The switch in `MessageService.send()`:
 ```java
@@ -224,7 +224,7 @@ case COMMAND -> commitmentService.open(UUID.randomUUID(), correlationId, channel
 ```
 The correlationId passed is `deviation.id.toString()` — this is the key for all future commitment operations (fulfill, decline, fail).
 
-**`PiResponseListener` must close the Commitment explicitly.** Because `receiveHumanMessage()` passes `correlationId=null`, `MessageService.send()` on the PI's response does NOT auto-fulfill/decline the Commitment. `PiResponseListener.process()` calls `commitmentService.fulfill(deviationId.toString())` for DONE and `commitmentService.decline(deviationId.toString())` for DECLINE. The `commitmentService` methods are idempotent for already-terminal or non-existent commitments.
+**`PiResponseListener` closes the Commitment explicitly (redundant after qhorus#154).** `PiResponseListener.process()` calls `commitmentService.fulfill(deviationId.toString())` for DONE and `commitmentService.decline(deviationId.toString())` for DECLINE. After qhorus#154 shipped, `ClinicalInboundNormaliser` passes `correlationId` through, so `MessageService.send()` now auto-fulfills/declines via the commitment state machine. The explicit call in `process()` is idempotent and redundant — it will be removed when casehubio/clinical#16 closes.
 
 **`ClinicalInboundNormaliser` scoped to `/pi-oversight` channels.** The `InboundNormaliser` SPI is application-wide — all channels use the registered implementation. Scoping to oversight channel names prevents misclassifying messages on unrelated channels.
 
@@ -254,9 +254,9 @@ Tests use `drop-and-create` + Flyway disabled to avoid the classpath conflict.
   **Cause:** qhorus no longer exposes this config key in its model. The property was needed in an earlier qhorus version to suppress reactive extension activation.
   **Fix:** Remove `casehub.qhorus.reactive.enabled=false` from `application.properties`. Keep `quarkus.datasource.reactive=false` and `quarkus.datasource.qhorus.reactive=false` — those are standard Quarkus properties and still apply.
 
-- **Symptom:** PI APPROVED/REJECTED response via `ChannelGateway.receiveHumanMessage()` does not close the Commitment — it remains OPEN.
-  **Cause:** `receiveHumanMessage()` calls `messageService.send()` with `correlationId=null`. The auto-state-machine in `MessageService.send()` does nothing for DONE/DECLINE messages without a correlationId. (qhorus#154 tracks the fix.)
-  **Fix:** `PiResponseListener.process()` calls `commitmentService.fulfill(deviationId.toString())` or `.decline()` directly. The `correlationId = deviation.id.toString()` is the known key set when the COMMAND was issued.
+- **Symptom (historical — fixed by qhorus#154):** PI APPROVED/REJECTED response via `ChannelGateway.receiveHumanMessage()` did not close the Commitment — it remained OPEN.
+  **Was:** `receiveHumanMessage()` called `messageService.send()` with `correlationId=null`. The auto-state-machine in `MessageService.send()` did nothing for DONE/DECLINE without a correlationId.
+  **Now:** qhorus#154 added `correlationId` to `InboundHumanMessage` and `NormalisedMessage`. `ClinicalInboundNormaliser` passes it through. Auto-fulfillment fires. `PiResponseListener.process()` still calls `commitmentService.fulfill()` explicitly for safety (idempotent); that call will be removed in clinical#16.
 
 - **Symptom:** `ClinicalInboundNormaliser` maps messages on non-PI channels to DONE or DECLINE if content happens to contain `"decision":"APPROVED"`.
   **Cause:** `InboundNormaliser` is a global singleton — every channel uses it.
@@ -272,7 +272,7 @@ Tests use `drop-and-create` + Flyway disabled to avoid the classpath conflict.
 6. Send COMMAND via `MessageService.send()` with `correlationId = entity.id.toString()` and `target = responsibleParty` — auto-opens Commitment
 7. Store channel name + commandedAt + responseDeadline + escalation requirement on the domain entity
 8. Implement `InboundNormaliser` SPI scoped to oversight channels — map domain-specific response format to DONE/DECLINE/QUERY
-9. Implement response listener with explicit `commitmentService.fulfill()` / `commitmentService.decline()` calls (do not rely on auto-state-machine — correlationId lost in human inbound path until qhorus#154)
+9. Implement response listener with explicit `commitmentService.fulfill()` / `commitmentService.decline()` calls; qhorus#154 now threads correlationId through, so auto-fulfillment also fires — the explicit call is belt-and-suspenders until clinical#16 removes it
 10. Implement expiration job: `@Scheduled @Transactional`, per-item try/catch, call `commitmentService.fail(entity.id.toString())` on each expired entity
 11. Test: write response listener unit tests calling `process()` directly; write `@Disabled` integration test for the full qhorus#153 CDI chain
 
