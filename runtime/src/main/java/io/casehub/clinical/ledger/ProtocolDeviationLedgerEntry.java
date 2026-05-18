@@ -41,4 +41,10 @@ public class ProtocolDeviationLedgerEntry extends LedgerEntry {
 
     @Column(name = "escalation_requirement")
     public String escalationRequirement;
+
+    @Column(name = "terminal_status")
+    public String terminalStatus;
+
+    @Column(name = "resolved_at")
+    public Instant resolvedAt;
 }
