@@ -50,8 +50,9 @@ public class AdverseEventService {
             null,
             null,
             null,
-            null,  // parentId (UUID) — added in casehub-work 0.2-SNAPSHOT
-            null   // labels (List<String>) — added in casehub-work 0.2-SNAPSHOT
+            null,  // templateId (UUID)
+            null,  // permittedOutcomes (List<String>)
+            null   // inputDataSchema — outputDataSchema not yet in cached artifact
         ));
         ae.workItemId = workItem.id;
         ae.persist();
