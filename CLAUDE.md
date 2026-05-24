@@ -299,7 +299,7 @@ Trial-level binding fires on aggregated context from all site sub-cases — no s
 
 | Capability | Foundation prerequisite |
 |-----------|------------------------|
-| Site-level sub-case orchestration | engine#195 = scaffold only (SubCase model, Stage.subCases, CasePlanModel) — execution wiring (SubCaseExecutionHandler, blackboard↔runtime integration) pending engine#112 ❌ BLOCKED |
+| Site-level sub-case orchestration | engine#112 ✅ CLOSED (2026-05-15) — SubCaseCompletionListener, SubCaseCompletionService wired; sub-case execution available in 0.2-SNAPSHOT |
 | Adverse event SLA WorkItem | casehub-work ✅ production |
 | PI authorisation commitment lifecycle | P0 complete (engine#186 ✅, qhorus ✅) |
 | GDPR consent withdrawal (Art.17) | LedgerErasureService ✅ |
@@ -387,7 +387,7 @@ quarkus.datasource.qhorus.jdbc.transactions=xa
 ```
 H2 and production JDBC both require this. Without it, Agroal throws "Failed to enlist" with no hint about the fix. `ProtocolDeviationService`, `DeviationExpirer`, and `AdverseEventService` all write cross-datasource.
 
-**Reactive suppression:** `quarkus.datasource.reactive=false` and `quarkus.datasource.qhorus.reactive=false` are required in test `application.properties` to prevent startup failure in the JDBC-only test environment. Do NOT add `casehub.qhorus.reactive.enabled=false` — this key no longer exists in qhorus config model and causes `ConfigValidationException`.
+**Reactive suppression:** `quarkus.datasource.reactive=false` and `quarkus.datasource.qhorus.reactive=false` are required in **both** test and production `application.properties`. In test, they prevent startup failure; in production, they prevent 30+ CDI unsatisfied errors from qhorus/ledger reactive service beans. Do NOT add `casehub.qhorus.reactive.enabled=false` — this key no longer exists in qhorus config model and causes `ConfigValidationException`.
 
 **Ledger SNAPSHOT reactive services:** Fixed in ledger#92 — `LedgerVerificationService` and related services now use `Instance<ReactiveLedgerEntryRepository>` with `isResolvable()` guard. JDBC-only consumers start cleanly without `quarkus.arc.exclude-types`. No workaround needed.
 
@@ -401,12 +401,24 @@ H2 and production JDBC both require this. Without it, Agroal throws "Failed to e
 <dependency><groupId>io.casehub</groupId><artifactId>casehub-platform-testing</artifactId><scope>test</scope></dependency>
 ```
 
-In production `application.properties`, add JPA store alternatives alongside `JpaLedgerEntryRepository`:
+Add `casehub-engine-persistence-hibernate` as a production dependency — provides JPA implementations for `CaseInstanceRepository`, `EventLogRepository`, `SubCaseGroupRepository`, `CaseMetaModelRepository`. `casehub-engine-persistence-memory` is test-scope only; without hibernate, production build fails with 30+ CDI unsatisfied errors.
+
+In production `application.properties`, add:
 ```properties
+# JPA alternatives
 quarkus.arc.selected-alternatives=\
   io.casehub.ledger.runtime.repository.jpa.JpaLedgerEntryRepository,\
   io.casehub.persistence.jpa.JpaPlanItemStore,\
   io.casehub.persistence.jpa.JpaSubCaseGroupRepository
+
+# Engine CDI — exclude internal workload provider; index engine jars (no embedded Jandex)
+%prod.quarkus.arc.exclude-types=io.casehub.engine.internal.worker.CasehubWorkloadProvider
+%prod.quarkus.index-dependency.casehub-engine.group-id=io.casehub
+%prod.quarkus.index-dependency.casehub-engine.artifact-id=casehub-engine
+%prod.quarkus.index-dependency.casehub-engine-common.group-id=io.casehub
+%prod.quarkus.index-dependency.casehub-engine-common.artifact-id=casehub-engine-common
+%prod.quarkus.index-dependency.casehub-engine-persistence-hibernate.group-id=io.casehub
+%prod.quarkus.index-dependency.casehub-engine-persistence-hibernate.artifact-id=casehub-engine-persistence-hibernate
 ```
 
 In test `application.properties`:
