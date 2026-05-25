@@ -17,8 +17,9 @@ spec:
 
   bindings:
     - name: irb-consultation
-      on: { contextChange: {} }
-      when: ".irbConsultationRequired == true and .irbConsultation == null"
+      on:
+        contextChange:
+          filter: ".irbConsultationRequired == true and .irbConsultation == null"
       humanTask:
         title: "IRB consultation required — protocol deviation"
         expiresIn: PT72H
