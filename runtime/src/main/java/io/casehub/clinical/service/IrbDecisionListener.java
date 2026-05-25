@@ -45,10 +45,16 @@ public class IrbDecisionListener {
         if (!(event.source() instanceof WorkItem workItem)) return;
 
         UUID deviationId = extractDeviationId(workItem);
-        if (deviationId == null) return;
+        if (deviationId == null) {
+            LOG.debugf("WorkItem %s has no deviationId — not an IRB item, skipping", workItem.id);
+            return;
+        }
 
         IrbDecision decision = resolveDecision(event.status(), workItem);
-        if (decision == null) return;
+        if (decision == null) {
+            LOG.debugf("WorkItem %s status=%s is non-terminal for IRB processing — skipping", workItem.id, event.status());
+            return;
+        }
 
         IrbApproval approval = IrbApproval
                 .find("deviationId = ?1 and decision = 'PENDING'", deviationId)

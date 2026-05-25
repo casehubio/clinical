@@ -30,6 +30,8 @@ public class AeEscalationListener {
 
     private static final Logger LOG = Logger.getLogger(AeEscalationListener.class);
     private static final Duration LOOKUP_TIMEOUT = Duration.ofSeconds(5);
+    /** Key written by the AE escalation YAML binding's outputMapping: "{ safetyReview: . }". */
+    static final String OUTCOME_KEY = "outcome";
 
     @Inject CaseInstanceRepository caseInstanceRepository;
     @Inject AeEscalationLedgerWriter ledgerWriter;
@@ -87,7 +89,7 @@ public class AeEscalationListener {
 
     private String resolveOutcome(Object obj) {
         if (!(obj instanceof Map<?, ?> map)) return null;
-        Object outcome = map.get("outcome");
+        Object outcome = map.get(OUTCOME_KEY);
         return outcome != null ? outcome.toString() : null;
     }
 }
