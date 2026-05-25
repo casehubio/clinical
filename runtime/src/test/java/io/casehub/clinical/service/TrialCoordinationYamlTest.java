@@ -2,9 +2,10 @@ package io.casehub.clinical.service;
 
 import io.casehub.api.model.Binding;
 import io.casehub.api.model.CaseDefinition;
+import io.casehub.api.model.ContextChangeTrigger;
 import io.casehub.api.model.HumanTaskTarget;
 import io.casehub.api.model.converter.CaseDefinitionYamlMapper;
-import io.casehub.api.model.ContextChangeTrigger;
+import io.casehub.api.model.evaluator.JQExpressionEvaluator;
 import org.junit.jupiter.api.Test;
 
 import java.io.InputStream;
@@ -37,8 +38,10 @@ class TrialCoordinationYamlTest {
 
         assertThat(dsmb.getOn()).isInstanceOf(ContextChangeTrigger.class);
         ContextChangeTrigger trigger = (ContextChangeTrigger) dsmb.getOn();
-        assertThat(trigger.getFilter()).isNotNull();
-        assertThat(trigger.getFilter().toString()).contains("grade4Active").contains("to_entries[]");
+        assertThat(trigger.getFilter()).isInstanceOf(JQExpressionEvaluator.class);
+        JQExpressionEvaluator jq = (JQExpressionEvaluator) trigger.getFilter();
+        assertThat(jq.expression())
+                .isEqualTo("[.grade4Active // {} | to_entries[] | select(.value == true)] | length >= 2");
 
         assertThat(dsmb.target()).isInstanceOf(HumanTaskTarget.class);
         HumanTaskTarget task = (HumanTaskTarget) dsmb.target();
