@@ -2,26 +2,68 @@
 
 ## Architecture
 
-_To be documented._
+casehub-clinical is a layered agentic harness for clinical trial coordination.
+Foundation modules are adopted one at a time; each layer adds a new capability
+that the previous layer could not provide.
+
+**Layer 5 (casehub-engine):** Per-event engine cases handle adaptive protocol paths.
+AE escalation cases route Grade 3 and Grade 4+ events through different gate
+combinations via YAML `contextChange.filter` bindings. IRB consultation suspends a
+deviation review case in WAITING until a committee decision arrives.
+
+**Layer 6 (trial coordination):** A trial-level `CaseInstance` (`trial-coordination.yaml`)
+starts when the trial transitions to ACTIVE. Site-level AE escalation services signal
+the trial case via `runtime.signal(trialCaseId, "grade4Active.<siteId>", Boolean)` —
+the engine's designed cross-case communication mechanism. The trial case's DSMB
+rollup binding fires when ≥2 sites are simultaneously flagged:
+`[.grade4Active // {} | to_entries[] | select(.value == true)] | length >= 2`.
+Sites are domain entities, not sub-cases — the sub-case model is reserved for bounded
+delegated work with a terminal lifecycle.
 
 ## Module Structure
 
 | Module | Type | Purpose |
 |--------|------|---------|
-| _(add modules)_ | | |
+| `api` | Pure Java | Domain events, SPIs, model enums |
+| `runtime` | Quarkus | Entities, services, resources, YAML case definitions |
 
 ## Key Abstractions
 
-_To be documented._
+**Trial coordination (Layer 6):**
+
+- `ClinicalTrialCaseHub` — `YamlCaseHub` extension loading `trial-coordination.yaml`
+- `TrialActivationService` — three-phase activation: commit status → `startCase().join()` outside any transaction → commit returned caseId. Required to avoid Agroal pool deadlock when engine JPA persistence uses the same pool.
+- `TrialCaseLookup` — resolves site → trial → `engineCaseId` for signal routing
+- `TrialSafetySignalService` — observes `AeEscalationCompletedEvent`, clears `grade4Active.<siteId>` for Grade 4+ completions
+
+**AE escalation (Layer 5):**
+
+- `ClinicalAdverseEventCaseHub` / `ae-escalation.yaml` — adaptive safety routing (Grade 3: senior monitor gate; Grade 4+: + DSMB gate in parallel)
+- `AeEscalationCaseService` — starts AE cases; signals trial case on Grade 4+ AE start
+- `AeEscalationListener` — observes `CaseLifecycleEvent("CaseCompleted")` to write ledger entry and fire domain events
+
+**Grade threshold:** `SEVERE_GRADES = Set.of(GRADE_4, GRADE_5)` — shared constant in both signal services; avoids `ordinal()` comparison.
 
 ## SPI Contracts
 
-_To be documented._
+| SPI | Module | Purpose |
+|-----|--------|---------|
+| `AdverseEventEscalationPolicy` | `api` | Determines which escalation gates apply for a given AE |
+| `AdverseEventEscalationRequirements` | `api` | Return type: `requiresSeniorMonitor`, `requiresDsmbEscalation` |
+| `AeEscalationCompletedEvent` | `api` | CDI event on AE case completion; carries `aeId`, `grade`, `siteId`, `safetyReviewOutcome`, `dsmbEscalated` |
+
+**`AeEscalationCompletedEvent.siteId`** was added in Layer 6 to enable `TrialSafetySignalService` to clear the trial's `grade4Active` flag without a downstream DB lookup.
 
 ## Data Model
 
-_To be documented._
+**Key field additions (Layer 6):**
+
+- `ClinicalTrial.engineCaseId UUID` — set when trial transitions to ACTIVE; null until then. V110 migration (`db/migration/default/`).
+
+**Entities:** `ClinicalTrial`, `TrialSite`, `PatientEnrollment`, `AdverseEvent`, `ProtocolDeviation`, `IrbApproval`
 
 ## Configuration
 
-_To be documented._
+Engine case activation — three-phase pattern is required for any `@Transactional` service that calls `startCase().join()`. See `TrialActivationService` and ADR 0004.
+
+YAML binding conditions must use `on.contextChange.filter`, not `when`. The `when` field is silently ignored for `contextChange` triggers (GE-20260523-fd8725).
