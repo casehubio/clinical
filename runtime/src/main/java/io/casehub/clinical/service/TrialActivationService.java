@@ -22,10 +22,12 @@ import java.util.UUID;
 public class TrialActivationService {
 
     public static class TrialNotFoundException extends RuntimeException {
-        public TrialNotFoundException(java.util.UUID id) { super("Trial not found: " + id); }
+        private static final long serialVersionUID = 1L;
+        public TrialNotFoundException(UUID id) { super("Trial not found: " + id); }
     }
 
     public static class TrialNotInPlanningStatusException extends RuntimeException {
+        private static final long serialVersionUID = 1L;
         public TrialNotInPlanningStatusException(TrialStatus status) { super("Trial status is " + status + ", expected PLANNING"); }
     }
 

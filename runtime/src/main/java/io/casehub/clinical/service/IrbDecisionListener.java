@@ -46,13 +46,13 @@ public class IrbDecisionListener {
 
         UUID deviationId = extractDeviationId(workItem);
         if (deviationId == null) {
-            LOG.debugf("WorkItem %s has no deviationId — not an IRB item, skipping", workItem.id);
+            LOG.tracef("WorkItem %s has no deviationId — not an IRB item, skipping", workItem.id);
             return;
         }
 
         IrbDecision decision = resolveDecision(event.status(), workItem);
         if (decision == null) {
-            LOG.debugf("WorkItem %s status=%s is non-terminal for IRB processing — skipping", workItem.id, event.status());
+            LOG.tracef("WorkItem %s status=%s is non-terminal for IRB processing — skipping", workItem.id, event.status());
             return;
         }
 
