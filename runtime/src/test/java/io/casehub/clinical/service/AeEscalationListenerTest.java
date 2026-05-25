@@ -43,7 +43,7 @@ class AeEscalationListenerTest {
         when(ctx.getPath("enrollmentId")).thenReturn(enrollmentId.toString());
         when(ctx.getPath("grade")).thenReturn("GRADE_4");
         when(ctx.getPath("siteId")).thenReturn(siteId.toString());
-        when(ctx.getPath("safetyReview")).thenReturn(Map.of("outcome", "REVIEWED"));
+        when(ctx.getPath("safetyReview")).thenReturn(Map.of(AeEscalationListener.OUTCOME_KEY, "REVIEWED"));
         when(ctx.getPath("dsmbEscalation")).thenReturn("completed");
 
         CaseInstance instance = mock(CaseInstance.class);
