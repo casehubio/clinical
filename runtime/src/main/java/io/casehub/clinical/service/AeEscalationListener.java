@@ -61,6 +61,7 @@ public class AeEscalationListener {
             return;
         }
 
+        UUID siteId = resolveUuid(instance.getCaseContext().getPath("siteId"));
         CtcaeGrade grade = resolveGrade(instance.getCaseContext().getPath("grade"));
         // safetyReview is the full WorkItem resolution mapped by outputMapping: "{ safetyReview: . }"
         // The resolution body must include an "outcome" field — e.g. {"outcome":"REVIEWED","reviewedAt":"..."}
@@ -71,7 +72,7 @@ public class AeEscalationListener {
         ledgerWriter.writeCompletionEntry(aeId, enrollmentId, grade, safetyReviewOutcome, dsmbEscalated, completedAt);
 
         completedEvents.fireAsync(new AeEscalationCompletedEvent(
-                aeId, grade, safetyReviewOutcome, dsmbEscalated, completedAt));
+                aeId, grade, siteId, safetyReviewOutcome, dsmbEscalated, completedAt));
     }
 
     private UUID resolveUuid(Object obj) {

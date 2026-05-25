@@ -358,7 +358,7 @@ JAVA_HOME=/Library/Java/JavaVirtualMachines/graalvm-25.jdk/Contents/Home  # nati
 **Flyway migration structure (clinical-specific):**
 casehub-work (V1–V21+) and casehub-qhorus (V1–V9) both ship migrations at `classpath:db/migration`. When both are on the classpath, Flyway finds duplicate version numbers and fails at startup. Clinical avoids this by placing migrations in datasource-scoped subdirectories:
 
-- `db/migration/default/` — clinical domain migrations (V100–V107+). Default datasource Flyway configured as: `quarkus.flyway.locations=classpath:db/migration/default`
+- `db/migration/default/` — clinical domain migrations (V100–V110+). Default datasource Flyway configured as: `quarkus.flyway.locations=classpath:db/migration/default`
 - `db/migration/qhorus/` — clinical ledger subclass join tables (V1005+). qhorus datasource Flyway configured as: `quarkus.flyway.qhorus.locations=classpath:db/migration,classpath:db/migration/qhorus` (includes qhorus jar migrations)
 
 Version range conventions still apply within each directory:
@@ -426,6 +426,8 @@ In test `application.properties`:
 - Index engine jars: `quarkus.index-dependency.engine-runtime.artifact-id=casehub-engine` (and work-adapter, blackboard, testing, persistence-memory, engine-common)
 - **Quartz cron incompatibility:** `casehub-engine-scheduler-quartz` brings `quarkus-quartz` which requires 6-7 field cron. `casehub-work` scheduler beans (`ExpiryCleanupJob`, `ClaimDeadlineJob`, `RoutingCursorCleanupJob`) use 5-field Unix cron — they fail at startup with Quartz. Exclude them via `quarkus.arc.exclude-types`. Also set `quarkus.quartz.store-type=ram` and `quarkus.scheduler.start-mode=forced`.
 - **YAML binding conditions:** Use `on.contextChange.filter` not `when` — the `when` field is silently ignored for `contextChange` triggers (engine#335).
+- **JQ `to_entries` iteration:** Use `to_entries[]` (with `[]`) not `to_entries` when piping to `select`. Without `[]`, `select` tests the whole array as a single value (always false). Example: `[.myMap // {} | to_entries[] | select(.value == true)] | length >= 2`.
+- **Engine case activation — three-phase pattern:** Any service that calls `startCase().toCompletableFuture().join()` must NOT be `@Transactional` at that call site. Split into three separate `@Transactional` calls: (1) validate + update domain status, (2) call `startCase().join()` outside any transaction boundary, (3) persist the returned `caseId`. Holding a DB connection across `join()` deadlocks the Agroal pool when the engine's JPA persistence also needs a connection from the same pool. See `TrialActivationService` for the reference implementation.
 - **inputMapping not inputSchema:** YAML humanTask bindings use `inputMapping` field (mini-DSL, not JQ) — the field sets the WorkItem payload. `outputMapping` uses JQ flat pattern `"{ key: . }"` (engine#314: nested `{..}` unsupported).
 
 ## Build Commands

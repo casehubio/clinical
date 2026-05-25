@@ -3,6 +3,8 @@ package io.casehub.clinical.resource;
 import io.casehub.clinical.api.model.TrialStatus;
 import io.casehub.clinical.api.model.TrialPhase;
 import io.casehub.clinical.entity.ClinicalTrial;
+import io.casehub.clinical.service.TrialActivationService;
+import jakarta.inject.Inject;
 import jakarta.transaction.Transactional;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
@@ -18,6 +20,8 @@ import java.util.UUID;
 @Produces(MediaType.APPLICATION_JSON)
 @Consumes(MediaType.APPLICATION_JSON)
 public class TrialResource {
+
+    @Inject TrialActivationService trialActivationService;
 
     public record RegisterTrialRequest(
         @NotBlank String protocolId,
@@ -52,5 +56,13 @@ public class TrialResource {
         ClinicalTrial trial = ClinicalTrial.findById(id);
         if (trial == null) return Response.status(Response.Status.NOT_FOUND).build();
         return Response.ok(trial).build();
+    }
+
+    @POST
+    @Path("/{id}/activate")
+    @Consumes(MediaType.WILDCARD)
+    public Response activate(@PathParam("id") UUID id) {
+        trialActivationService.activate(id);
+        return Response.noContent().build();
     }
 }

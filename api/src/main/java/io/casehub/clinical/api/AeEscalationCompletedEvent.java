@@ -11,6 +11,7 @@ import java.util.UUID;
 public record AeEscalationCompletedEvent(
     UUID aeId,
     CtcaeGrade grade,
+    UUID siteId,
     String safetyReviewOutcome,
     boolean dsmbEscalated,
     Instant completedAt) {}
