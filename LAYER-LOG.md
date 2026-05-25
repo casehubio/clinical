@@ -468,3 +468,88 @@ initial context (policy sets routing keys) → YAML binding conditions use conte
 → `WorkItemLifecycleAdapter` fires CONTEXT_CHANGED on terminal WorkItem states →
 domain listener observes `WorkItemLifecycleEvent` (IRB) or `CaseLifecycleEvent` (AE),
 updates domain + fires resolved CDI event → tests invoke adapter directly (engine#315).
+
+---
+
+## Layer 6 — trial-level blackboard aggregation: cross-site DSMB rollup
+
+**Completed:** 2026-05-25 (Epic 3, casehubio/clinical#3)
+**Blog:** _(pending)_
+
+### What it shows
+
+A trial-level `CaseInstance` accumulates per-site safety signals via
+`runtime.signal()` and detects cross-site patterns that no individual site agent
+can see. When ≥2 sites simultaneously have active Grade 4+ adverse events, the
+trial case's DSMB rollup binding fires a DSMB committee WorkItem — triggered
+purely from accumulated blackboard state, without any site agent knowing about
+other sites.
+
+This is the architectural demonstration ClinicalAgent structurally cannot produce:
+it runs a linear pipeline for one site with no cross-site state.
+
+**Design decision:** No site sub-cases. Sites are long-running domain entities,
+not bounded work units that start and complete. The sub-case model (engine#112)
+is correct for bounded delegation; forcing it onto investigational sites mismatches
+the lifecycle. Trial-level coordination uses a dedicated `CaseInstance` with a
+`contextChange.filter` binding — not parent-child case hierarchies.
+
+**Three-phase activation** is required to avoid a connection-pool deadlock:
+`startCase().join()` must not run while a `@Transactional` method holds an Agroal
+connection (the engine's JPA persistence needs the same pool). `TrialActivationService`
+commits status, calls `startCase().join()` outside any transaction, then commits
+the returned `caseId` in a second transaction. See `TrialActivationService` for the
+reference pattern.
+
+### Compliance gap closed
+
+Multi-site independence with trial-level rollup. ClinicalAgent runs one site;
+casehub-clinical detects cross-site safety patterns from accumulated blackboard
+state and triggers coordinated DSMB review — without any site-level agent having
+global visibility.
+
+### Key wiring
+
+- `ClinicalTrialCaseHub` / `trial-coordination.yaml` — trial case definition; one
+  `CaseInstance` per trial; DSMB rollup binding with `contextChange.filter`
+- `TrialActivationService` — three-phase activation; persists `ClinicalTrial.engineCaseId`
+- `POST /trials/{id}/activate` — activates trial, starts engine case
+- `TrialCaseLookup` — resolves site → trial → `engineCaseId` for signal routing
+- `AeEscalationCaseService` (extended) — on Grade 4+, signals
+  `runtime.signal(trialCaseId, "grade4Active.<siteId>", true)`; `siteId` added to
+  AE escalation case initial context
+- `AeEscalationListener` (extended) — reads `siteId` from case context; populates
+  `AeEscalationCompletedEvent.siteId` (API module field addition)
+- `TrialSafetySignalService` — observes `AeEscalationCompletedEvent`; Grade 4+
+  clears `grade4Active.<siteId>` via signal when AE escalation completes
+- `SEVERE_GRADES = Set.of(GRADE_4, GRADE_5)` — shared grade threshold constant;
+  replaces `ordinal()` comparison in both signal services
+- V110: `clinical_trial.engine_case_id UUID` (default datasource)
+- `deviation-review.yaml` — fixed `when:` → `on.contextChange.filter:` (GE-20260523-fd8725)
+
+### Gotchas
+
+- **JQ `to_entries[]` vs `to_entries`**: `to_entries | select(expr)` silently fails
+  — `select` tests the entire array as one value (always false for non-boolean input).
+  Correct idiom: `[.myMap // {} | to_entries[] | select(.value == true)] | length >= 2`.
+  This caused the DSMB binding to never fire until caught in integration tests.
+- **`@Transactional` + `startCase().join()` = deadlock**: see three-phase activation
+  pattern above. Test mask: memory stores (`casehub-engine-persistence-memory`) never
+  need DB connections, so the deadlock is invisible in `@QuarkusTest`.
+- **Grade threshold**: use `Set.of(GRADE_4, GRADE_5)` not `grade.ordinal() >= GRADE_4.ordinal()`.
+  The `ordinal()` approach is stable for this enum but fragile to future reordering.
+- **Awaitility negative assertions**: use `await().during(N, SECONDS).atMost(M, SECONDS)`
+  not `Thread.sleep()`. Sleep-based negative assertions are vacuously true when
+  signal processing hasn't finished before the assertion runs.
+- **Goals without completion block**: removing the `goals:` block from `trial-coordination.yaml`
+  is correct — an unreferenced goal with no `completion:` block that references it has
+  unclear engine semantics. The trial case has no completion condition (runs for trial lifetime).
+
+### Pattern to replicate
+
+`YamlCaseHub` subclass → `POST /{id}/activate` endpoint → three-phase
+`TrialActivationService.activate()` (commit status, join outside @Transactional,
+commit caseId) → domain event observers extend existing listeners to call
+`runtime.signal(caseId, "flagMap.<entityId>", Boolean)` → YAML `contextChange.filter`
+evaluates `[.flagMap // {} | to_entries[] | select(.value == true)] | length >= N`
+→ humanTask fires when threshold crossed.
