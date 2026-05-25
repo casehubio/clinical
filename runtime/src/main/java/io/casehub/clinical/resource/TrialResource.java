@@ -62,7 +62,13 @@ public class TrialResource {
     @Path("/{id}/activate")
     @Consumes(MediaType.WILDCARD)
     public Response activate(@PathParam("id") UUID id) {
-        trialActivationService.activate(id);
-        return Response.noContent().build();
+        try {
+            trialActivationService.activate(id);
+            return Response.noContent().build();
+        } catch (TrialActivationService.TrialNotFoundException e) {
+            return Response.status(Response.Status.NOT_FOUND).build();
+        } catch (TrialActivationService.TrialNotInPlanningStatusException e) {
+            return Response.status(Response.Status.CONFLICT).build();
+        }
     }
 }

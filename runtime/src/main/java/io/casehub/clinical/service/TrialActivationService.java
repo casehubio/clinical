@@ -5,8 +5,6 @@ import io.casehub.clinical.entity.ClinicalTrial;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 import jakarta.transaction.Transactional;
-import jakarta.ws.rs.ClientErrorException;
-import jakarta.ws.rs.core.Response;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -23,6 +21,14 @@ import java.util.UUID;
 @ApplicationScoped
 public class TrialActivationService {
 
+    public static class TrialNotFoundException extends RuntimeException {
+        public TrialNotFoundException(java.util.UUID id) { super("Trial not found: " + id); }
+    }
+
+    public static class TrialNotInPlanningStatusException extends RuntimeException {
+        public TrialNotInPlanningStatusException(TrialStatus status) { super("Trial status is " + status + ", expected PLANNING"); }
+    }
+
     @Inject ClinicalTrialCaseHub caseHub;
 
     public void activate(UUID trialId) {
@@ -34,12 +40,8 @@ public class TrialActivationService {
     @Transactional
     Map<String, Object> markActive(UUID trialId) {
         ClinicalTrial trial = ClinicalTrial.findById(trialId);
-        if (trial == null) {
-            throw new ClientErrorException(Response.Status.NOT_FOUND);
-        }
-        if (trial.status != TrialStatus.PLANNING) {
-            throw new ClientErrorException(Response.Status.CONFLICT);
-        }
+        if (trial == null) throw new TrialNotFoundException(trialId);
+        if (trial.status != TrialStatus.PLANNING) throw new TrialNotInPlanningStatusException(trial.status);
         trial.status = TrialStatus.ACTIVE;
 
         Map<String, Object> ctx = new HashMap<>();

@@ -49,6 +49,11 @@ class TrialActivationTest {
     }
 
     @Test
+    void activating_unknown_trial_returns_404() {
+        given().when().post("/trials/" + UUID.randomUUID() + "/activate").then().statusCode(404);
+    }
+
+    @Test
     void activating_already_active_trial_returns_409() {
         UUID trialId = createTrial();
         given().when().post("/trials/" + trialId + "/activate").then().statusCode(204);
