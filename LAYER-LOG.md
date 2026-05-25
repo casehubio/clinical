@@ -568,16 +568,23 @@ simplification — the showcase uses Grade 3/4 scenarios, and Grade 5 routing is
 for the clinical narrative being tested.
 
 **What Layer 7 must add for regulatory correctness (21 CFR Part 312.32):**
-FDA IND requires expedited safety reporting for unexpected serious adverse events. Grade 5
-is materially different from Grade 4: it triggers an immediate IND safety report obligation
-in addition to DSMB escalation. The two escalation paths must be independent.
+Under 21 CFR 312.32(c)(1)(i), the expedited IND safety reporting obligation applies to
+*unexpected* fatal or immediately life-threatening adverse reactions. Grade 5 is always
+serious, but the `unexpected` qualifier still applies: a listed expected outcome in the IND
+protocol uses a different reporting window (7-day / 15-day) rather than the immediate IND
+safety report path. Grade alone is insufficient — the event's `unexpected` flag must also
+be evaluated.
+
+**API gap:** `AeEscalationCompletedEvent` currently carries `grade` but not `unexpected`.
+Layer 7 must add `unexpected` to the event (or derive it from the protocol at event
+fire time) before the regulatory-submission binding can correctly discriminate.
 
 Required wiring:
-- Add a `regulatory-submission` capability binding to the AE escalation YAML that fires
-  when the resolved `safetyReview` indicates Grade 5.
-- Or: observe `AeEscalationCompletedEvent` (already carries `grade`) and trigger a
-  `regulatory-submission` WorkItem when `grade == GRADE_5`.
-- `AeEscalationCompletedEvent` API is already sufficient — no field additions needed.
+- Add `boolean unexpected` to `AeEscalationCompletedEvent` — set from the
+  `AdverseEvent` entity's protocol-expectedness assessment at event fire time.
+- Add a `regulatory-submission` capability binding (or CDI observer on
+  `AeEscalationCompletedEvent`) that fires when `grade == GRADE_5 && unexpected`.
+- The two escalation paths (DSMB + IND reporting) must be independent — not sequential.
 
 Why this is deferred and not a current bug: the teaching sequence is
 SLA → obligation → audit → engine → multi-site → trust. Regulatory submission (FDA IND

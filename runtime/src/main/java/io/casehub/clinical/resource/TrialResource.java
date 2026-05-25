@@ -58,6 +58,7 @@ public class TrialResource {
         return Response.ok(trial).build();
     }
 
+    // WILDCARD: POST with no body — overrides class-level APPLICATION_JSON
     @POST
     @Path("/{id}/activate")
     @Consumes(MediaType.WILDCARD)
