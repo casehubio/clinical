@@ -52,6 +52,7 @@
     <dependency>
       <groupId>io.casehub</groupId>
       <artifactId>casehub-platform</artifactId>
+      <scope>runtime</scope>
     </dependency>
     <dependency>
       <groupId>io.casehub</groupId>
