@@ -553,3 +553,35 @@ commit caseId) → domain event observers extend existing listeners to call
 `runtime.signal(caseId, "flagMap.<entityId>", Boolean)` → YAML `contextChange.filter`
 evaluates `[.flagMap // {} | to_entries[] | select(.value == true)] | length >= N`
 → humanTask fires when threshold crossed.
+
+---
+
+## Layer 7 — Trust routing + ClinicalAgent comparison
+
+**Status:** Not yet built (planned, casehubio/clinical#10).
+
+### Teaching gap — Grade 5 AE regulatory escalation
+
+`DefaultAdverseEventEscalationPolicy` currently routes Grade 5 (death) identically to
+Grade 4 (life-threatening): senior monitor + DSMB escalation. This is a documented
+simplification — the showcase uses Grade 3/4 scenarios, and Grade 5 routing is correct
+for the clinical narrative being tested.
+
+**What Layer 7 must add for regulatory correctness (21 CFR Part 312.32):**
+FDA IND requires expedited safety reporting for unexpected serious adverse events. Grade 5
+is materially different from Grade 4: it triggers an immediate IND safety report obligation
+in addition to DSMB escalation. The two escalation paths must be independent.
+
+Required wiring:
+- Add a `regulatory-submission` capability binding to the AE escalation YAML that fires
+  when the resolved `safetyReview` indicates Grade 5.
+- Or: observe `AeEscalationCompletedEvent` (already carries `grade`) and trigger a
+  `regulatory-submission` WorkItem when `grade == GRADE_5`.
+- `AeEscalationCompletedEvent` API is already sufficient — no field additions needed.
+
+Why this is deferred and not a current bug: the teaching sequence is
+SLA → obligation → audit → engine → multi-site → trust. Regulatory submission (FDA IND
+reporting mechanics) belongs at the trust/comparison layer where the full compliance gap
+table vs ClinicalAgent is presented. Introducing it earlier breaks the teaching sequence.
+
+Refs #30 (casehubio/clinical)
