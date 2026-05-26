@@ -11,14 +11,15 @@ Cross-references:
 - AML reference implementation: `../aml/LAYER-LOG.md` (Layers 1 and 2 complete)
 - Platform compliance gap analysis: `docs/use-case-analysis.md §8.1` in casehub-parent
 
-**Architectural note — no NaiveXxxService pattern:** casehub-clinical uses Panache Active Record entities as domain objects directly (documented exception in CLAUDE.md: no downstream consumers, application tier only). There is no `NaiveClinicalService.java` with `@DefaultBean` displacement as in AML. The "naive" layer IS the entities + REST API with no CaseHub foundation modules wired. This divergence is intentional — document it in each layer entry rather than treating it as a gap.
+**Architectural note — no DefaultXxxService pattern:** casehub-clinical uses Panache Active Record entities as domain objects directly (documented exception in CLAUDE.md: no downstream consumers, application tier only). There is no `DefaultClinicalService.java` with `@DefaultBean` displacement as in AML. The domain baseline IS the entities + REST API with no CaseHub foundation modules wired. This divergence is intentional — document it in each layer entry rather than treating it as a gap.
 
 ---
 
-## Layer 1 — Naive Java (no CaseHub)
+## Layer 1 — Domain baseline (no CaseHub foundation)
 
 **Completed:** 2026-05-08 (Epic 1: scaffold `[8f628a8]`; Epic 2: domain model `[488ea67]`)
 **Issues:** casehubio/clinical#1 (Epic 1), casehubio/clinical#2 (Epic 2)
+**Navigation:** `git log --grep="#2" --oneline`
 **Blog:** `blog/2026-05-08-mdp01-clinical-foundation.md` — module split decision, FHIR validation, Quarkus surprises
 **Key files:**
 - `api/src/main/java/io/casehub/clinical/api/ClinicalCapabilities.java` — 8 capability tag string constants for the engine
@@ -99,6 +100,7 @@ These gaps map directly to the compliance gap table in `docs/use-case-analysis.m
 **Completed:** 2026-05-12 (Epic 4: `[2696f98]`, `[b6ea707]`, `[15e274b]`)
 **Note:** Layer 2 (casehub-work) and Layer 4 (casehub-ledger) were built simultaneously in Epic 4. They are separate tutorial entries in teaching order; both reference Epic 4 as the source.
 **Issue:** casehubio/clinical#4
+**Navigation:** `git log --grep="#4" --oneline`
 **Blog:** `blog/2026-05-12-mdp02-adverse-event-sla-wiring.md` — Flyway collision, escalation as deployment config, ledger field discovery
 **Design spec:** workspace `specs/2026-05-11-epic4-adverse-event-escalation-design.md`
 **Key files:**
@@ -174,6 +176,7 @@ Layer 1 has no explicit gap comments (see architectural note). The Layer 1 absen
 
 **Completed:** 2026-05-17 (Epic 5: `[55c90d5]`)
 **Issue:** casehubio/clinical#5 (Epic 5: PI authorisation)
+**Navigation:** `git log --grep="#5" --oneline`
 **Design spec:** workspace `specs/2026-05-15-epic5-pi-authorisation-design.md`
 **Blog:** `blog/2026-05-15-mdp01-protocol-deviation-accountability.md` — design intent and classification problem
 **Key files:**
@@ -294,6 +297,7 @@ Three services write to the same ledger chain, so `sequenceNumber` ownership mat
 **Completed:** 2026-05-12 (Epic 4: `[a6e5055]` — built simultaneously with Layer 2)
 **Note:** Layer 4 (casehub-ledger) and Layer 2 (casehub-work) were built simultaneously in Epic 4. They are separate tutorial entries in teaching order; the log entry for Layer 2 covers the Flyway and XA gotchas that also apply here.
 **Issue:** casehubio/clinical#4
+**Navigation:** `git log --grep="#4" --oneline`
 **Blog:** `blog/2026-05-12-mdp02-adverse-event-sla-wiring.md` — three casehub-ledger surprises
 **Key files:**
 - `runtime/src/main/java/io/casehub/clinical/ledger/AdverseEventLedgerEntry.java` — ledger subclass in the `ledger` package (not `entity`)
@@ -391,6 +395,7 @@ The initial Layer 4 implementation wrote the ledger entry inline in `AdverseEven
 ## Layer 5 — casehub-engine: adaptive protocol paths
 
 **Issues:** casehubio/clinical#6
+**Navigation:** `git log --grep="#6" --oneline`
 
 ### What it shows
 
@@ -474,6 +479,7 @@ updates domain + fires resolved CDI event → tests invoke adapter directly (eng
 ## Layer 6 — trial-level blackboard aggregation: cross-site DSMB rollup
 
 **Completed:** 2026-05-25 (Epic 3, casehubio/clinical#3)
+**Navigation:** `git log --grep="#3" --oneline`
 **Blog:** _(pending)_
 
 ### What it shows
