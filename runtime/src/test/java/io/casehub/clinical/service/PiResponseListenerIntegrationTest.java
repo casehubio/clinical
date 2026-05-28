@@ -96,7 +96,7 @@ class PiResponseListenerIntegrationTest {
 
         channelGateway.receiveHumanMessage(channelRef,
             new InboundHumanMessage("pi-int", "{\"decision\":\"APPROVED\"}", Instant.now(),
-                Map.of(), minorDeviationId.toString()));
+                Map.of(), minorDeviationId.toString(), null));
 
         await().atMost(Duration.ofSeconds(5)).untilAsserted(() ->
             QuarkusTransaction.requiringNew().call(() -> {
@@ -118,7 +118,7 @@ class PiResponseListenerIntegrationTest {
 
         channelGateway.receiveHumanMessage(channelRef,
             new InboundHumanMessage("pi-int", "{\"decision\":\"APPROVED\"}", Instant.now(),
-                Map.of(), criticalDeviationId.toString()));
+                Map.of(), criticalDeviationId.toString(), null));
 
         await().atMost(Duration.ofSeconds(5)).untilAsserted(() ->
             QuarkusTransaction.requiringNew().call(() -> {

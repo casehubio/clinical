@@ -2,8 +2,8 @@ package io.casehub.clinical.service;
 
 import io.casehub.clinical.api.AeEscalationCompletedEvent;
 import io.casehub.clinical.api.model.CtcaeGrade;
-import io.casehub.engine.internal.event.CaseLifecycleEvent;
-import io.casehub.engine.spi.CaseInstanceRepository;
+import io.casehub.engine.common.spi.event.CaseLifecycleEvent;
+import io.casehub.engine.common.spi.CaseInstanceRepository;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.enterprise.event.Event;
 import jakarta.enterprise.event.ObservesAsync;
@@ -22,8 +22,8 @@ import org.jboss.logging.Logger;
  * context (set at case start by AeEscalationCaseService). Deviation review cases
  * and other cases lack this key and are silently ignored.
  *
- * <p>Note: {@code CaseLifecycleEvent} is from {@code io.casehub.engine.internal.event}
- * — an internal package. Tracked as casehubio/clinical#28 to promote to a public SPI.
+ * <p>{@code CaseLifecycleEvent} is from {@code io.casehub.engine.common.spi.event}
+ * — the public SPI package promoted in engine#378 (was internal.event).
  */
 @ApplicationScoped
 public class AeEscalationListener {

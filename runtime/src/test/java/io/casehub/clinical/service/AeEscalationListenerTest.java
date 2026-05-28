@@ -3,9 +3,9 @@ package io.casehub.clinical.service;
 import io.casehub.api.context.CaseContext;
 import io.casehub.clinical.api.AeEscalationCompletedEvent;
 import io.casehub.clinical.api.model.CtcaeGrade;
-import io.casehub.engine.internal.event.CaseLifecycleEvent;
-import io.casehub.engine.internal.model.CaseInstance;
-import io.casehub.engine.spi.CaseInstanceRepository;
+import io.casehub.engine.common.spi.event.CaseLifecycleEvent;
+import io.casehub.engine.common.internal.model.CaseInstance;
+import io.casehub.engine.common.spi.CaseInstanceRepository;
 import io.smallrye.mutiny.Uni;
 import jakarta.enterprise.event.Event;
 import org.junit.jupiter.api.Test;
@@ -52,7 +52,7 @@ class AeEscalationListenerTest {
         when(completedEvents.fireAsync(any())).thenReturn(CompletableFuture.completedFuture(null));
 
         listener.onCaseLifecycle(new CaseLifecycleEvent(
-                caseId, "CompleteCase", "CaseCompleted", "COMPLETED", "system", "system"));
+                caseId, "CompleteCase", "CaseCompleted", "COMPLETED", "system", "system", null));
 
         ArgumentCaptor<AeEscalationCompletedEvent> captor =
                 ArgumentCaptor.forClass(AeEscalationCompletedEvent.class);
@@ -67,7 +67,7 @@ class AeEscalationListenerTest {
     @Test
     void non_completed_events_are_ignored() {
         listener.onCaseLifecycle(new CaseLifecycleEvent(
-                UUID.randomUUID(), "StartCase", "CaseStarted", "RUNNING", "system", "system"));
+                UUID.randomUUID(), "StartCase", "CaseStarted", "RUNNING", "system", "system", null));
 
         verifyNoInteractions(caseInstanceRepository);
         verifyNoInteractions(completedEvents);
