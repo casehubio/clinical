@@ -1,5 +1,6 @@
 package io.casehub.clinical.entity;
 
+import io.casehub.clinical.api.model.AeEscalationStatus;
 import io.casehub.clinical.api.model.AeOutcome;
 import io.casehub.clinical.api.model.CtcaeGrade;
 import io.casehub.clinical.api.model.EventActuality;
@@ -43,4 +44,11 @@ public class AdverseEvent extends PanacheEntityBase {
     /** WorkItem id created by AdverseEventService for GCP SLA tracking. Null until service call. */
     @Column(name = "work_item_id")
     public UUID workItemId;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "escalation_status", nullable = false)
+    public AeEscalationStatus escalationStatus = AeEscalationStatus.NONE;
+
+    @Column(name = "engine_case_id")
+    public UUID engineCaseId;
 }

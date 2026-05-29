@@ -41,4 +41,8 @@ public class ProtocolDeviation extends PanacheEntityBase {
     @Enumerated(EnumType.STRING)
     @Column(name = "escalation_requirement")
     public EscalationRequirement escalationRequirement;
+
+    /** Links this CRITICAL deviation to its IRB review engine case. Null until IrbDeviationCaseService starts the case. */
+    @Column(name = "engine_case_id")
+    public UUID engineCaseId;
 }
