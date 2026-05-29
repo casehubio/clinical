@@ -26,6 +26,13 @@ public class TrialSafetySignalService {
     @Inject CaseHubRuntime runtime;
     @Inject TrialCaseLookup trialCaseLookup;
 
+    /** Sets the grade4Active flag when a Grade 4/5 AE escalation case starts. */
+    public void signalGrade4Active(UUID siteId) {
+        UUID trialCaseId = trialCaseLookup.findTrialEngineCase(siteId);
+        if (trialCaseId == null) return;
+        runtime.signal(trialCaseId, "grade4Active." + siteId, Boolean.TRUE);
+    }
+
     public void onAeEscalationCompleted(@ObservesAsync AeEscalationCompletedEvent event) {
         if (!SEVERE_GRADES.contains(event.grade())) return;
         if (event.siteId() == null) return;

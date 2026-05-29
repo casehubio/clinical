@@ -1,6 +1,5 @@
 package io.casehub.clinical.service;
 
-import io.casehub.api.engine.CaseHubRuntime;
 import io.casehub.clinical.api.AdverseEventReportedEvent;
 import io.casehub.clinical.api.model.AeEscalationStatus;
 import io.casehub.clinical.api.model.CtcaeGrade;
@@ -34,8 +33,7 @@ public class AeEscalationCaseService {
 
     @Inject ClinicalAdverseEventCaseHub caseHub;
     @Inject AdverseEventEscalationPolicy policy;
-    @Inject CaseHubRuntime runtime;
-    @Inject TrialCaseLookup trialCaseLookup;
+    @Inject TrialSafetySignalService trialSafetySignalService;
 
     public void onAdverseEventReported(@ObservesAsync AdverseEventReportedEvent event) {
         try {
@@ -44,7 +42,7 @@ public class AeEscalationCaseService {
             UUID caseId = caseHub.startCase(initialContext).toCompletableFuture().join();
             persistCaseId(event.aeId(), caseId);
             if (SEVERE_GRADES.contains(event.grade())) {
-                signalTrialGrade4Active(event.siteId(), true);
+                trialSafetySignalService.signalGrade4Active(event.siteId());
             }
         } catch (Exception e) {
             LOG.errorf(e, "AeEscalationCaseService: escalation failed for aeId=%s — marking FAILED", event.aeId());
@@ -98,10 +96,4 @@ public class AeEscalationCaseService {
         ae.escalationStatus = AeEscalationStatus.FAILED;
     }
 
-    private void signalTrialGrade4Active(UUID siteId, boolean active) {
-        UUID trialCaseId = trialCaseLookup.findTrialEngineCase(siteId);
-        if (trialCaseId != null) {
-            runtime.signal(trialCaseId, "grade4Active." + siteId, active);
-        }
-    }
 }

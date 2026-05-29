@@ -4,6 +4,9 @@ import static java.util.concurrent.TimeUnit.MILLISECONDS;
 import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.awaitility.Awaitility.await;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.verify;
 
 import io.casehub.clinical.api.AdverseEventReportedEvent;
 import io.casehub.clinical.api.model.AeEscalationStatus;
@@ -20,6 +23,7 @@ import io.casehub.work.runtime.model.WorkItem;
 import io.casehub.work.runtime.service.WorkItemService;
 import io.casehub.workadapter.WorkItemLifecycleAdapter;
 import io.quarkus.test.junit.QuarkusTest;
+import io.quarkus.test.junit.mockito.InjectSpy;
 import jakarta.inject.Inject;
 import jakarta.transaction.Transactional;
 import java.time.Duration;
@@ -33,6 +37,7 @@ import org.junit.jupiter.api.Test;
 class AeEscalationLifecycleTest {
 
     @Inject AeEscalationCaseService aeEscalationCaseService;
+    @InjectSpy TrialSafetySignalService trialSafetySignalService;
     @Inject WorkItemQueries workItemQueries;
     @Inject WorkItemService workItemService;
     @Inject CaseInstanceRepository caseInstanceRepository;
@@ -106,11 +111,20 @@ class AeEscalationLifecycleTest {
         await().atMost(10, SECONDS).pollInterval(100, MILLISECONDS)
                 .untilAsserted(() ->
                         assertThat(findAe(aeId).escalationStatus).isEqualTo(AeEscalationStatus.COMPLETED));
+
+        // Grade 3 must NOT signal the trial (no DSMB rollup threshold)
+        verify(trialSafetySignalService, never()).signalGrade4Active(any());
     }
 
     @Test
     void grade4_opens_two_parallel_gates() throws Exception {
         aeEscalationCaseService.onAdverseEventReported(aeEvent(CtcaeGrade.GRADE_4));
+
+        // Phase 1 sets REQUESTED synchronously (direct call — not via CDI async event bus)
+        assertThat(findAe(aeId).escalationStatus).isEqualTo(AeEscalationStatus.REQUESTED);
+        // Phases 2+3 also run synchronously — Grade 4 must have signaled the trial by now
+        // (no TrialSite in test setup, so signalGrade4Active resolves to no-op via null trialCaseId)
+        verify(trialSafetySignalService).signalGrade4Active(siteId);
 
         // Checkpoint: two WorkItems (safety-review + dsmb-escalation)
         await().atMost(5, SECONDS).pollInterval(100, MILLISECONDS)
@@ -150,6 +164,14 @@ class AeEscalationLifecycleTest {
                     assertThat(instance).isNotNull();
                     assertThat(instance.getState()).isEqualTo(CaseStatus.COMPLETED);
                 });
+
+        // Phase 3 persists the engine case ID — verify after case start completes
+        assertThat(findAe(aeId).engineCaseId).isNotNull();
+
+        // AeEscalationListener fires @ObservesAsync on CaseLifecycleEvent — small lag after case completes
+        await().atMost(10, SECONDS).pollInterval(100, MILLISECONDS)
+                .untilAsserted(() ->
+                        assertThat(findAe(aeId).escalationStatus).isEqualTo(AeEscalationStatus.COMPLETED));
     }
 
     // ── helpers ───────────────────────────────────────────────────────────────

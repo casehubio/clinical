@@ -380,6 +380,8 @@ quarkus.arc.selected-alternatives=io.casehub.ledger.runtime.repository.jpa.JpaLe
 ```
 Quarkus ArC ignores `beans.xml` `<alternatives>` — the config property is required.
 
+**`@Alternative` in test profiles:** When writing `@QuarkusTestProfile`-scoped alternative beans, annotate with `@Alternative @ApplicationScoped` only — do NOT add `@Priority`. In CDI 2.0, `@Priority` on `@Alternative` globally enables the bean across ALL tests, overriding `@DefaultBean` everywhere. Profile selection via `getEnabledAlternatives()` is sufficient. (First applied in `IrbCommitteePolicySpiTest`.)
+
 **Multi-datasource XA:** Any `@Transactional` method writing to both datasources requires XA in **both** `application.properties` (production) and test `application.properties`:
 ```properties
 quarkus.datasource.jdbc.transactions=xa

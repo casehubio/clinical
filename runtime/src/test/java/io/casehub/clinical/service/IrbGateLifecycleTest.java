@@ -153,7 +153,7 @@ class IrbGateLifecycleTest {
 
     @Test
     @Transactional
-    void irb_approval_committeeId_matches_policy_default() {
+    void irb_approval_uses_default_committee_id() {
         irbDeviationCaseService.onDeviationResolved(criticalDeviationApproved());
 
         IrbApproval approval = IrbApproval.find("deviationId = ?1", deviationId).firstResult();

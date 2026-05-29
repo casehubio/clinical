@@ -61,6 +61,29 @@ class TrialSafetySignalServiceTest {
         verifyNoInteractions(runtime);
     }
 
+    // ── signalGrade4Active ────────────────────────────────────────────────────
+
+    @Test
+    void grade4_active_sets_trial_grade4_flag() {
+        UUID siteId = UUID.randomUUID();
+        UUID trialCaseId = UUID.randomUUID();
+        when(trialCaseLookup.findTrialEngineCase(siteId)).thenReturn(trialCaseId);
+
+        service.signalGrade4Active(siteId);
+
+        verify(runtime).signal(trialCaseId, "grade4Active." + siteId, Boolean.TRUE);
+    }
+
+    @Test
+    void grade4_active_when_trial_not_active_skipped_gracefully() {
+        UUID siteId = UUID.randomUUID();
+        when(trialCaseLookup.findTrialEngineCase(siteId)).thenReturn(null);
+
+        service.signalGrade4Active(siteId);
+
+        verifyNoInteractions(runtime);
+    }
+
     // ── helper ───────────────────────────────────────────────────────────────
 
     private AeEscalationCompletedEvent completedEvent(UUID siteId, CtcaeGrade grade) {
