@@ -411,8 +411,8 @@ quarkus.arc.selected-alternatives=\
   io.casehub.persistence.jpa.JpaPlanItemStore,\
   io.casehub.persistence.jpa.JpaSubCaseGroupRepository
 
-# Engine CDI — exclude internal workload provider; index engine jars (no embedded Jandex)
-%prod.quarkus.arc.exclude-types=io.casehub.engine.internal.worker.CasehubWorkloadProvider
+# Engine CDI — index engine jars (no embedded Jandex)
+# Note: CasehubWorkloadProvider was deleted in engine#378 — no WorkloadProvider exclude needed in prod.
 %prod.quarkus.index-dependency.casehub-engine.group-id=io.casehub
 %prod.quarkus.index-dependency.casehub-engine.artifact-id=casehub-engine
 %prod.quarkus.index-dependency.casehub-engine-common.group-id=io.casehub
@@ -429,6 +429,9 @@ In test `application.properties`:
 - **JQ `to_entries` iteration:** Use `to_entries[]` (with `[]`) not `to_entries` when piping to `select`. Without `[]`, `select` tests the whole array as a single value (always false). Example: `[.myMap // {} | to_entries[] | select(.value == true)] | length >= 2`.
 - **Engine case activation — three-phase pattern:** Any service that calls `startCase().toCompletableFuture().join()` must NOT be `@Transactional` at that call site. Split into three separate `@Transactional` calls: (1) validate + update domain status, (2) call `startCase().join()` outside any transaction boundary, (3) persist the returned `caseId`. Holding a DB connection across `join()` deadlocks the Agroal pool when the engine's JPA persistence also needs a connection from the same pool. See `TrialActivationService` for the reference implementation.
 - **inputMapping not inputSchema:** YAML humanTask bindings use `inputMapping` field (mini-DSL, not JQ) — the field sets the WorkItem payload. `outputMapping` uses JQ flat pattern `"{ key: . }"` (engine#314: nested `{..}` unsupported).
+- **WorkloadProvider stub:** `casehub-work` injects `WorkloadProvider`. The engine's `CasehubWorkloadProvider` (the bridge) was deleted in engine#378. Clinical provides `StubWorkloadProvider` (`@DefaultBean @ApplicationScoped`, returns 0) in `runtime/src/test/java/.../support/`. `JpaWorkloadProvider` is excluded via `quarkus.arc.exclude-types`. Any new test module that adds engine must add the stub (clinical#41).
+- **CaseLifecycleEvent observers — accept GoalReached in tests:** The in-memory engine does not reliably fire `CaseCompleted` CDI events in `@QuarkusTest` (engine#393). `GoalReached` fires first and is reliable. CDI observers that need to react to case completion should accept both `"GoalReached"` and `"CaseCompleted"` event types, with an idempotency guard (since `GoalReached` fires once per goal, not once per case). See `AeEscalationListener` for the reference pattern.
+- **`@Transactional` lifecycle tests and entity creation:** `@ObservesAsync` service methods that call `AdverseEvent.findById()` or similar Panache lookups in Phase 1 require the entity to exist before the observer fires. Add entity creation to `@BeforeEach @Transactional setup()` in `@QuarkusTest` lifecycle tests — not just random UUIDs. See `AeEscalationLifecycleTest` and `IrbGateLifecycleTest` for the pattern.
 
 ## Build Commands
 

@@ -74,4 +74,24 @@ class AeEscalationListenerTest {
         verifyNoInteractions(caseInstanceRepository);
         verifyNoInteractions(completedEvents);
     }
+
+    @Test
+    void idempotency_guard_skips_ledger_write_on_duplicate_goal_reached() {
+        UUID caseId = UUID.randomUUID();
+        UUID aeId = UUID.randomUUID();
+
+        CaseContext ctx = mock(CaseContext.class);
+        when(ctx.getPath("aeId")).thenReturn(aeId.toString());
+        when(statusUpdater.markCompleted(aeId)).thenReturn(false); // already COMPLETED
+
+        CaseInstance instance = mock(CaseInstance.class);
+        when(instance.getCaseContext()).thenReturn(ctx);
+        when(caseInstanceRepository.findByUuid(caseId)).thenReturn(Uni.createFrom().item(instance));
+
+        listener.onCaseLifecycle(new CaseLifecycleEvent(
+                caseId, "CompleteCase", "GoalReached", "RUNNING", "system", "system", null));
+
+        verifyNoInteractions(ledgerWriter);
+        verifyNoInteractions(completedEvents);
+    }
 }

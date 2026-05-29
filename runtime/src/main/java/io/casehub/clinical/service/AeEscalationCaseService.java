@@ -48,7 +48,11 @@ public class AeEscalationCaseService {
             }
         } catch (Exception e) {
             LOG.errorf(e, "AeEscalationCaseService: escalation failed for aeId=%s — marking FAILED", event.aeId());
-            markFailed(event.aeId());
+            try {
+                markFailed(event.aeId());
+            } catch (Exception markFailedEx) {
+                LOG.errorf(markFailedEx, "AeEscalationCaseService: markFailed also failed for aeId=%s — status may be stuck at REQUESTED", event.aeId());
+            }
         }
     }
 
