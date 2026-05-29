@@ -34,12 +34,12 @@ delegated work with a terminal lifecycle.
 - `ClinicalTrialCaseHub` — `YamlCaseHub` extension loading `trial-coordination.yaml`
 - `TrialActivationService` — three-phase activation: commit status → `startCase().join()` outside any transaction → commit returned caseId. Required to avoid Agroal pool deadlock when engine JPA persistence uses the same pool.
 - `TrialCaseLookup` — resolves site → trial → `engineCaseId` for signal routing
-- `TrialSafetySignalService` — observes `AeEscalationCompletedEvent`, clears `grade4Active.<siteId>` for Grade 4+ completions
+- `TrialSafetySignalService` — owns all grade4 blackboard flag operations: `signalGrade4Active(siteId)` sets the flag when a Grade 4+ AE starts; `onAeEscalationCompleted` clears it on AE case completion. All direct `runtime.signal()` calls for grade4 flags route through this service.
 
 **AE escalation (Layer 5):**
 
 - `ClinicalAdverseEventCaseHub` / `ae-escalation.yaml` — adaptive safety routing (Grade 3: senior monitor gate; Grade 4+: + DSMB gate in parallel)
-- `AeEscalationCaseService` — starts AE cases; signals trial case on Grade 4+ AE start
+- `AeEscalationCaseService` — starts AE cases; delegates Grade 4+ trial flag to `TrialSafetySignalService.signalGrade4Active()`
 - `AeEscalationListener` — observes `CaseLifecycleEvent("CaseCompleted")` to write ledger entry and fire domain events
 
 **Grade threshold:** `SEVERE_GRADES = Set.of(GRADE_4, GRADE_5)` — shared constant in both signal services; avoids `ordinal()` comparison.
@@ -51,6 +51,7 @@ delegated work with a terminal lifecycle.
 | `AdverseEventEscalationPolicy` | `api` | Determines which escalation gates apply for a given AE |
 | `AdverseEventEscalationRequirements` | `api` | Return type: `requiresSeniorMonitor`, `requiresDsmbEscalation` |
 | `AeEscalationCompletedEvent` | `api` | CDI event on AE case completion; carries `aeId`, `grade`, `siteId`, `safetyReviewOutcome`, `dsmbEscalated` |
+| `IrbCommitteeAssignmentPolicy` | `api` | Maps deviation context (`IrbCommitteeContext`: deviationId, siteId, trialId, severity) to an `IrbCommitteeAssignment` (committeeId, candidateGroups). `DefaultIrbCommitteeAssignmentPolicy` returns `"irb-committee"`. Override with `@Alternative @ApplicationScoped` — do NOT add `@Priority` in test scopes (CDI 2.0 global activation). |
 
 **`AeEscalationCompletedEvent.siteId`** was added in Layer 6 to enable `TrialSafetySignalService` to clear the trial's `grade4Active` flag without a downstream DB lookup.
 
