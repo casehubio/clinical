@@ -4,9 +4,9 @@ import io.casehub.clinical.api.ProtocolDeviationResolvedEvent;
 import io.casehub.clinical.api.model.DeviationSeverity;
 import io.casehub.clinical.api.model.EscalationRequirement;
 import io.casehub.clinical.api.model.PiApprovalStatus;
+import io.casehub.clinical.api.spi.IrbCommitteeAssignmentPolicy;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
@@ -19,6 +19,7 @@ import static org.mockito.Mockito.*;
 class IrbDeviationCaseServiceTest {
 
     @Mock ClinicalDeviationCaseHub caseHub;
+    @Mock IrbCommitteeAssignmentPolicy committeePolicy;
     @InjectMocks IrbDeviationCaseService service;
 
     // Happy-path (IRB_REVIEW + APPROVED) tested by IrbGateLifecycleTest (@QuarkusTest)

@@ -11,6 +11,8 @@ import io.casehub.clinical.api.model.EscalationRequirement;
 import io.casehub.clinical.api.model.IrbDecision;
 import io.casehub.clinical.api.model.PiApprovalStatus;
 import io.casehub.clinical.entity.IrbApproval;
+import io.casehub.clinical.entity.ProtocolDeviation;
+import io.casehub.clinical.entity.TrialSite;
 import io.casehub.clinical.support.WorkItemCompletionCapture;
 import io.casehub.clinical.support.WorkItemQueries;
 import io.casehub.api.model.CaseStatus;
@@ -42,18 +44,40 @@ class IrbGateLifecycleTest {
 
     private UUID deviationId;
     private UUID siteId;
+    private UUID trialId;
 
     @BeforeEach
+    @Transactional
     void setup() {
         deviationId = UUID.randomUUID();
         siteId = UUID.randomUUID();
+        trialId = UUID.randomUUID();
         completionCapture.reset();
+
+        TrialSite site = new TrialSite();
+        site.id = siteId;
+        site.trialId = trialId;
+        site.investigatorId = "test-pi";
+        site.persist();
+
+        ProtocolDeviation deviation = new ProtocolDeviation();
+        deviation.id = deviationId;
+        deviation.siteId = siteId;
+        deviation.deviationType = "CONSENT_DEVIATION";
+        deviation.severity = DeviationSeverity.CRITICAL;
+        deviation.piApprovalStatus = PiApprovalStatus.APPROVED;
+        deviation.persist();
     }
 
     @Test
     void irb_approved_full_lifecycle() throws Exception {
-        // Checkpoint 1: start IRB case — call directly through CDI proxy (@Transactional honoured)
+        // Checkpoint 1: start IRB case — observer delegates to internal @Transactional phase methods
         irbDeviationCaseService.onDeviationResolved(criticalDeviationApproved());
+
+        // Phase 3 persists caseId on ProtocolDeviation — wait for async completion
+        await().atMost(3, SECONDS).pollInterval(100, MILLISECONDS)
+                .untilAsserted(() ->
+                        assertThat(findDeviation(deviationId).engineCaseId).isNotNull());
 
         // Checkpoint 2: await IRB WorkItem (engine#312 — creation may be delayed)
         await().atMost(5, SECONDS).pollInterval(100, MILLISECONDS)
@@ -127,6 +151,16 @@ class IrbGateLifecycleTest {
                 });
     }
 
+    @Test
+    @Transactional
+    void irb_approval_committeeId_matches_policy_default() {
+        irbDeviationCaseService.onDeviationResolved(criticalDeviationApproved());
+
+        IrbApproval approval = IrbApproval.find("deviationId = ?1", deviationId).firstResult();
+        assertThat(approval).isNotNull();
+        assertThat(approval.committeeId).isEqualTo("irb-committee");
+    }
+
     // ── helpers ───────────────────────────────────────────────────────────────
 
     private ProtocolDeviationResolvedEvent criticalDeviationApproved() {
@@ -146,6 +180,11 @@ class IrbGateLifecycleTest {
     IrbDecision approvalDecision() {
         IrbApproval approval = IrbApproval.find("deviationId = ?1", deviationId).firstResult();
         return approval != null ? approval.decision : null;
+    }
+
+    @Transactional
+    ProtocolDeviation findDeviation(UUID id) {
+        return ProtocolDeviation.findById(id);
     }
 
     private UUID caseIdFrom(String callerRef) {
