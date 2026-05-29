@@ -8,8 +8,11 @@ import static org.awaitility.Awaitility.await;
 import io.casehub.api.engine.CaseHubRuntime;
 import io.casehub.clinical.api.AdverseEventReportedEvent;
 import io.casehub.clinical.api.model.CtcaeGrade;
+import io.casehub.clinical.entity.AdverseEvent;
 import io.casehub.clinical.entity.ClinicalTrial;
 import io.casehub.clinical.entity.TrialSite;
+import io.casehub.clinical.api.model.AeOutcome;
+import io.casehub.clinical.api.model.EventActuality;
 import io.casehub.clinical.support.WorkItemCompletionCapture;
 import io.casehub.clinical.support.WorkItemQueries;
 import io.casehub.work.runtime.model.WorkItem;
@@ -105,8 +108,25 @@ class DsmbRollupTest {
                 .toList();
     }
 
-    private AdverseEventReportedEvent aeEvent(UUID siteId, CtcaeGrade grade) {
-        return new AdverseEventReportedEvent(UUID.randomUUID(), UUID.randomUUID(), siteId, grade, Instant.now());
+    /**
+     * Persists an AdverseEvent row and returns the matching AdverseEventReportedEvent.
+     * Required after the three-phase refactor: Phase 1 calls AdverseEvent.findById() —
+     * without a persisted row the service logs a warning and skips escalation.
+     */
+    @Transactional
+    AdverseEventReportedEvent aeEvent(UUID siteId, CtcaeGrade grade) {
+        UUID aeId = UUID.randomUUID();
+        UUID enrollmentId = UUID.randomUUID();
+        AdverseEvent ae = new AdverseEvent();
+        ae.id = aeId;
+        ae.enrollmentId = enrollmentId;
+        ae.grade = grade;
+        ae.actuality = EventActuality.ACTUAL;
+        ae.outcome = AeOutcome.ONGOING;
+        ae.occurredAt = Instant.now();
+        ae.reportedAt = Instant.now();
+        ae.persist();
+        return new AdverseEventReportedEvent(aeId, enrollmentId, siteId, grade, Instant.now());
     }
 
     UUID createAndActivateTrial() {

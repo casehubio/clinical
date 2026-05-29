@@ -6,7 +6,11 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.awaitility.Awaitility.await;
 
 import io.casehub.clinical.api.AdverseEventReportedEvent;
+import io.casehub.clinical.api.model.AeEscalationStatus;
+import io.casehub.clinical.api.model.AeOutcome;
 import io.casehub.clinical.api.model.CtcaeGrade;
+import io.casehub.clinical.api.model.EventActuality;
+import io.casehub.clinical.entity.AdverseEvent;
 import io.casehub.clinical.support.WorkItemCompletionCapture;
 import io.casehub.clinical.support.WorkItemQueries;
 import io.casehub.api.model.CaseStatus;
@@ -17,6 +21,7 @@ import io.casehub.work.runtime.service.WorkItemService;
 import io.casehub.workadapter.WorkItemLifecycleAdapter;
 import io.quarkus.test.junit.QuarkusTest;
 import jakarta.inject.Inject;
+import jakarta.transaction.Transactional;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.List;
@@ -39,16 +44,30 @@ class AeEscalationLifecycleTest {
     private UUID siteId;
 
     @BeforeEach
+    @Transactional
     void setup() {
         aeId = UUID.randomUUID();
         enrollmentId = UUID.randomUUID();
         siteId = UUID.randomUUID();
         completionCapture.reset();
+
+        AdverseEvent ae = new AdverseEvent();
+        ae.id = aeId;
+        ae.enrollmentId = enrollmentId;
+        ae.grade = CtcaeGrade.GRADE_3;
+        ae.actuality = EventActuality.ACTUAL;
+        ae.outcome = AeOutcome.ONGOING;
+        ae.occurredAt = Instant.now();
+        ae.reportedAt = Instant.now();
+        ae.persist();
     }
 
     @Test
     void grade3_opens_one_senior_monitor_gate() throws Exception {
         aeEscalationCaseService.onAdverseEventReported(aeEvent(CtcaeGrade.GRADE_3));
+
+        // Phase 1 sets REQUESTED synchronously (direct call — not via CDI async event bus)
+        assertThat(findAe(aeId).escalationStatus).isEqualTo(AeEscalationStatus.REQUESTED);
 
         // Checkpoint: exactly one safety-review WorkItem, no dsmb WorkItem
         await().atMost(5, SECONDS).pollInterval(100, MILLISECONDS)
@@ -79,6 +98,9 @@ class AeEscalationLifecycleTest {
                     assertThat(instance).isNotNull();
                     assertThat(instance.getState()).isEqualTo(CaseStatus.COMPLETED);
                 });
+
+        // Phase 3 persists the engine case ID — verify after case start completes
+        assertThat(findAe(aeId).engineCaseId).isNotNull();
     }
 
     @Test
@@ -140,5 +162,10 @@ class AeEscalationLifecycleTest {
     private UUID caseIdFromWorkItem(WorkItem wi) {
         var ref = io.casehub.workadapter.CallerRef.parse(wi.callerRef);
         return ref != null ? ref.caseId() : null;
+    }
+
+    @Transactional
+    AdverseEvent findAe(UUID id) {
+        return AdverseEvent.findById(id);
     }
 }
