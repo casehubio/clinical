@@ -35,11 +35,15 @@ public class AeEscalationListener {
 
     @Inject CaseInstanceRepository caseInstanceRepository;
     @Inject AeEscalationLedgerWriter ledgerWriter;
+    @Inject AeStatusUpdater statusUpdater;
     @Inject Event<AeEscalationCompletedEvent> completedEvents;
 
     @Transactional
     public void onCaseLifecycle(@ObservesAsync CaseLifecycleEvent event) {
-        if (!"CaseCompleted".equals(event.eventType())) return;
+        LOG.debugf("AeEscalationListener: received eventType=%s caseStatus=%s caseId=%s", event.eventType(), event.caseStatus(), event.caseId());
+        // React to GoalReached (which the engine fires when all goals are met, before status updates).
+        // CaseCompleted is also fired by CaseStatusChangedHandler but may not reliably arrive in all environments.
+        if (!"GoalReached".equals(event.eventType()) && !"CaseCompleted".equals(event.eventType())) return;
 
         var instance = caseInstanceRepository
                 .findByUuid(event.caseId())
@@ -55,6 +59,15 @@ public class AeEscalationListener {
         } catch (IllegalArgumentException e) {
             LOG.warnf("AeEscalationListener: invalid aeId in case context: %s", aeIdObj);
             return;
+        }
+
+        // Write COMPLETED before enrollmentId check — status reflects case completion
+        // regardless of whether context is complete enough for ledger write.
+        // REQUIRES_NEW in AeStatusUpdater ensures this commits even if the outer transaction rolls back.
+        // Returns false if already COMPLETED — GoalReached fires multiple times per case (idempotency guard).
+        boolean firstCompletion = statusUpdater.markCompleted(aeId);
+        if (!firstCompletion) {
+            return; // already handled by a prior GoalReached event for this case
         }
 
         UUID enrollmentId = resolveUuid(instance.getCaseContext().getPath("enrollmentId"));

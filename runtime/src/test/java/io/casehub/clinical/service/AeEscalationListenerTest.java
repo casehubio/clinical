@@ -28,6 +28,7 @@ class AeEscalationListenerTest {
 
     @Mock CaseInstanceRepository caseInstanceRepository;
     @Mock AeEscalationLedgerWriter ledgerWriter;
+    @Mock AeStatusUpdater statusUpdater;
     @Mock Event<AeEscalationCompletedEvent> completedEvents;
     @InjectMocks AeEscalationListener listener;
 
@@ -49,6 +50,7 @@ class AeEscalationListenerTest {
         CaseInstance instance = mock(CaseInstance.class);
         when(instance.getCaseContext()).thenReturn(ctx);
         when(caseInstanceRepository.findByUuid(caseId)).thenReturn(Uni.createFrom().item(instance));
+        when(statusUpdater.markCompleted(aeId)).thenReturn(true);
         when(completedEvents.fireAsync(any())).thenReturn(CompletableFuture.completedFuture(null));
 
         listener.onCaseLifecycle(new CaseLifecycleEvent(

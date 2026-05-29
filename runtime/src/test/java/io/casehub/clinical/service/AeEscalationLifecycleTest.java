@@ -101,6 +101,11 @@ class AeEscalationLifecycleTest {
 
         // Phase 3 persists the engine case ID — verify after case start completes
         assertThat(findAe(aeId).engineCaseId).isNotNull();
+
+        // AeEscalationListener fires @ObservesAsync on CaseLifecycleEvent — small lag after case completes
+        await().atMost(10, SECONDS).pollInterval(100, MILLISECONDS)
+                .untilAsserted(() ->
+                        assertThat(findAe(aeId).escalationStatus).isEqualTo(AeEscalationStatus.COMPLETED));
     }
 
     @Test
