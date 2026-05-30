@@ -77,7 +77,7 @@ class AdverseEventLedgerWriterTest {
 
         AdverseEventLedgerEntry entry = captureEntry();
         assertThat(entry.entryType).isEqualTo(LedgerEntryType.EVENT);
-        assertThat(entry.actorId).isEqualTo("system");
+        assertThat(entry.actorId).isEqualTo("clinical-service");
         assertThat(entry.actorType).isEqualTo(ActorType.SYSTEM);
         assertThat(entry.actorRole).isEqualTo("AdverseEventReporter");
         assertThat(entry.occurredAt).isEqualTo(FIXED_INSTANT);

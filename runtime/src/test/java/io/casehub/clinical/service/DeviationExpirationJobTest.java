@@ -54,7 +54,7 @@ class DeviationExpirationJobTest {
         assertThat(entries).hasSize(1);
         ProtocolDeviationLedgerEntry entry = (ProtocolDeviationLedgerEntry) entries.get(0);
         assertThat(entry.terminalStatus).isEqualTo("EXPIRED");
-        assertThat(entry.actorId).isEqualTo("system");
+        assertThat(entry.actorId).isEqualTo("clinical-service");
         assertThat(entry.actorType).isEqualTo(ActorType.SYSTEM);
         assertThat(entry.actorRole).isEqualTo("deviation-expiration-job");
         assertThat(entry.resolvedAt).isNotNull();

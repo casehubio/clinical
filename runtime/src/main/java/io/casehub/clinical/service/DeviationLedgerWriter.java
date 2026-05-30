@@ -1,5 +1,6 @@
 package io.casehub.clinical.service;
 
+import io.casehub.clinical.api.ClinicalActors;
 import io.casehub.clinical.api.model.PiApprovalStatus;
 import io.casehub.clinical.entity.ProtocolDeviation;
 import io.casehub.clinical.ledger.ProtocolDeviationLedgerEntry;
@@ -23,14 +24,12 @@ import java.util.UUID;
  * and a ledgered resolution (APPROVED, REJECTED, ESCALATED, or EXPIRED). Without both ends of
  * the chain, an FDA inspector can see a PI was commanded but not how the obligation was discharged.
  *
- * Note: SYSTEM_ACTOR and ProtocolDeviationService.CLINICAL_SENDER are the same string
- * "clinical-service" — both identify the clinical harness in their respective contexts
- * (ledger actor vs qhorus message sender). Keep them in sync if the harness identity changes.
+ * The clinical harness uses {@link ClinicalActors#CLINICAL_SERVICE} as its system actorId
+ * across all ledger writers; {@code ProtocolDeviationService.CLINICAL_SENDER} uses the same
+ * identity string in the qhorus context — keep both in sync if the harness identity changes.
  */
 @ApplicationScoped
 public class DeviationLedgerWriter {
-
-    static final String SYSTEM_ACTOR = "clinical-service";
 
     @Inject
     LedgerEntryRepository ledgerEntryRepository;
@@ -41,7 +40,7 @@ public class DeviationLedgerWriter {
     public void writeCommandEntry(ProtocolDeviation dev, String piId) {
         ProtocolDeviationLedgerEntry entry = baseEntry(dev);
         entry.entryType = LedgerEntryType.COMMAND;
-        entry.actorId = SYSTEM_ACTOR;
+        entry.actorId = ClinicalActors.CLINICAL_SERVICE;
         entry.actorType = ActorType.SYSTEM;
         entry.actorRole = "deviation-reporter";
         entry.occurredAt = dev.commandedAt;
@@ -75,7 +74,7 @@ public class DeviationLedgerWriter {
     public void writeSponsorNotifiedEntry(ProtocolDeviation dev, Instant notifiedAt, boolean delivered) {
         ProtocolDeviationLedgerEntry entry = baseEntry(dev);
         entry.entryType = LedgerEntryType.EVENT;
-        entry.actorId = SYSTEM_ACTOR;
+        entry.actorId = ClinicalActors.CLINICAL_SERVICE;
         entry.actorType = ActorType.SYSTEM;
         entry.actorRole = delivered ? "sponsor-notifier" : "sponsor-notifier-failed";
         entry.occurredAt = notifiedAt;

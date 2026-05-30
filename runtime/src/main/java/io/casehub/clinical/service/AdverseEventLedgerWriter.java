@@ -1,5 +1,6 @@
 package io.casehub.clinical.service;
 
+import io.casehub.clinical.api.ClinicalActors;
 import io.casehub.clinical.entity.AdverseEvent;
 import io.casehub.clinical.ledger.AdverseEventLedgerEntry;
 import io.casehub.ledger.api.model.LedgerEntryType;
@@ -34,7 +35,7 @@ public class AdverseEventLedgerWriter {
         entry.subjectId = ae.id;
         entry.sequenceNumber = nextSequenceNumber(ae.id);
         entry.entryType = LedgerEntryType.EVENT;
-        entry.actorId = "system";
+        entry.actorId = ClinicalActors.CLINICAL_SERVICE;
         entry.actorType = ActorType.SYSTEM;
         entry.actorRole = "AdverseEventReporter";
         entry.occurredAt = clock.instant();

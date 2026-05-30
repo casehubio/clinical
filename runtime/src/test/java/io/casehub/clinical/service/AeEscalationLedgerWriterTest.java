@@ -3,6 +3,7 @@ package io.casehub.clinical.service;
 import io.casehub.clinical.api.model.CtcaeGrade;
 import io.casehub.clinical.ledger.AeEscalationLedgerEntry;
 import io.casehub.ledger.runtime.repository.LedgerEntryRepository;
+import io.casehub.platform.api.identity.ActorType;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
@@ -49,5 +50,7 @@ class AeEscalationLedgerWriterTest {
         assertThat(entry.dsmbEscalated).isTrue();
         assertThat(entry.completedAt).isEqualTo(now);
         assertThat(entry.sequenceNumber).isEqualTo(1);
+        assertThat(entry.actorId).isEqualTo("clinical-service");
+        assertThat(entry.actorType).isEqualTo(ActorType.SYSTEM);
     }
 }

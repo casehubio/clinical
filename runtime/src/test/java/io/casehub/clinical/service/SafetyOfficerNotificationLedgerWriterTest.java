@@ -51,7 +51,7 @@ class SafetyOfficerNotificationLedgerWriterTest {
         assertThat(entry.delivered).isTrue();
         assertThat(entry.notifiedAt).isEqualTo(now);
         assertThat(entry.sequenceNumber).isEqualTo(1);
-        assertThat(entry.actorId).isEqualTo("system");
+        assertThat(entry.actorId).isEqualTo("clinical-service");
         assertThat(entry.actorRole).isEqualTo("SafetyOfficerNotification");
     }
 

@@ -1,5 +1,6 @@
 package io.casehub.clinical.service;
 
+import io.casehub.clinical.api.ClinicalActors;
 import io.casehub.clinical.api.ProtocolDeviationResolvedEvent;
 import io.casehub.clinical.api.model.EscalationRequirement;
 import io.casehub.clinical.api.model.PiApprovalStatus;
@@ -47,7 +48,7 @@ public class DeviationExpirer {
         d.piApprovalStatus = PiApprovalStatus.EXPIRED;
         commitmentService.fail(d.id.toString());
         ledgerWriter.writeResolutionEntry(d, PiApprovalStatus.EXPIRED,
-            "system", ActorType.SYSTEM, "deviation-expiration-job");
+            ClinicalActors.CLINICAL_SERVICE, ActorType.SYSTEM, "deviation-expiration-job");
         // Fire-and-forget: observer failures are asynchronous and not surfaced here.
         // The deviation is already EXPIRED and the Commitment is already FAILED at this point.
         // When qhorus#153 lands and @ObservesAsync consumers are wired, ensure downstream

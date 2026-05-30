@@ -153,7 +153,7 @@ class DeviationLedgerWriterTest {
     }
 
     @Test
-    void writeResolutionEntry_expired_setsSystemActor() {
+    void writeResolutionEntry_expired_stores_provided_actorId() {
         when(ledgerEntryRepository.findLatestBySubjectId(dev.id)).thenReturn(Optional.empty());
 
         writer.writeResolutionEntry(dev, PiApprovalStatus.EXPIRED, "system", ActorType.SYSTEM, "deviation-expiration-job");
