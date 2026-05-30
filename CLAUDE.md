@@ -121,17 +121,15 @@ type: java
 
 **Read first:** `../parent/docs/AGENTIC-HARNESS-GUIDE.md`
 
-**Primary goal:** Reference architecture and field showcase for Java developers in regulated healthcare — demonstrating that GCP, FDA, and GDPR requirements are structurally satisfied by CaseHub where workflow-based LLM systems cannot.
+**Goal:** Production-grade clinical trial coordination harness demonstrating that GCP, FDA, and GDPR requirements are structurally satisfied by CaseHub's accountability layer where workflow-based LLM systems cannot provide equivalent compliance guarantees.
 
-**Secondary goal:** LLM and human tutorial material, produced as a by-product of building the application correctly. The tutorial structure emerges from the layered adoption sequence — do not design for the tutorial.
-
-**LAYER-LOG.md** (`LAYER-LOG.md` at project root) is the primary new artifact. A layer is not complete until its entry is written. See the AML reference implementation and `docs/protocols/universal/layer-log.md` in casehub-parent for the format.
+**Architecture record:** `LAYER-LOG.md` tracks integration layer entries. A layer is not complete until its entry is written. Arc42Stories migration planned — layer entries will move to `ARC42STORIES.MD §9.4` when the document is bootstrapped. See `../parent/docs/arc42stories-spec.md` and `../parent/docs/arc42stories-casehub-profile.md`.
 
 ---
 
 ## What This Project Is
 
-`casehub-clinical` is an **agentic harness for clinical trial coordination** built on the CaseHub platform foundation. It coordinates eligibility screening agents, safety monitoring agents, PI authorisation gates, and IRB approval gates — producing an FDA-compliant, GDPR-aware, independently verifiable audit trail. Field showcase and tutorial for Java developers in regulated healthcare.
+`casehub-clinical` is an **agentic harness for clinical trial coordination** built on the CaseHub platform foundation. It coordinates eligibility screening agents, safety monitoring agents, PI authorisation gates, and IRB approval gates — producing an FDA-compliant, GDPR-aware, independently verifiable audit trail.
 
 This is an **application layer**, not a framework. The foundation provides coordination, accountability, audit, and compliance primitives. casehub-clinical provides the clinical trial domain logic: what a trial protocol is, how a site manages patient enrollment, how adverse events escalate, and how the FDA audit trail is constructed.
 
@@ -139,18 +137,18 @@ This is an **application layer**, not a framework. The foundation provides coord
 
 Clinical trials operate under the strictest regulated AI requirements of any domain: GCP (ICH E6(R3)), FDA IND requirements, EMA CTR, and GDPR for patient data. Every agent decision must be traceable. Every protocol deviation must be authorised by a named Principal Investigator with a formal commitment. Every adverse event has a hard reporting deadline (24 hours for serious events, 7 days for others) with documented escalation.
 
-The specific compliance gap ClinicalAgent (arXiv 2404.14777) — the peer-reviewed open-source baseline — cannot close by adding features:
+CaseHub's accountability properties close compliance gaps that no amount of prompt engineering or pipeline orchestration can address:
 
-| GCP / ICH / FDA requirement | ClinicalAgent | casehub-clinical |
+| GCP / ICH / FDA requirement | Without CaseHub | With casehub-clinical |
 |---|---|---|
 | Adverse event SLA — serious within 24h, others within 7 days | No deadline tracking | WorkItem `claimDeadline` with auto-escalation |
 | Protocol deviation authorisation — PI must formally approve | Agent decides autonomously; no named responsible party | COMMAND from PI required; commitment lifecycle tracks acknowledgement and resolution |
 | Consent withdrawal cascade — GDPR Art.17 patient data erasure | No GDPR capability | `LedgerErasureService` + `DecisionContextSanitiser` SPI |
-| Multi-site independence — 50+ sites with independent rollup to trial level | Single-case linear pipeline | Sub-case orchestration per site with trial-level aggregation |
+| Multi-site independence — 50+ sites with independent rollup to trial level | Single-site linear pipeline | Blackboard aggregation per trial with cross-site pattern detection |
 | Tamper-evident audit — FDA audit trail independently verifiable | No audit trail | Merkle Mountain Range + Ed25519-signed checkpoints |
 | Trust-weighted safety agent routing — reliable agents on high-risk decisions | No trust model | Bayesian Beta + EigenTrust via `TrustWeightedSelectionStrategy` |
 
-**Comparison baseline:** ClinicalAgent ([arXiv 2404.14777](https://arxiv.org/abs/2404.14777), ACM BCB '24, GitHub open source). Full gap analysis in `docs/use-case-analysis.md` in casehub-parent (§8.1). Scored 24/25 on market fit — highest of all use cases.
+Full gap analysis in `docs/use-case-analysis.md` in casehub-parent (§8.1).
 
 ---
 
@@ -165,9 +163,8 @@ This is an application, not a framework. If the capability requires knowledge of
 | Document | What it covers |
 |----------|---------------|
 | `../parent/docs/AGENTIC-HARNESS-GUIDE.md` | Goals, what to produce, retroactive work instructions, layer maintenance |
-| `../parent/docs/repos/casehub-clinical.md` | Harness structure, tutorial layers table, layer status |
+| `../parent/docs/repos/casehub-clinical.md` | Harness structure, layer status |
 | `../parent/docs/use-case-analysis.md` | Use case scoring, clinical trial selection rationale (§8.1), GCP compliance gap analysis |
-| `../parent/docs/tutorial-strategy.md` | Clinical tutorial layers §7 — teaching objectives and code sketches per layer |
 | `../garden/docs/protocols/casehub/HARNESS-INDEX.md` | CaseHub app protocols |
 | `../garden/docs/protocols/universal/INDEX.md` | Universal Java/Quarkus protocols |
 
@@ -200,14 +197,12 @@ Read these **before designing**, not after. The concern column tells you when ea
 | Adverse event grade SLAs | CTCAE v5.0 + ICH E6(R3) §5.17 — Grade 3/4 = 24h, Grade 5 = 1h (internal), Grade 1/2 = 7d |
 | Compliance requirement for a new feature | `use-case-analysis.md §8.1` — GCP gap table; 21 CFR Part 312 for FDA IND |
 
-### Tutorial layer design
+### Layer design
 
 | Concern | Read first |
 |---------|-----------|
-| Deciding which layer a feature belongs in | `tutorial-strategy.md §7` — layer teaching objectives and what each layer must NOT include |
-| Writing gap comments | Clinical does not use `NaiveXxxService @DefaultBean` displacement (see LAYER-LOG architectural note). Gap comments go in service and resource layer as `// Layer N: <entity>.persist() — no <concern>` inline notes, not in a displaced naive class. |
-| Documenting a completed layer | LAYER-LOG.md — write the entry before closing the issue. Each entry: What it shows, Gap comments, Key wiring, Gotchas, Pattern to replicate. |
-| Understanding the compliance gap being closed | The compliance table in `Why Clinical Trials` — each LAYER-LOG entry references a row from this table |
+| Deciding which layer a feature belongs in | Foundation Layers section below |
+| Documenting a completed layer | LAYER-LOG.md — write the entry before closing the issue |
 
 ### Foundation integration
 
@@ -309,27 +304,23 @@ Trial-level binding fires on aggregated context from all site sub-cases — no s
 | Trust-weighted safety agent routing | P1.3 TrustWeightedSelectionStrategy wired in engine |
 | LLM protocol amendment supervisor | LlmPlanningStrategy SPI (engine) |
 
-### Tutorial Structure (layer-by-layer, from tutorial-strategy.md §7)
+### Foundation Layers
+
+Each layer corresponds to a foundation module integration step. LAYER-LOG.md tracks completion — a layer is not done until its entry is written.
 
 ```
-Layer 1: naive Java — FHIR R5 domain model, six entities, REST CRUD, no accountability ✅ (Epics 1+2)
+Layer 1: domain baseline — FHIR R5 domain model, six entities, REST CRUD, no accountability ✅ (Epics 1+2)
 Layer 2: + casehub-work — adverse event SLA (GCP ICH E6(R3) §5.17; Grade 3/4 = 24h) ✅ (Epic 4)
 Layer 3: + casehub-qhorus — PI authorisation COMMAND for protocol deviations ✅ (Epic 5)
 Layer 4: + casehub-ledger — FDA Merkle tamper-evident audit trail ✅ (Epic 4)
 Layer 5: + casehub-engine — IRB gate as engine PlanItem; CRITICAL deviation path ✅ (Epic 6)
-Layer 6: multi-site sub-case orchestration — DSMB rollup; blocked on engine#112
-Layer 7: trust routing + comparison vs ClinicalAgent (arXiv 2404.14777)
+Layer 6: trial-level blackboard aggregation — DSMB rollup via cross-site signal detection ✅ (Epic 3)
+Layer 7: trust routing (casehubio/clinical#10)
 ```
 
-**Note on layer ordering vs build order:** Layers 2 and 4 were built in the same epic (Epic 4) — tutorial ordering differs from chronological build order. The teaching sequence (SLA → obligation → audit) is preserved in LAYER-LOG.md ordering.
+**Note on reading order vs build order:** Layers 2 and 4 were built in the same epic (Epic 4) — reading order differs from build order. LAYER-LOG.md preserves reading order.
 
-**No `NaiveXxxService @DefaultBean` pattern:** Clinical uses Active Record entities directly (no downstream JPA consumers). CDI displacement is not the mechanism here — each layer adds new services and routes through them. The gaps are structural and documented in LAYER-LOG.md rather than as explicit gap comments in a naive class. See LAYER-LOG.md architectural note.
-
-### Showcase Scenario
-
-3-site oncology trial. Site A enrolls a patient — agents run eligibility screening across 12 criteria. A marginal criterion triggers an IRB consultation (WorkItem: 72-hour SLA). At Site B, a Grade 3 adverse event fires automatic 24-hour safety escalation. At Site C, a protocol amendment is proposed — the LLM supervisor reads accumulated context from all three sites and recommends whether to proceed. The Merkle audit trail means FDA can independently verify the complete decision chain for every patient at every site.
-
-ClinicalAgent runs as a linear pipeline for one site. It has no concept of SLA, no IRB gate, no adverse event escalation, and no audit trail.
+**No `NaiveXxxService @DefaultBean` pattern:** Clinical uses Active Record entities directly (no downstream JPA consumers). CDI displacement is not the mechanism here — each layer adds new services and routes through them. The gaps are structural and documented in LAYER-LOG.md. See LAYER-LOG.md architectural note.
 
 ---
 
@@ -480,7 +471,7 @@ Before implementing any feature, SPI, data model, or abstraction — run the Pla
 Every implementation plan must include tests at all levels:
 - **Unit tests** — pure logic, no I/O, fast
 - **Integration tests** (`@QuarkusTest` with H2) — Panache, REST, CDI wiring
-- **End-to-end tests** — full stack, happy path through the showcase scenario
+- **End-to-end tests** — full stack, happy path through the full trial scenario
 - **Robustness tests** — boundary conditions, invalid input, missing data
 - **Correctness tests** — SLA deadline computation, state machine transitions, JQ mappings
 

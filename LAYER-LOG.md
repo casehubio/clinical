@@ -1,20 +1,16 @@
 # casehub-clinical Agentic Harness — Layer Log
 
-Structured record of what was built at each layer, optimised for LLM consumption. Each entry is the raw material needed to reproduce the layer in a different domain harness. Correlates with blog entries in the workspace `blog/`, git history, and GitHub issues.
+Architecture record of what was built at each integration layer. Entries are ordered for
+reading comprehension, not chronology. Each entry is complete when the layer closes.
 
-Entries are ordered for learning, not chronology. Each entry is complete when the layer closes — no placeholders.
-
-**Build approach:** Layer ordering here is for teaching, not building. The recommended
-pattern is vertical slice first — the thinnest working path through all layers — then
-deepen each layer to production completeness. See `../parent/docs/AGENTIC-HARNESS-GUIDE.md`
-§Build Order. Any layers built before this guidance existed are accurate history; future
-layer work follows vertical slice first.
+**Migration note:** This file will migrate to `ARC42STORIES.MD §9.4` Layer Entries when
+that document is bootstrapped. Format: `../parent/docs/arc42stories-spec.md` and
+`../parent/docs/arc42stories-casehub-profile.md`.
 
 Cross-references:
 - Blog entries: workspace `blog/` (staged; published to mdproctor.github.io via `publish-blog`)
 - Design specs: workspace `specs/` and promoted to project `docs/specs/`
-- Tutorial teaching objectives: `../parent/docs/tutorial-strategy.md §7`
-- AML reference implementation: `../aml/LAYER-LOG.md` (Layers 1 and 2 complete)
+- AML reference implementation: `../aml/LAYER-LOG.md`
 - Platform compliance gap analysis: `docs/use-case-analysis.md §8.1` in casehub-parent
 
 **Architectural note — no DefaultXxxService pattern:** casehub-clinical uses Panache Active Record entities as domain objects directly (documented exception in CLAUDE.md: no downstream consumers, application tier only). There is no `DefaultClinicalService.java` with `@DefaultBean` displacement as in AML. The domain baseline IS the entities + REST API with no CaseHub foundation modules wired. This divergence is intentional — document it in each layer entry rather than treating it as a gap.
@@ -41,13 +37,13 @@ Cross-references:
 - `runtime/src/main/java/io/casehub/clinical/resource/TrialResource.java` — POST/GET `/trials` and `/trials/{id}`
 - `runtime/src/main/java/io/casehub/clinical/resource/SiteResource.java` — POST/GET `/trials/{id}/sites` and `/trials/{id}/sites/{id}`
 - `runtime/src/main/java/io/casehub/clinical/resource/PatientResource.java` — POST/GET patients; POST adverse events (delegates to service in Layer 2)
-- `runtime/src/test/java/io/casehub/clinical/resource/ShowcaseScenarioTest.java` — 3-site oncology scenario: register trial, 3 independent sites, enroll patients, verify ownership chain
+- `runtime/src/test/java/io/casehub/clinical/resource/ShowcaseScenarioTest.java` — 3-site oncology scenario: register trial, 3 independent sites, enroll patients, verify ownership chain *(candidate for rename/refactor)*
 
-### What it shows
+### What it adds
 
-The clinical domain model with no CaseHub foundation modules: six JPA entities, all domain enums sourced from FHIR R5 and CTCAE v5.0, capability tag constants, and a REST API that persists entities directly with no accountability, SLA, or audit wiring. Three REST resources expose the trial, site, and patient enrollment lifecycle. The 3-site showcase test registers a trial, adds independent sites, and enrolls patients.
+The clinical domain model with no CaseHub foundation modules: six JPA entities, all domain enums sourced from FHIR R5 and CTCAE v5.0, capability tag constants, and a REST API that persists entities directly with no accountability, SLA, or audit wiring. Three REST resources expose the trial, site, and patient enrollment lifecycle. The integration test registers a trial, adds independent sites, and enrolls patients.
 
-This is the baseline every subsequent layer improves. The gaps are structural — the REST API for enrollment calls `enrollment.persist()` directly. No record exists of who enrolled a patient or when. No SLA governs how long an adverse event review can sit. No formal obligation exists when a deviation occurs. These absences are the teaching mechanism for Layers 2–5.
+The gaps are structural — the REST API for enrollment calls `enrollment.persist()` directly. No record exists of who enrolled a patient or when. No SLA governs how long an adverse event review can sit. No formal obligation exists when a deviation occurs.
 
 ### The gap comments
 
@@ -96,7 +92,7 @@ These gaps map directly to the compliance gap table in `docs/use-case-analysis.m
 5. Write Flyway migrations in `V100–V999` range if casehub-work will be added later — it occupies V1–V21+ and Quarkus scans transitive JARs.
 6. Implement REST resources calling Panache directly (`Entity.persist()`) — no service layer yet. This is the Layer 1 state.
 7. Add `quarkus-hibernate-validator` immediately — not optional.
-8. Write a showcase test that exercises the full domain hierarchy end-to-end (trial → site → patient → adverse event). This test grows with each layer.
+8. Write an integration test that exercises the full domain hierarchy end-to-end (trial → site → patient → adverse event).
 9. Validate the ownership chain in every GET handler: each path segment must be validated against its parent, not just its own existence.
 
 ---
@@ -113,11 +109,11 @@ These gaps map directly to the compliance gap table in `docs/use-case-analysis.m
 - `runtime/src/main/java/io/casehub/clinical/service/AdverseEventService.java` — creates WorkItem with grade-keyed `claimDeadline`; writes ledger entry; persists entity — one `@Transactional` call
 - `runtime/src/main/resources/db/migration/V106__adverse_event_work_item_id.sql` — adds `work_item_id UUID` to `adverse_event` table
 
-### What it shows
+### What it adds
 
 Adds `casehub-work` to create a formal safety officer `WorkItem` with a grade-keyed `claimDeadline` — the GCP ICH E6(R3) adverse event reporting SLA. Grade 3/4 = 24 hours. Grade 5 (death) = 1 hour. Grade 1/2 = 7 days. The `AdverseEvent` entity now carries a `workItemId` — the caller can track the safety review independently of the event.
 
-This closes the most visible gap in Layer 1: a Grade 3 adverse event could sit indefinitely. Now the platform escalates if the SLA deadline passes. ClinicalAgent has no equivalent — this single wiring delivers more structural regulatory value than ClinicalAgent's entire codebase.
+This closes the most visible gap in Layer 1: a Grade 3 adverse event could sit indefinitely. Now the platform escalates if the SLA deadline passes.
 
 ### The gap comments
 
@@ -174,7 +170,7 @@ Layer 1 has no explicit gap comments (see architectural note). The Layer 1 absen
    - Create `WorkItemCreateRequest` with `claimDeadline = slaDeadline`, `candidateGroups` matching the domain's reviewer pool, `callerRef` as a URI for the domain entity
    - Persist the domain entity with `workItemId` set from the created WorkItem
 4. Add XA transaction config to test `application.properties` if writing to two datasources in one `@Transactional` method
-5. Test: unit-test the service (grade → claimDeadline arithmetic); `@QuarkusTest` asserting `workItemId` is set and `slaDeadline` is correct for each severity level; extend the showcase test with SLA assertions
+5. Test: unit-test the service (grade → claimDeadline arithmetic); `@QuarkusTest` asserting `workItemId` is set and `slaDeadline` is correct for each severity level
 
 ---
 
@@ -200,13 +196,13 @@ Layer 1 has no explicit gap comments (see architectural note). The Layer 1 absen
 - `runtime/src/main/resources/db/migration/default/V107__alter_protocol_deviation_add_commitment_fields.sql` — 4 new columns on protocol_deviation
 - `runtime/src/main/resources/db/migration/qhorus/V1006__protocol_deviation_ledger_entry.sql` — join table for ProtocolDeviationLedgerEntry
 
-### What it shows
+### What it adds
 
 Adds `casehub-qhorus` to issue a formal COMMAND to the named PI when a deviation is reported. The COMMAND creates a formal Commitment with a GCP-compliant deadline. The PI's structured JSON response (via `InboundNormaliser` SPI) updates the deviation status. Downstream epics consume `ProtocolDeviationResolvedEvent` without modifying this layer.
 
-ClinicalAgent logs deviations. Logging proves notice. The COMMAND proves accountability — a named PI with a traceable obligation and a deadline the platform escalates if missed.
+Logging a deviation proves notice. The COMMAND proves accountability — a named PI with a traceable obligation and a deadline the platform escalates if missed.
 
-Layer 3 goes between Layers 2 and 4 in tutorial order even though it was built after Layer 4. The teaching sequence: SLA enforcement (Layer 2) → formal obligation (Layer 3) → tamper-evident audit (Layer 4).
+Layer 3 was built after Layer 4 (reading order differs from build order: SLA enforcement → formal obligation → tamper-evident audit).
 
 ### The gap comments
 
@@ -310,11 +306,11 @@ Three services write to the same ledger chain, so `sequenceNumber` ownership mat
 - `runtime/src/main/java/io/casehub/clinical/service/AdverseEventLedgerWriter.java` — centralised ledger writer; owns `sequenceNumber` via `findLatestBySubjectId`; provides `writeReportEntry`; unit-testable with Mockito
 - `runtime/src/main/resources/db/migration/V1005__ae_ledger_entry.sql` — join table for `AdverseEventLedgerEntry`
 
-### What it shows
+### What it adds
 
 Adds `casehub-ledger` to write a tamper-evident `AdverseEventLedgerEntry` into the Merkle audit chain when an adverse event is reported. The entry is written in the same `@Transactional` call as the WorkItem creation and entity persist. A ledger write failure rolls back everything — no partial state.
 
-This closes the "no audit trail" gap from Layer 1: the complete decision chain for every adverse event at every site is now independently verifiable by the FDA. ClinicalAgent has no equivalent. The Merkle chain means no post-hoc modification is undetectable.
+This closes the "no audit trail" gap from Layer 1: the complete decision chain for every adverse event at every site is now independently verifiable by the FDA. The Merkle chain means no post-hoc modification is undetectable.
 
 ### The gap comments
 
@@ -403,7 +399,7 @@ The initial Layer 4 implementation wrote the ledger entry inline in `AdverseEven
 **Issues:** casehubio/clinical#6
 **Navigation:** `git log --grep="#6" --oneline`
 
-### What it shows
+### What it adds
 
 casehub-engine enters clinical for the first time. Fixed-pipeline service code
 (direct WorkItem creation with hardcoded candidateGroups) is replaced by engine
@@ -429,7 +425,6 @@ Grade 3+ AEs: `ae.workItemId` is null (engine creates WorkItems via humanTask bi
 Fixed pipeline: agents and humans handled events in a fixed imperative sequence.
 Adaptive paths: engine evaluates binding conditions against accumulated context,
 opens only the gates warranted by the specific event's severity and policy.
-Closes the "no adaptive paths" gap in the ClinicalAgent comparison table.
 
 ### Key wiring
 
@@ -488,7 +483,7 @@ updates domain + fires resolved CDI event → tests invoke adapter directly (eng
 **Navigation:** `git log --grep="#3" --oneline`
 **Blog:** _(pending)_
 
-### What it shows
+### What it adds
 
 A trial-level `CaseInstance` accumulates per-site safety signals via
 `runtime.signal()` and detects cross-site patterns that no individual site agent
@@ -496,9 +491,6 @@ can see. When ≥2 sites simultaneously have active Grade 4+ adverse events, the
 trial case's DSMB rollup binding fires a DSMB committee WorkItem — triggered
 purely from accumulated blackboard state, without any site agent knowing about
 other sites.
-
-This is the architectural demonstration ClinicalAgent structurally cannot produce:
-it runs a linear pipeline for one site with no cross-site state.
 
 **Design decision:** No site sub-cases. Sites are long-running domain entities,
 not bounded work units that start and complete. The sub-case model (engine#112)
@@ -515,10 +507,9 @@ reference pattern.
 
 ### Compliance gap closed
 
-Multi-site independence with trial-level rollup. ClinicalAgent runs one site;
-casehub-clinical detects cross-site safety patterns from accumulated blackboard
-state and triggers coordinated DSMB review — without any site-level agent having
-global visibility.
+Multi-site independence with trial-level rollup. Detects cross-site safety patterns
+from accumulated blackboard state and triggers coordinated DSMB review — without any
+site-level agent having global visibility.
 
 ### Key wiring
 
@@ -568,11 +559,15 @@ evaluates `[.flagMap // {} | to_entries[] | select(.value == true)] | length >= 
 
 ---
 
-## Layer 7 — Trust routing + ClinicalAgent comparison
+## Layer 7 — Trust routing
 
 **Status:** Not yet built (planned, casehubio/clinical#10).
 
-### Teaching gap — Grade 5 AE regulatory escalation
+### What it adds
+
+Trust-weighted agent routing by clinical capability. `ActorTrustScore` updated from WorkItem outcomes and commitment attestations (Bayesian Beta). Routing selects the agent with the highest domain-specific trust score — safety-accuracy for adverse event classification, eligibility-precision for screening, protocol-adherence for deviation review.
+
+### Regulatory gap — Grade 5 AE regulatory escalation
 
 `DefaultAdverseEventEscalationPolicy` currently routes Grade 5 (death) identically to
 Grade 4 (life-threatening): senior monitor + DSMB escalation. This is a documented
@@ -597,10 +592,5 @@ Required wiring:
 - Add a `regulatory-submission` capability binding (or CDI observer on
   `AeEscalationCompletedEvent`) that fires when `grade == GRADE_5 && unexpected`.
 - The two escalation paths (DSMB + IND reporting) must be independent — not sequential.
-
-Why this is deferred and not a current bug: the teaching sequence is
-SLA → obligation → audit → engine → multi-site → trust. Regulatory submission (FDA IND
-reporting mechanics) belongs at the trust/comparison layer where the full compliance gap
-table vs ClinicalAgent is presented. Introducing it earlier breaks the teaching sequence.
 
 Refs #30 (casehubio/clinical)
