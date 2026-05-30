@@ -8,6 +8,7 @@ import io.casehub.ledger.runtime.repository.LedgerEntryRepository;
 import io.casehub.platform.api.identity.ActorType;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
+import jakarta.transaction.Transactional;
 import java.time.Clock;
 import java.time.Instant;
 import java.util.UUID;
@@ -49,6 +50,17 @@ public class SafetyOfficerNotificationLedgerWriter {
         entry.delivered = delivered;
         entry.notifiedAt = now;
         ledgerEntryRepository.save(entry);
+    }
+
+    /**
+     * Called from SafetyOfficerNotificationListener observer fallback path. Commits in its own REQUIRES_NEW transaction.
+     * connectorId and destination are null — the error occurred before connector config was reachable, so no
+     * notification was attempted. notifiedAt records when this fallback entry was written (column is NOT NULL).
+     * Use connectorId=null to distinguish observer-level failures from connector delivery failures.
+     */
+    @Transactional(Transactional.TxType.REQUIRES_NEW)
+    public void writeObserverFailureEntry(UUID aeId, UUID enrollmentId, UUID siteId, CtcaeGrade grade) {
+        writeEntry(aeId, enrollmentId, siteId, grade, null, null, false);
     }
 
     private int nextSequenceNumber(final UUID aeId) {

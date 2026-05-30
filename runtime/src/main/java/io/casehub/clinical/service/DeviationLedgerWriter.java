@@ -1,6 +1,7 @@
 package io.casehub.clinical.service;
 
 import io.casehub.clinical.api.ClinicalActors;
+import io.casehub.clinical.api.model.DeviationSeverity;
 import io.casehub.clinical.api.model.PiApprovalStatus;
 import io.casehub.clinical.entity.ProtocolDeviation;
 import io.casehub.clinical.ledger.ProtocolDeviationLedgerEntry;
@@ -9,6 +10,7 @@ import io.casehub.ledger.api.model.LedgerEntryType;
 import io.casehub.ledger.runtime.repository.LedgerEntryRepository;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
+import jakarta.transaction.Transactional;
 
 import java.time.Clock;
 import java.time.Instant;
@@ -79,6 +81,26 @@ public class DeviationLedgerWriter {
         entry.actorRole = delivered ? "sponsor-notifier" : "sponsor-notifier-failed";
         entry.occurredAt = notifiedAt;
         entry.sponsorNotifiedAt = delivered ? notifiedAt : null;
+        ledgerEntryRepository.save(entry);
+    }
+
+    /** Called from SponsorNotificationListener observer fallback path. Commits in its own REQUIRES_NEW transaction. */
+    @Transactional(Transactional.TxType.REQUIRES_NEW)
+    public void writeObserverFailureEntry(UUID deviationId, UUID siteId,
+            DeviationSeverity severity, Instant now) {
+        var entry = new ProtocolDeviationLedgerEntry();
+        entry.id = UUID.randomUUID();
+        entry.subjectId = deviationId;
+        entry.sequenceNumber = nextSequenceNumber(deviationId);
+        entry.deviationId = deviationId;
+        entry.siteId = siteId;
+        entry.severity = severity.name();
+        entry.entryType = LedgerEntryType.EVENT;
+        entry.actorId = ClinicalActors.CLINICAL_SERVICE;
+        entry.actorType = ActorType.SYSTEM;
+        entry.actorRole = "sponsor-notifier-observer-failed";
+        entry.occurredAt = now;
+        entry.sponsorNotifiedAt = null;
         ledgerEntryRepository.save(entry);
     }
 

@@ -79,6 +79,26 @@ class SafetyOfficerNotificationLedgerWriterTest {
         assertThat(captureEntry().sequenceNumber).isEqualTo(6);
     }
 
+    @Test
+    void writeObserverFailureEntry_writes_delivered_false_with_null_connector_fields() {
+        when(clock.instant()).thenReturn(now);
+        when(ledgerEntryRepository.findLatestBySubjectId(any())).thenReturn(Optional.empty());
+
+        writer.writeObserverFailureEntry(aeId, enrollmentId, siteId, CtcaeGrade.GRADE_3);
+
+        SafetyOfficerNotificationLedgerEntry entry = captureEntry();
+        assertThat(entry.delivered).isFalse();
+        assertThat(entry.connectorId).isNull();
+        assertThat(entry.destination).isNull();
+        assertThat(entry.aeId).isEqualTo(aeId);
+        assertThat(entry.siteId).isEqualTo(siteId);
+        assertThat(entry.enrollmentId).isEqualTo(enrollmentId);
+        assertThat(entry.ctcaeGrade).isEqualTo("GRADE_3");
+        assertThat(entry.actorId).isEqualTo("clinical-service");
+        assertThat(entry.notifiedAt).isNotNull();
+        assertThat(entry.sequenceNumber).isEqualTo(1);
+    }
+
     private SafetyOfficerNotificationLedgerEntry captureEntry() {
         ArgumentCaptor<SafetyOfficerNotificationLedgerEntry> captor =
             ArgumentCaptor.forClass(SafetyOfficerNotificationLedgerEntry.class);

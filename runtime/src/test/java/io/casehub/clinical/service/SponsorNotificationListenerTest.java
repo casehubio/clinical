@@ -11,6 +11,8 @@ import io.casehub.clinical.api.model.TrialPhase;
 import io.casehub.clinical.api.model.TrialStatus;
 import io.casehub.clinical.entity.ClinicalTrial;
 import io.casehub.clinical.entity.TrialSite;
+import io.casehub.clinical.ledger.ProtocolDeviationLedgerEntry;
+import io.casehub.ledger.runtime.repository.LedgerEntryRepository;
 import io.quarkus.test.InjectMock;
 import io.quarkus.test.junit.QuarkusTest;
 import jakarta.inject.Inject;
@@ -22,6 +24,9 @@ import org.mockito.ArgumentCaptor;
 import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatCode;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 
@@ -30,6 +35,7 @@ class SponsorNotificationListenerTest {
 
     @Inject SponsorNotificationListener listener;
     @InjectMock SponsorNotifier sponsorNotifier;
+    @Inject LedgerEntryRepository ledgerEntryRepository;
 
     private UUID trialId;
     private UUID siteId;
@@ -165,5 +171,30 @@ class SponsorNotificationListenerTest {
             EscalationRequirement.SPONSOR_NOTIFICATION, PiApprovalStatus.ESCALATED,
             "CONSENT_DEVIATION", "dr-smith@v1"
         );
+    }
+
+    @Test
+    @Transactional
+    void unexpected_exception_from_notifier_writes_observer_failure_entry() {
+        final UUID deviationId = UUID.randomUUID();
+        final ProtocolDeviationResolvedEvent event =
+            new ProtocolDeviationResolvedEvent(
+                deviationId, siteId, DeviationSeverity.MAJOR,
+                EscalationRequirement.SPONSOR_NOTIFICATION, PiApprovalStatus.ESCALATED,
+                "INFORMED_CONSENT", "dr-smith@v1");
+
+        doThrow(new RuntimeException("injected test failure"))
+            .when(sponsorNotifier).notify(any());
+
+        assertThatCode(() -> listener.onDeviationResolved(event))
+            .doesNotThrowAnyException();
+
+        var entries = ledgerEntryRepository.findBySubjectId(deviationId);
+        assertThat(entries).hasSize(1);
+        ProtocolDeviationLedgerEntry entry =
+            (ProtocolDeviationLedgerEntry) entries.get(0);
+        assertThat(entry.actorRole).isEqualTo("sponsor-notifier-observer-failed");
+        assertThat(entry.sponsorNotifiedAt).isNull();
+        assertThat(entry.actorId).isEqualTo("clinical-service");
     }
 }

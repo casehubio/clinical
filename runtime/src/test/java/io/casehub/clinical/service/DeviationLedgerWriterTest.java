@@ -196,6 +196,26 @@ class DeviationLedgerWriterTest {
         assertThat(entry.sequenceNumber).isEqualTo(1);
     }
 
+    @Test
+    void writeObserverFailureEntry_persists_with_null_sponsorNotifiedAt_and_clinical_service_actorId() {
+        when(ledgerEntryRepository.findLatestBySubjectId(dev.id)).thenReturn(Optional.empty());
+
+        writer.writeObserverFailureEntry(dev.id, dev.siteId, DeviationSeverity.MINOR, FIXED_INSTANT);
+
+        ProtocolDeviationLedgerEntry entry = captureEntry();
+        assertThat(entry.actorId).isEqualTo("clinical-service");
+        assertThat(entry.actorType).isEqualTo(ActorType.SYSTEM);
+        assertThat(entry.actorRole).isEqualTo("sponsor-notifier-observer-failed");
+        assertThat(entry.sponsorNotifiedAt).isNull();
+        assertThat(entry.subjectId).isEqualTo(dev.id);
+        assertThat(entry.deviationId).isEqualTo(dev.id);
+        assertThat(entry.siteId).isEqualTo(dev.siteId);
+        assertThat(entry.severity).isEqualTo("MINOR");
+        assertThat(entry.entryType).isEqualTo(LedgerEntryType.EVENT);
+        assertThat(entry.occurredAt).isEqualTo(FIXED_INSTANT);
+        assertThat(entry.sequenceNumber).isEqualTo(1);
+    }
+
     private ProtocolDeviationLedgerEntry existingEntry(int seq) {
         ProtocolDeviationLedgerEntry e = new ProtocolDeviationLedgerEntry();
         e.sequenceNumber = seq;

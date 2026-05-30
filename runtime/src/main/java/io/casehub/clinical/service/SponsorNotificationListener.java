@@ -11,43 +11,56 @@ import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.enterprise.event.ObservesAsync;
 import jakarta.inject.Inject;
 import jakarta.transaction.Transactional;
+import java.time.Clock;
 
 @ApplicationScoped
 public class SponsorNotificationListener {
 
     @Inject SponsorNotifier sponsorNotifier;
+    @Inject DeviationLedgerWriter deviationLedgerWriter;
+    @Inject Clock clock;
 
     @Transactional
     public void onDeviationResolved(@ObservesAsync ProtocolDeviationResolvedEvent event) {
         if (event.escalationRequirement() != EscalationRequirement.SPONSOR_NOTIFICATION) return;
 
-        TrialSite site = TrialSite.findById(event.siteId());
-        if (site == null) {
-            Log.warnf("TrialSite %s not found — sponsor notification skipped", event.siteId());
-            return;
-        }
+        try {
+            TrialSite site = TrialSite.findById(event.siteId());
+            if (site == null) {
+                Log.warnf("TrialSite %s not found — sponsor notification skipped", event.siteId());
+                return;
+            }
 
-        ClinicalTrial trial = ClinicalTrial.findById(site.trialId);
-        if (trial == null) {
-            Log.warnf("Trial %s not found — sponsor notification skipped", site.trialId);
-            return;
-        }
-        if (trial.sponsorNotificationConnectorId == null || trial.sponsorNotificationDestination == null) {
-            Log.warnf("Trial %s has incomplete sponsor notification config (connectorId=%s, destination=%s) — skipping",
-                site.trialId, trial.sponsorNotificationConnectorId, trial.sponsorNotificationDestination);
-            return;
-        }
+            ClinicalTrial trial = ClinicalTrial.findById(site.trialId);
+            if (trial == null) {
+                Log.warnf("Trial %s not found — sponsor notification skipped", site.trialId);
+                return;
+            }
+            if (trial.sponsorNotificationConnectorId == null || trial.sponsorNotificationDestination == null) {
+                Log.warnf("Trial %s has incomplete sponsor notification config (connectorId=%s, destination=%s) — skipping",
+                    site.trialId, trial.sponsorNotificationConnectorId, trial.sponsorNotificationDestination);
+                return;
+            }
 
-        sponsorNotifier.notify(new SponsorNotificationRequest(
-            site.trialId,
-            event.siteId(),
-            event.deviationId(),
-            event.deviationType(),
-            event.severity(),
-            event.terminalStatus(),
-            event.piId(),
-            trial.sponsorNotificationConnectorId,
-            trial.sponsorNotificationDestination
-        ));
+            sponsorNotifier.notify(new SponsorNotificationRequest(
+                site.trialId,
+                event.siteId(),
+                event.deviationId(),
+                event.deviationType(),
+                event.severity(),
+                event.terminalStatus(),
+                event.piId(),
+                trial.sponsorNotificationConnectorId,
+                trial.sponsorNotificationDestination
+            ));
+        } catch (Exception e) {
+            Log.errorf(e, "Unexpected error in sponsor notification for deviation %s — writing failed ledger entry", event.deviationId());
+            try {
+                deviationLedgerWriter.writeObserverFailureEntry(
+                    event.deviationId(), event.siteId(), event.severity(), clock.instant());
+            } catch (Exception writeEx) {
+                Log.errorf(writeEx, "AUDIT GAP: could not write observer failure entry for deviation %s", event.deviationId());
+            }
+        }
     }
 }

@@ -9,6 +9,8 @@ import io.casehub.clinical.api.model.TrialPhase;
 import io.casehub.clinical.api.model.TrialStatus;
 import io.casehub.clinical.entity.ClinicalTrial;
 import io.casehub.clinical.entity.TrialSite;
+import io.casehub.clinical.ledger.SafetyOfficerNotificationLedgerEntry;
+import io.casehub.ledger.runtime.repository.LedgerEntryRepository;
 import io.quarkus.test.InjectMock;
 import io.quarkus.test.junit.QuarkusTest;
 import jakarta.inject.Inject;
@@ -21,6 +23,9 @@ import java.time.Instant;
 import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatCode;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.verify;
 
@@ -29,6 +34,7 @@ class SafetyOfficerNotificationListenerTest {
 
     @Inject SafetyOfficerNotificationListener listener;
     @InjectMock SafetyOfficerNotifier safetyOfficerNotifier;
+    @Inject LedgerEntryRepository ledgerEntryRepository;
 
     private UUID trialId;
     private UUID siteId;
@@ -189,5 +195,27 @@ class SafetyOfficerNotificationListenerTest {
         return new AdverseEventReportedEvent(
             UUID.randomUUID(), UUID.randomUUID(), siteId,
             CtcaeGrade.GRADE_3, Instant.now());
+    }
+
+    @Test
+    @Transactional
+    void unexpected_exception_from_notifier_writes_observer_failure_entry() {
+        final UUID aeId = UUID.randomUUID();
+        final UUID enrollmentId = UUID.randomUUID();
+        final AdverseEventReportedEvent event = new AdverseEventReportedEvent(
+            aeId, enrollmentId, siteId, CtcaeGrade.GRADE_3, Instant.now());
+
+        doThrow(new RuntimeException("injected test failure"))
+            .when(safetyOfficerNotifier).notify(any());
+
+        assertThatCode(() -> listener.onAeReported(event))
+            .doesNotThrowAnyException();
+
+        SafetyOfficerNotificationLedgerEntry entry =
+            (SafetyOfficerNotificationLedgerEntry)
+            ledgerEntryRepository.findLatestBySubjectId(aeId).orElse(null);
+        assertThat(entry).isNotNull();
+        assertThat(entry.delivered).isFalse();
+        assertThat(entry.connectorId).isNull();
     }
 }
