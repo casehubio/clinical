@@ -396,6 +396,7 @@ The initial Layer 4 implementation wrote the ledger entry inline in `AdverseEven
 
 ## Layer 5 — casehub-engine: adaptive protocol paths
 
+**Completed:** 2026-05-22 (`[044874a]`)
 **Issues:** casehubio/clinical#6
 **Navigation:** `git log --grep="#6" --oneline`
 
@@ -474,6 +475,29 @@ initial context (policy sets routing keys) → YAML binding conditions use conte
 → `WorkItemLifecycleAdapter` fires CONTEXT_CHANGED on terminal WorkItem states →
 domain listener observes `WorkItemLifecycleEvent` (IRB) or `CaseLifecycleEvent` (AE),
 updates domain + fires resolved CDI event → tests invoke adapter directly (engine#315).
+
+### Extended in clinical#48 — observer fallback for ledger listeners
+
+**Issue:** casehubio/clinical#48
+**Navigation:** `git log --grep="#48" --oneline`
+**Blog:** `blog/2026-05-31-mdp01-when-caught-exceptions-commit.md`
+**Garden:** GE-20260531-ed2f7a
+**Protocols:** PP-20260530-49856c (revised — ledgerWritten flag requirement); PP-20260531-11724b (new — actorRole convention)
+
+Both `AeEscalationListener` and `IrbDecisionListener` received an observer fallback pattern: when the ledger write succeeds but a subsequent operation (e.g. `fireAsync`) throws, the outer `@Transactional` method catches the exception and writes a `REQUIRES_NEW` failure entry to the ledger. Without a guard, this double-records: the caught exception allows the outer TX to commit normally (ledger write committed), and the REQUIRES_NEW failure entry also commits — two ledger entries for one event.
+
+**Fix:** a `ledgerWritten` (`ledgerDecisionWritten` for IRB) boolean flag, set after the critical ledger write and before `fireAsync`. The catch block only writes the failure entry if the flag is true — i.e. only when the ledger write actually committed and something after it failed.
+
+**Additional refinements from this extension:**
+- Context resolution (`enrollmentId` lookup) moved outside the try block in `AeEscalationListener` to match the IRB structure — `enrollmentId` is always non-null in the catch, even if context resolution itself throws.
+- Code review caught a double `clock.instant()` call in `AeEscalationLedgerWriter.writeObserverFailureEntry`: `occurredAt` and `completedAt` were both set to `clock.instant()` independently. Fixed to capture once and reuse — so both fields record the same instant.
+- `actorRole` for failure entries follows the convention: `successRole + "-observer-failed"` (e.g. `"ae-escalation-observer-failed"`). Defined in PP-20260531-11724b.
+
+**Key files modified:**
+- `runtime/src/main/java/io/casehub/clinical/service/AeEscalationListener.java` — narrow try block + `ledgerWritten` flag
+- `runtime/src/main/java/io/casehub/clinical/service/IrbDecisionListener.java` — `ledgerDecisionWritten` flag + observer fallback
+- `runtime/src/main/java/io/casehub/clinical/service/AeEscalationLedgerWriter.java` — `writeObserverFailureEntry`; single `clock.instant()` capture
+- `runtime/src/main/java/io/casehub/clinical/service/IrbApprovalLedgerWriter.java` — `writeObserverFailureEntry` with system actor
 
 ---
 
