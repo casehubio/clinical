@@ -8,6 +8,7 @@ import io.casehub.ledger.runtime.repository.LedgerEntryRepository;
 import io.casehub.platform.api.identity.ActorType;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
+import jakarta.transaction.Transactional;
 import java.time.Clock;
 import java.time.Instant;
 import java.util.UUID;
@@ -37,10 +38,35 @@ public class AeEscalationLedgerWriter {
         entry.occurredAt = clock.instant();
         entry.aeId = aeId;
         entry.enrollmentId = enrollmentId;
-        entry.ctcaeGrade = grade.name();
+        entry.ctcaeGrade = grade != null ? grade.name() : null;
         entry.safetyReviewOutcome = safetyReviewOutcome;
         entry.dsmbEscalated = dsmbEscalated;
         entry.completedAt = completedAt;
+        ledgerEntryRepository.save(entry);
+    }
+
+    /**
+     * Called from AeEscalationListener observer fallback path.
+     * Commits in its own REQUIRES_NEW transaction so it persists even if the
+     * outer transaction is in rollback-only state.
+     * grade may be null if the exception occurred before grade was resolved from case context.
+     */
+    @Transactional(Transactional.TxType.REQUIRES_NEW)
+    public void writeObserverFailureEntry(UUID aeId, UUID enrollmentId, CtcaeGrade grade) {
+        var entry = new AeEscalationLedgerEntry();
+        entry.id = UUID.randomUUID();
+        entry.subjectId = aeId;
+        entry.sequenceNumber = nextSequenceNumber(aeId);
+        entry.entryType = LedgerEntryType.EVENT;
+        entry.actorId = ClinicalActors.CLINICAL_SERVICE;
+        entry.actorType = ActorType.SYSTEM;
+        entry.actorRole = "AeEscalationCase-observer-failed";
+        entry.occurredAt = clock.instant();
+        entry.aeId = aeId;
+        entry.enrollmentId = enrollmentId;
+        entry.ctcaeGrade = grade != null ? grade.name() : null;
+        entry.dsmbEscalated = false;
+        entry.completedAt = clock.instant();
         ledgerEntryRepository.save(entry);
     }
 

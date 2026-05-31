@@ -53,4 +53,59 @@ class AeEscalationLedgerWriterTest {
         assertThat(entry.actorId).isEqualTo("clinical-service");
         assertThat(entry.actorType).isEqualTo(ActorType.SYSTEM);
     }
+
+    @Test
+    void writeCompletionEntry_with_null_grade_stores_null() {
+        Instant now = Instant.parse("2026-05-31T10:00:00Z");
+        UUID aeId = UUID.randomUUID();
+        UUID enrollmentId = UUID.randomUUID();
+        when(clock.instant()).thenReturn(now);
+        when(ledgerEntryRepository.findLatestBySubjectId(any())).thenReturn(Optional.empty());
+
+        writer.writeCompletionEntry(aeId, enrollmentId, null, null, false, now);
+
+        ArgumentCaptor<AeEscalationLedgerEntry> captor =
+                ArgumentCaptor.forClass(AeEscalationLedgerEntry.class);
+        verify(ledgerEntryRepository).save(captor.capture());
+        assertThat(captor.getValue().ctcaeGrade).isNull();
+    }
+
+    @Test
+    void writeObserverFailureEntry_with_null_grade_saves_null_grade() {
+        Instant now = Instant.parse("2026-05-31T10:00:00Z");
+        UUID aeId = UUID.randomUUID();
+        UUID enrollmentId = UUID.randomUUID();
+        when(clock.instant()).thenReturn(now);
+        when(ledgerEntryRepository.findLatestBySubjectId(any())).thenReturn(Optional.empty());
+
+        writer.writeObserverFailureEntry(aeId, enrollmentId, null);
+
+        ArgumentCaptor<AeEscalationLedgerEntry> captor =
+                ArgumentCaptor.forClass(AeEscalationLedgerEntry.class);
+        verify(ledgerEntryRepository).save(captor.capture());
+        AeEscalationLedgerEntry entry = captor.getValue();
+        assertThat(entry.ctcaeGrade).isNull();
+        assertThat(entry.actorRole).isEqualTo("AeEscalationCase-observer-failed");
+        assertThat(entry.aeId).isEqualTo(aeId);
+        assertThat(entry.enrollmentId).isEqualTo(enrollmentId);
+        assertThat(entry.dsmbEscalated).isFalse();
+        assertThat(entry.actorId).isEqualTo("clinical-service");
+        assertThat(entry.actorType).isEqualTo(ActorType.SYSTEM);
+    }
+
+    @Test
+    void writeObserverFailureEntry_with_valid_grade_saves_grade() {
+        Instant now = Instant.parse("2026-05-31T10:00:00Z");
+        UUID aeId = UUID.randomUUID();
+        UUID enrollmentId = UUID.randomUUID();
+        when(clock.instant()).thenReturn(now);
+        when(ledgerEntryRepository.findLatestBySubjectId(any())).thenReturn(Optional.empty());
+
+        writer.writeObserverFailureEntry(aeId, enrollmentId, CtcaeGrade.GRADE_3);
+
+        ArgumentCaptor<AeEscalationLedgerEntry> captor =
+                ArgumentCaptor.forClass(AeEscalationLedgerEntry.class);
+        verify(ledgerEntryRepository).save(captor.capture());
+        assertThat(captor.getValue().ctcaeGrade).isEqualTo("GRADE_3");
+    }
 }
