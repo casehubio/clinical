@@ -22,7 +22,7 @@ public class AeEscalationLedgerEntry extends LedgerEntry {
     @Column(name = "enrollment_id", nullable = false)
     public UUID enrollmentId;
 
-    @Column(name = "ctcae_grade", nullable = false)
+    @Column(name = "ctcae_grade")
     public String ctcaeGrade;
 
     @Column(name = "safety_review_outcome")
