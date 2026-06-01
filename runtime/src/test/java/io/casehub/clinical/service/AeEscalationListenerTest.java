@@ -52,7 +52,7 @@ class AeEscalationListenerTest {
 
         CaseInstance instance = mock(CaseInstance.class);
         when(instance.getCaseContext()).thenReturn(ctx);
-        when(caseInstanceRepository.findByUuid(caseId)).thenReturn(Uni.createFrom().item(instance));
+        when(caseInstanceRepository.findByUuid(eq(caseId), any())).thenReturn(Uni.createFrom().item(instance));
         when(statusUpdater.markCompleted(aeId)).thenReturn(true);
         when(completedEvents.fireAsync(any())).thenReturn(CompletableFuture.completedFuture(null));
 
@@ -89,7 +89,7 @@ class AeEscalationListenerTest {
 
         CaseInstance instance = mock(CaseInstance.class);
         when(instance.getCaseContext()).thenReturn(ctx);
-        when(caseInstanceRepository.findByUuid(caseId)).thenReturn(Uni.createFrom().item(instance));
+        when(caseInstanceRepository.findByUuid(eq(caseId), any())).thenReturn(Uni.createFrom().item(instance));
 
         listener.onCaseLifecycle(new CaseLifecycleEvent(
                 caseId, null, "CompleteCase", "GoalReached", "RUNNING", "system", "system", null));
@@ -115,7 +115,7 @@ class AeEscalationListenerTest {
         when(ctx.getPath("dsmbEscalation")).thenReturn(null);
         CaseInstance instance = mock(CaseInstance.class);
         when(instance.getCaseContext()).thenReturn(ctx);
-        when(caseInstanceRepository.findByUuid(caseId)).thenReturn(Uni.createFrom().item(instance));
+        when(caseInstanceRepository.findByUuid(eq(caseId), any())).thenReturn(Uni.createFrom().item(instance));
     }
 
     @Test

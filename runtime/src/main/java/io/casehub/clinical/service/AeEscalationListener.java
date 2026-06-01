@@ -44,7 +44,7 @@ public class AeEscalationListener {
         if (!"GoalReached".equals(event.eventType()) && !"CaseCompleted".equals(event.eventType())) return;
 
         var instance = caseInstanceRepository
-                .findByUuid(event.caseId())
+                .findByUuid(event.caseId(), event.tenancyId())
                 .await().atMost(LOOKUP_TIMEOUT);
         if (instance == null) return;
 

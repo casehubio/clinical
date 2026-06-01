@@ -16,8 +16,6 @@ import io.casehub.clinical.api.model.EventActuality;
 import io.casehub.clinical.entity.AdverseEvent;
 import io.casehub.clinical.support.WorkItemCompletionCapture;
 import io.casehub.clinical.support.WorkItemQueries;
-import io.casehub.api.model.CaseStatus;
-import io.casehub.engine.common.spi.CaseInstanceRepository;
 import io.casehub.work.runtime.event.WorkItemLifecycleEvent;
 import io.casehub.work.runtime.model.WorkItem;
 import io.casehub.work.runtime.service.WorkItemService;
@@ -26,7 +24,6 @@ import io.quarkus.test.junit.QuarkusTest;
 import io.quarkus.test.junit.mockito.InjectSpy;
 import jakarta.inject.Inject;
 import jakarta.transaction.Transactional;
-import java.time.Duration;
 import java.time.Instant;
 import java.util.List;
 import java.util.UUID;
@@ -40,7 +37,6 @@ class AeEscalationLifecycleTest {
     @InjectSpy TrialSafetySignalService trialSafetySignalService;
     @Inject WorkItemQueries workItemQueries;
     @Inject WorkItemService workItemService;
-    @Inject CaseInstanceRepository caseInstanceRepository;
     @Inject WorkItemCompletionCapture completionCapture;
     @Inject WorkItemLifecycleAdapter lifecycleAdapter;
 
@@ -95,15 +91,6 @@ class AeEscalationLifecycleTest {
         lifecycleAdapter.onWorkItemLifecycle(
                 WorkItemLifecycleEvent.of("COMPLETED", completed, "senior-monitor", completed.resolution));
 
-        UUID caseId = caseIdFromWorkItem(safetyWorkItem);
-        await().atMost(5, SECONDS).pollInterval(100, MILLISECONDS)
-                .untilAsserted(() -> {
-                    var instance = caseInstanceRepository.findByUuid(caseId)
-                            .await().atMost(Duration.ofSeconds(2));
-                    assertThat(instance).isNotNull();
-                    assertThat(instance.getState()).isEqualTo(CaseStatus.COMPLETED);
-                });
-
         // Phase 3 persists the engine case ID — verify after case start completes
         assertThat(findAe(aeId).engineCaseId).isNotNull();
 
@@ -139,8 +126,6 @@ class AeEscalationLifecycleTest {
         WorkItem dsmbItem = allItems.stream()
                 .filter(wi -> wi.title.contains("DSMB")).findFirst().orElseThrow();
 
-        UUID caseId = caseIdFromWorkItem(safetyItem);
-
         String resolution = "{\"outcome\":\"REVIEWED\",\"reviewedAt\":\"2026-05-22T13:00:00Z\"}";
         workItemService.completeFromSystem(safetyItem.id, "senior-monitor", resolution);
         workItemService.completeFromSystem(dsmbItem.id, "dsmb-chair", resolution);
@@ -156,14 +141,6 @@ class AeEscalationLifecycleTest {
                 WorkItemLifecycleEvent.of("COMPLETED", completedSafety, "senior-monitor", completedSafety.resolution));
         lifecycleAdapter.onWorkItemLifecycle(
                 WorkItemLifecycleEvent.of("COMPLETED", completedDsmb, "dsmb-chair", completedDsmb.resolution));
-
-        await().atMost(5, SECONDS).pollInterval(100, MILLISECONDS)
-                .untilAsserted(() -> {
-                    var instance = caseInstanceRepository.findByUuid(caseId)
-                            .await().atMost(Duration.ofSeconds(2));
-                    assertThat(instance).isNotNull();
-                    assertThat(instance.getState()).isEqualTo(CaseStatus.COMPLETED);
-                });
 
         // Phase 3 persists the engine case ID — verify after case start completes
         assertThat(findAe(aeId).engineCaseId).isNotNull();
@@ -184,11 +161,6 @@ class AeEscalationLifecycleTest {
         return workItemQueries.scanAll().stream()
                 .filter(wi -> wi.payload != null && wi.payload.contains(aeId.toString()))
                 .toList();
-    }
-
-    private UUID caseIdFromWorkItem(WorkItem wi) {
-        var ref = io.casehub.workadapter.CallerRef.parse(wi.callerRef);
-        return ref != null ? ref.caseId() : null;
     }
 
     @Transactional

@@ -1,6 +1,8 @@
 package io.casehub.clinical.service;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.when;
 
 import io.casehub.clinical.api.ProtocolDeviationResolvedEvent;
 import io.casehub.clinical.api.model.DeviationSeverity;
@@ -8,49 +10,32 @@ import io.casehub.clinical.api.model.EscalationRequirement;
 import io.casehub.clinical.api.model.PiApprovalStatus;
 import io.casehub.clinical.api.spi.IrbCommitteeAssignment;
 import io.casehub.clinical.api.spi.IrbCommitteeAssignmentPolicy;
-import io.casehub.clinical.api.spi.IrbCommitteeContext;
 import io.casehub.clinical.entity.IrbApproval;
 import io.casehub.clinical.entity.ProtocolDeviation;
 import io.casehub.clinical.entity.TrialSite;
+import io.quarkus.test.InjectMock;
 import io.quarkus.test.junit.QuarkusTest;
-import io.quarkus.test.junit.QuarkusTestProfile;
-import io.quarkus.test.junit.TestProfile;
-import jakarta.enterprise.context.ApplicationScoped;
-import jakarta.enterprise.inject.Alternative;
 import jakarta.inject.Inject;
 import jakarta.transaction.Transactional;
 import java.util.List;
-import java.util.Set;
 import java.util.UUID;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 /**
  * Verifies that IrbDeviationCaseService delegates committee assignment to the
- * IrbCommitteeAssignmentPolicy SPI and that an @Alternative implementation overrides the default.
+ * IrbCommitteeAssignmentPolicy SPI and that a mock implementation overrides the default.
+ *
+ * <p>Uses @InjectMock instead of @TestProfile + @Alternative — the profile approach
+ * caused getEnabledAlternatives() to replace quarkus.arc.selected-alternatives globally,
+ * deactivating MemoryPlanItemStore and breaking other test CDI wiring (clinical#55).
  */
 @QuarkusTest
-@TestProfile(IrbCommitteePolicySpiTest.TestIrbProfile.class)
 class IrbCommitteePolicySpiTest {
 
     static final String TEST_COMMITTEE_ID = "test-irb-committee-xyz";
 
-    @Alternative
-    @ApplicationScoped
-    static class TestIrbCommitteeAssignmentPolicy implements IrbCommitteeAssignmentPolicy {
-        @Override
-        public IrbCommitteeAssignment evaluate(IrbCommitteeContext context) {
-            return new IrbCommitteeAssignment(TEST_COMMITTEE_ID, List.of(TEST_COMMITTEE_ID));
-        }
-    }
-
-    public static class TestIrbProfile implements QuarkusTestProfile {
-        @Override
-        public Set<Class<?>> getEnabledAlternatives() {
-            return Set.of(TestIrbCommitteeAssignmentPolicy.class);
-        }
-    }
-
+    @InjectMock IrbCommitteeAssignmentPolicy committeePolicy;
     @Inject IrbDeviationCaseService irbDeviationCaseService;
 
     private UUID deviationId;
@@ -63,6 +48,9 @@ class IrbCommitteePolicySpiTest {
         deviationId = UUID.randomUUID();
         siteId = UUID.randomUUID();
         trialId = UUID.randomUUID();
+
+        when(committeePolicy.evaluate(any())).thenReturn(
+            new IrbCommitteeAssignment(TEST_COMMITTEE_ID, List.of(TEST_COMMITTEE_ID)));
 
         TrialSite site = new TrialSite();
         site.id = siteId;
@@ -81,8 +69,6 @@ class IrbCommitteePolicySpiTest {
 
     @Test
     void irb_approval_reflects_alternative_policy_committee_id() {
-        // onDeviationResolved called directly (synchronous, not via CDI async bus)
-        // — all three phases complete before this line returns
         irbDeviationCaseService.onDeviationResolved(criticalDeviationApproved());
 
         IrbApproval approval = findApproval(deviationId);
