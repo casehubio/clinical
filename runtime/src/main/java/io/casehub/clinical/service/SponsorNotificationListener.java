@@ -28,17 +28,32 @@ public class SponsorNotificationListener {
             TrialSite site = TrialSite.findById(event.siteId());
             if (site == null) {
                 Log.warnf("TrialSite %s not found — sponsor notification skipped", event.siteId());
+                try {
+                    deviationLedgerWriter.writeSkippedSponsorEntry(event.deviationId(), event.siteId(), event.severity(), clock.instant(), "sponsor-notifier-skipped-site-not-found");
+                } catch (Exception writeEx) {
+                    Log.errorf(writeEx, "AUDIT GAP: could not write skipped entry for deviation %s", event.deviationId());
+                }
                 return;
             }
 
             ClinicalTrial trial = ClinicalTrial.findById(site.trialId);
             if (trial == null) {
                 Log.warnf("Trial %s not found — sponsor notification skipped", site.trialId);
+                try {
+                    deviationLedgerWriter.writeSkippedSponsorEntry(event.deviationId(), event.siteId(), event.severity(), clock.instant(), "sponsor-notifier-skipped-trial-not-found");
+                } catch (Exception writeEx) {
+                    Log.errorf(writeEx, "AUDIT GAP: could not write skipped entry for deviation %s", event.deviationId());
+                }
                 return;
             }
             if (trial.sponsorNotificationConnectorId == null || trial.sponsorNotificationDestination == null) {
                 Log.warnf("Trial %s has incomplete sponsor notification config (connectorId=%s, destination=%s) — skipping",
                     site.trialId, trial.sponsorNotificationConnectorId, trial.sponsorNotificationDestination);
+                try {
+                    deviationLedgerWriter.writeSkippedSponsorEntry(event.deviationId(), event.siteId(), event.severity(), clock.instant(), "sponsor-notifier-skipped-no-config");
+                } catch (Exception writeEx) {
+                    Log.errorf(writeEx, "AUDIT GAP: could not write skipped entry for deviation %s", event.deviationId());
+                }
                 return;
             }
 

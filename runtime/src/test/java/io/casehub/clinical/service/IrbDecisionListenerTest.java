@@ -121,7 +121,9 @@ class IrbDecisionListenerTest {
         assertThatCode(() -> listener.onWorkItemLifecycle(completedEvent("APPROVED")))
             .doesNotThrowAnyException();
 
-        verify(ledgerWriter).writeObserverFailureEntry(any(IrbApproval.class));
+        ArgumentCaptor<IrbApproval> captor = ArgumentCaptor.forClass(IrbApproval.class);
+        verify(ledgerWriter).writeObserverFailureEntry(captor.capture());
+        assertThat(captor.getValue().id).isEqualTo(approvalId);
     }
 
     @Test

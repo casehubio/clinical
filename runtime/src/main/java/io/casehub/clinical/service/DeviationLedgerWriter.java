@@ -84,6 +84,30 @@ public class DeviationLedgerWriter {
         ledgerEntryRepository.save(entry);
     }
 
+    /**
+     * Called from SponsorNotificationListener deliberate early-return paths (missing site, trial, or config).
+     * Distinct actorRole per reason satisfies ICH E6(R3) §5.17 — the audit trail must explain why notification
+     * was not sent, not merely record that it wasn't.
+     */
+    @Transactional(Transactional.TxType.REQUIRES_NEW)
+    public void writeSkippedSponsorEntry(UUID deviationId, UUID siteId,
+            DeviationSeverity severity, Instant now, String reason) {
+        var entry = new ProtocolDeviationLedgerEntry();
+        entry.id = UUID.randomUUID();
+        entry.subjectId = deviationId;
+        entry.sequenceNumber = nextSequenceNumber(deviationId);
+        entry.deviationId = deviationId;
+        entry.siteId = siteId;
+        entry.severity = severity.name();
+        entry.entryType = LedgerEntryType.EVENT;
+        entry.actorId = ClinicalActors.CLINICAL_SERVICE;
+        entry.actorType = ActorType.SYSTEM;
+        entry.actorRole = reason;
+        entry.occurredAt = now;
+        entry.sponsorNotifiedAt = null;
+        ledgerEntryRepository.save(entry);
+    }
+
     /** Called from SponsorNotificationListener observer fallback path. Commits in its own REQUIRES_NEW transaction. */
     @Transactional(Transactional.TxType.REQUIRES_NEW)
     public void writeObserverFailureEntry(UUID deviationId, UUID siteId,

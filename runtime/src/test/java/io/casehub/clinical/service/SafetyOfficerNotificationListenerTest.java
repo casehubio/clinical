@@ -199,6 +199,60 @@ class SafetyOfficerNotificationListenerTest {
 
     @Test
     @Transactional
+    void null_siteId_writes_skipped_ledger_entry() {
+        final UUID aeId = UUID.randomUUID();
+        final AdverseEventReportedEvent event = new AdverseEventReportedEvent(
+            aeId, UUID.randomUUID(), null, CtcaeGrade.GRADE_4, Instant.now());
+
+        listener.onAeReported(event);
+
+        final SafetyOfficerNotificationLedgerEntry entry =
+            (SafetyOfficerNotificationLedgerEntry)
+            ledgerEntryRepository.findLatestBySubjectId(aeId).orElse(null);
+        assertThat(entry).isNotNull();
+        assertThat(entry.actorRole).isEqualTo("safety-officer-notifier-skipped-no-site-id");
+        assertThat(entry.delivered).isFalse();
+        assertThat(entry.siteId).isNull();
+    }
+
+    @Test
+    @Transactional
+    void unknown_site_writes_skipped_ledger_entry() {
+        final UUID aeId = UUID.randomUUID();
+        final UUID unknownSiteId = UUID.randomUUID();
+        final AdverseEventReportedEvent event = new AdverseEventReportedEvent(
+            aeId, UUID.randomUUID(), unknownSiteId, CtcaeGrade.GRADE_3, Instant.now());
+
+        listener.onAeReported(event);
+
+        final SafetyOfficerNotificationLedgerEntry entry =
+            (SafetyOfficerNotificationLedgerEntry)
+            ledgerEntryRepository.findLatestBySubjectId(aeId).orElse(null);
+        assertThat(entry).isNotNull();
+        assertThat(entry.actorRole).isEqualTo("safety-officer-notifier-skipped-site-not-found");
+        assertThat(entry.siteId).isEqualTo(unknownSiteId);
+    }
+
+    @Test
+    @Transactional
+    void missing_connector_config_writes_skipped_ledger_entry() {
+        final UUID aeId = UUID.randomUUID();
+        final TrialSite site = siteWithConfig(null, null);
+        final AdverseEventReportedEvent event = new AdverseEventReportedEvent(
+            aeId, UUID.randomUUID(), site.id, CtcaeGrade.GRADE_3, Instant.now());
+
+        listener.onAeReported(event);
+
+        final SafetyOfficerNotificationLedgerEntry entry =
+            (SafetyOfficerNotificationLedgerEntry)
+            ledgerEntryRepository.findLatestBySubjectId(aeId).orElse(null);
+        assertThat(entry).isNotNull();
+        assertThat(entry.actorRole).isEqualTo("safety-officer-notifier-skipped-no-config");
+        assertThat(entry.delivered).isFalse();
+    }
+
+    @Test
+    @Transactional
     void unexpected_exception_from_notifier_writes_observer_failure_entry() {
         final UUID aeId = UUID.randomUUID();
         final UUID enrollmentId = UUID.randomUUID();

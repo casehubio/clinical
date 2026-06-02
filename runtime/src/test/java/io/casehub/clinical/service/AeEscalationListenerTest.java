@@ -79,6 +79,27 @@ class AeEscalationListenerTest {
     }
 
     @Test
+    void markCompleted_true_but_enrollmentId_null_skips_ledger_write() {
+        UUID caseId = UUID.randomUUID();
+        UUID aeId = UUID.randomUUID();
+
+        CaseContext ctx = mock(CaseContext.class);
+        when(ctx.getPath("aeId")).thenReturn(aeId.toString());
+        when(ctx.getPath("enrollmentId")).thenReturn(null);
+        when(statusUpdater.markCompleted(aeId)).thenReturn(true);
+
+        CaseInstance instance = mock(CaseInstance.class);
+        when(instance.getCaseContext()).thenReturn(ctx);
+        when(caseInstanceRepository.findByUuid(eq(caseId), any())).thenReturn(Uni.createFrom().item(instance));
+
+        assertThatCode(() -> listener.onCaseLifecycle(goalReachedEvent(caseId)))
+            .doesNotThrowAnyException();
+
+        verifyNoInteractions(ledgerWriter);
+        verifyNoInteractions(completedEvents);
+    }
+
+    @Test
     void idempotency_guard_skips_ledger_write_on_duplicate_goal_reached() {
         UUID caseId = UUID.randomUUID();
         UUID aeId = UUID.randomUUID();
