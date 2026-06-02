@@ -175,6 +175,44 @@ class SponsorNotificationListenerTest {
 
     @Test
     @Transactional
+    void unknown_site_writes_skipped_ledger_entry() {
+        final UUID deviationId = UUID.randomUUID();
+        final UUID unknownSiteId = UUID.randomUUID();
+        final ProtocolDeviationResolvedEvent event = new ProtocolDeviationResolvedEvent(
+            deviationId, unknownSiteId, DeviationSeverity.MAJOR,
+            EscalationRequirement.SPONSOR_NOTIFICATION, PiApprovalStatus.ESCALATED,
+            "CONSENT_DEVIATION", "dr-smith@v1");
+
+        listener.onDeviationResolved(event);
+
+        var entries = ledgerEntryRepository.findBySubjectId(deviationId);
+        assertThat(entries).hasSize(1);
+        ProtocolDeviationLedgerEntry entry = (ProtocolDeviationLedgerEntry) entries.get(0);
+        assertThat(entry.actorRole).isEqualTo("sponsor-notifier-skipped-site-not-found");
+        assertThat(entry.sponsorNotifiedAt).isNull();
+    }
+
+    @Test
+    @Transactional
+    void missing_connector_config_writes_skipped_ledger_entry() {
+        final UUID deviationId = UUID.randomUUID();
+        final TrialSite site = siteWithTrial(null, null);
+        final ProtocolDeviationResolvedEvent event = new ProtocolDeviationResolvedEvent(
+            deviationId, site.id, DeviationSeverity.MAJOR,
+            EscalationRequirement.SPONSOR_NOTIFICATION, PiApprovalStatus.ESCALATED,
+            "CONSENT_DEVIATION", "dr-smith@v1");
+
+        listener.onDeviationResolved(event);
+
+        var entries = ledgerEntryRepository.findBySubjectId(deviationId);
+        assertThat(entries).hasSize(1);
+        ProtocolDeviationLedgerEntry entry = (ProtocolDeviationLedgerEntry) entries.get(0);
+        assertThat(entry.actorRole).isEqualTo("sponsor-notifier-skipped-no-config");
+        assertThat(entry.sponsorNotifiedAt).isNull();
+    }
+
+    @Test
+    @Transactional
     void unexpected_exception_from_notifier_writes_observer_failure_entry() {
         final UUID deviationId = UUID.randomUUID();
         final ProtocolDeviationResolvedEvent event =

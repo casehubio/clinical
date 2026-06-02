@@ -25,10 +25,10 @@ public class SafetyOfficerNotificationLedgerEntry extends LedgerEntry {
     @Column(name = "ae_id", nullable = false)
     public UUID aeId;
 
-    @Column(name = "enrollment_id", nullable = false)
+    @Column(name = "enrollment_id")
     public UUID enrollmentId;
 
-    @Column(name = "site_id", nullable = false)
+    @Column(name = "site_id")
     public UUID siteId;
 
     @Column(name = "ctcae_grade", nullable = false)

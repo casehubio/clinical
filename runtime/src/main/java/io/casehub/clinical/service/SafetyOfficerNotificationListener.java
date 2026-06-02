@@ -22,21 +22,41 @@ public class SafetyOfficerNotificationListener {
         try {
             if (event.siteId() == null) {
                 Log.errorf("AE %s has no siteId — safety officer notification skipped", event.aeId());
+                try {
+                    ledgerWriter.writeSkippedEntry(event.aeId(), event.enrollmentId(), null, event.grade(), "safety-officer-notifier-skipped-no-site-id");
+                } catch (Exception writeEx) {
+                    Log.errorf(writeEx, "AUDIT GAP: could not write skipped entry for AE %s", event.aeId());
+                }
                 return;
             }
             final TrialSite site = TrialSite.findById(event.siteId());
             if (site == null) {
                 Log.warnf("TrialSite %s not found — safety officer notification skipped", event.siteId());
+                try {
+                    ledgerWriter.writeSkippedEntry(event.aeId(), event.enrollmentId(), event.siteId(), event.grade(), "safety-officer-notifier-skipped-site-not-found");
+                } catch (Exception writeEx) {
+                    Log.errorf(writeEx, "AUDIT GAP: could not write skipped entry for AE %s", event.aeId());
+                }
                 return;
             }
             final ClinicalTrial trial = ClinicalTrial.findById(site.trialId);
             if (trial == null) {
                 Log.warnf("Trial %s not found — safety officer notification skipped", site.trialId);
+                try {
+                    ledgerWriter.writeSkippedEntry(event.aeId(), event.enrollmentId(), event.siteId(), event.grade(), "safety-officer-notifier-skipped-trial-not-found");
+                } catch (Exception writeEx) {
+                    Log.errorf(writeEx, "AUDIT GAP: could not write skipped entry for AE %s", event.aeId());
+                }
                 return;
             }
             if (trial.safetyOfficerConnectorId == null || trial.safetyOfficerDestination == null) {
                 Log.warnf("Trial %s has incomplete safety officer notification config (connectorId=%s, destination=%s) — skipping",
                     site.trialId, trial.safetyOfficerConnectorId, trial.safetyOfficerDestination);
+                try {
+                    ledgerWriter.writeSkippedEntry(event.aeId(), event.enrollmentId(), event.siteId(), event.grade(), "safety-officer-notifier-skipped-no-config");
+                } catch (Exception writeEx) {
+                    Log.errorf(writeEx, "AUDIT GAP: could not write skipped entry for AE %s", event.aeId());
+                }
                 return;
             }
             notifier.notify(new SafetyOfficerNotificationRequest(

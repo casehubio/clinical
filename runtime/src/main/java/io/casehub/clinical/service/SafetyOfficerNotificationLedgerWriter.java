@@ -63,6 +63,34 @@ public class SafetyOfficerNotificationLedgerWriter {
         writeEntry(aeId, enrollmentId, siteId, grade, null, null, false);
     }
 
+    /**
+     * Called from SafetyOfficerNotificationListener deliberate early-return paths (missing site, trial, or config).
+     * Distinct actorRole per reason satisfies ICH E6(R3) §5.17 — the audit trail must explain why notification
+     * was not sent, not merely record that it wasn't.
+     */
+    @Transactional(Transactional.TxType.REQUIRES_NEW)
+    public void writeSkippedEntry(UUID aeId, UUID enrollmentId, UUID siteId, CtcaeGrade grade, String reason) {
+        final Instant now = clock.instant();
+        var entry = new SafetyOfficerNotificationLedgerEntry();
+        entry.id = UUID.randomUUID();
+        entry.subjectId = aeId;
+        entry.sequenceNumber = nextSequenceNumber(aeId);
+        entry.entryType = LedgerEntryType.EVENT;
+        entry.actorId = ClinicalActors.CLINICAL_SERVICE;
+        entry.actorType = ActorType.SYSTEM;
+        entry.actorRole = reason;
+        entry.occurredAt = now;
+        entry.aeId = aeId;
+        entry.enrollmentId = enrollmentId;
+        entry.siteId = siteId;
+        entry.ctcaeGrade = grade.name();
+        entry.connectorId = null;
+        entry.destination = null;
+        entry.delivered = false;
+        entry.notifiedAt = now;
+        ledgerEntryRepository.save(entry);
+    }
+
     private int nextSequenceNumber(final UUID aeId) {
         return ledgerEntryRepository.findLatestBySubjectId(aeId)
             .map(e -> e.sequenceNumber + 1)
