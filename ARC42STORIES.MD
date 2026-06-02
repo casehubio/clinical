@@ -277,7 +277,7 @@ sequenceDiagram
   Note over AES: slaDeadline = reportedAt + grade.sla() = reportedAt + 24h
   AES->>Work: createWorkItem(claimDeadline=slaDeadline, candidateGroups="dsmb,safety-officers")
   AES->>Ledger: writeReportEntry(aeId, grade, actorId, sequenceNumber)
-  AES->>AES: ae.workItemId = workItem.id; ae.persist()
+  AES->>AES: ae.workItemId = workItem.id, ae.persist()
   Note over AES: single @Transactional — XA required (default + qhorus datasources)
   AES->>Engine: fire AdverseEventReportedEvent (Grade 3+)
   Engine->>Engine: ae-escalation.yaml: Grade 3 → safety-review humanTask binding fires
