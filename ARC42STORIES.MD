@@ -277,7 +277,7 @@ sequenceDiagram
   Note over AES: slaDeadline = reportedAt + grade.sla() = reportedAt + 24h
   AES->>Work: createWorkItem(claimDeadline=slaDeadline, candidateGroups="dsmb,safety-officers")
   AES->>Ledger: writeReportEntry(aeId, grade, actorId, sequenceNumber)
-  AES->>AES: ae.workItemId = workItem.id; ae.persist()
+  AES->>AES: ae.workItemId = workItem.id, ae.persist()
   Note over AES: single @Transactional — XA required (default + qhorus datasources)
   AES->>Engine: fire AdverseEventReportedEvent (Grade 3+)
   Engine->>Engine: ae-escalation.yaml: Grade 3 → safety-review humanTask binding fires
@@ -911,6 +911,9 @@ Not closed here: L5 (IRB gate engine case — CRITICAL deviation IRB consultatio
 - `runtime/src/main/java/io/casehub/clinical/resource/DeviationResource.java` — POST/GET `/trials/{t}/sites/{s}/deviations`
 - `runtime/src/main/resources/db/migration/default/V107__alter_protocol_deviation_add_commitment_fields.sql` — 4 new columns on `protocol_deviation`
 - `runtime/src/main/resources/db/migration/qhorus/V1006__protocol_deviation_ledger_entry.sql` — join table for `ProtocolDeviationLedgerEntry`
+- `runtime/src/main/java/io/casehub/clinical/ledger/SafetyOfficerNotificationLedgerEntry.java` — `LedgerEntry` JOINED subclass; delivery record per AE notification attempt; `delivered` flag + distinct `actorRole` per skip reason (ICH E6(R3) §5.17: non-notification must be independently verifiable)
+- `runtime/src/main/java/io/casehub/clinical/service/SafetyOfficerNotificationLedgerWriter.java` — writes delivered and skipped-delivery entries; owns `sequenceNumber` via `findLatestBySubjectId`; REQUIRES_NEW for observer fallback and deliberate-skip paths
+- `runtime/src/main/resources/db/migration/qhorus/V1011__safety_officer_notification_ledger_entry.sql` — join table; `site_id` and `enrollment_id` nullable (V1013) for skip entries where site identity is absent
 
 #### Key wiring
 
@@ -1102,8 +1105,8 @@ Not closed here: L6 (no trial-level cross-site signal aggregation), L7 (no trust
 
 #### Key files
 
-- `runtime/src/main/resources/ae-escalation.yaml` — AE case definition: Grade 3 → senior monitor gate; Grade 4+ → + DSMB gate in parallel
-- `runtime/src/main/resources/deviation-review.yaml` — deviation case definition: IRB gate with 72h deadline; 4 terminal outcomes
+- `runtime/src/main/resources/clinical/ae-escalation.yaml` — AE case definition: Grade 3 → senior monitor gate; Grade 4+ → + DSMB gate in parallel
+- `runtime/src/main/resources/clinical/deviation-review.yaml` — deviation case definition: IRB gate with 72h deadline; 4 terminal outcomes
 - `runtime/src/main/java/io/casehub/clinical/service/ClinicalAdverseEventCaseHub.java` — `@ApplicationScoped extends YamlCaseHub("ae-escalation.yaml")`
 - `runtime/src/main/java/io/casehub/clinical/service/ClinicalDeviationCaseHub.java` — `@ApplicationScoped extends YamlCaseHub("deviation-review.yaml")`
 - `runtime/src/main/java/io/casehub/clinical/service/AeEscalationCaseService.java` — observes `AdverseEventReportedEvent`; starts AE case for Grade 3+
@@ -1116,6 +1119,35 @@ Not closed here: L6 (no trial-level cross-site signal aggregation), L7 (no trust
 - `runtime/src/main/java/io/casehub/clinical/ledger/IrbApprovalLedgerEntry.java` — V1009 join table
 
 #### Key wiring
+
+**Binding structure — `contextChange.filter` with JQ conditions and parallel `humanTask`.** The core pattern: a `contextChange` trigger fires whenever the engine updates `CaseContext`; the `filter` JQ expression guards re-entry. Grade 3 routes to one gate; Grade 4+ routes to two gates simultaneously because both bindings' filters become true in the same context update:
+
+```yaml
+bindings:
+  - name: safety-review                       # fires for Grade 3 AND Grade 4+
+    on:
+      contextChange:
+        filter: ".requiresSeniorMonitor == true and .safetyReview == null"
+    humanTask:
+      title: "Senior safety monitor review — adverse event"
+      expiresIn: PT24H
+      candidateGroups: [senior-safety-monitors]
+      inputMapping: "{ aeId: .aeId, grade: .grade, enrollmentId: .enrollmentId }"
+      outputMapping: "{ safetyReview: . }"
+
+  - name: dsmb-escalation                     # fires for Grade 4+ only
+    on:
+      contextChange:
+        filter: ".requiresDsmbEscalation == true and .dsmbEscalation == null"
+    humanTask:
+      title: "DSMB escalation — Grade 4+ adverse event"
+      expiresIn: PT24H
+      candidateGroups: [dsmb]
+      inputMapping: "{ aeId: .aeId, grade: .grade, enrollmentId: .enrollmentId }"
+      outputMapping: "{ dsmbEscalation: . }"
+```
+
+`AeEscalationCaseService.startCase()` sets `requiresSeniorMonitor=true` for Grade 3+ and `requiresDsmbEscalation=true` for Grade 4+. The engine evaluates all binding filters against the initial context — both fire simultaneously for Grade 4+, creating parallel WorkItems. The `deviation-review.yaml` IRB gate follows the same pattern with a single `contextChange.filter: ".irbConsultationRequired == true and .irbConsultation == null"` binding with `expiresIn: PT72H`.
 
 **`CaseCompleted` vs `GoalReached` in tests.** The in-memory engine does not reliably fire `CaseCompleted` in `@QuarkusTest` — `GoalReached` fires at the first async hop and arrives reliably. Accept both event types in the observer; extract status write to `@Transactional(REQUIRES_NEW)` with idempotency guard (since `GoalReached` fires once per goal, not once per case). `AeEscalationListener` is the reference pattern. Garden: GE-20260529.
 
@@ -1446,7 +1478,7 @@ Per the Arc42Stories spec: layer-specific decisions live in §9.4; this section 
 
 **Layer 4 — yes.** The 8-step Pattern covers package isolation, `selected-alternatives`, V1005+ migration range, and the dedicated writer pattern. The three gotchas are the exact errors that occurred during implementation.
 
-**Layer 5 — yes, with one gap.** The 9-step Pattern covers `ledgerWritten` flag, three-phase activation, Quartz incompatibility, and `GoalReached` vs `CaseCompleted`. The gap: no YAML snippet showing the actual binding condition structure (grade evaluation, parallel humanTask). A reader replicating Layer 5 must look at the YAML files directly to understand binding syntax.
+**Layer 5 — yes.** The 9-step Pattern covers `ledgerWritten` flag, three-phase activation, Quartz incompatibility, and `GoalReached` vs `CaseCompleted`. A YAML snippet showing `contextChange.filter` conditions and parallel `humanTask` firing is now in §9.4 Key wiring — a reader can understand binding syntax without opening the YAML files.
 
 **Layer 6 — yes.** The 7-step Pattern covers the three-phase activation, flag centralisation, and `to_entries[]` JQ idiom. The two gotchas (JQ silent false, production deadlock) are precise and observable.
 
@@ -1459,8 +1491,8 @@ Per the Arc42Stories spec: layer-specific decisions live in §9.4; this section 
 - §11 Quality Requirements updated (trust accuracy scenario from 🔲 to delivered)
 
 **Gaps to fill now (small, non-blocking):**
-- A YAML snippet in §9.4 Layer — casehub-engine showing the core binding structure (Grade 3 vs Grade 4+ conditional, `humanTask` parallel firing). Would make Layer 5 replication fully self-contained.
-- `SafetyOfficerNotificationLedgerEntry` (V1011) key file entry in Layer 3 extension section — currently only in LAYER-LOG.md clinical#11 note.
+- ✅ YAML snippet in §9.4 Layer — casehub-engine: `contextChange.filter` conditions and parallel `humanTask` firing added to Key wiring. Layer 5 replication is now fully self-contained (clinical#57).
+- ✅ `SafetyOfficerNotificationLedgerEntry` (V1011) key file entry added to Layer 3 §9.4 Key files, with `SafetyOfficerNotificationLedgerWriter` and V1011/V1013 migrations (clinical#57).
 
 **Structural observation for the spec:**
 - The arc42stories-spec.md does not define how to represent a layer that was built simultaneously with another (L2 + L4 built in the same Epic 4). The current approach — "Note: built simultaneously; reading order separates them" — works but is not specified. Worth noting for a future spec revision.
