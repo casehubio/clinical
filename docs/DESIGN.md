@@ -1,5 +1,9 @@
 # casehub-clinical — Design
 
+> **Superseded by `ARC42STORIES.MD`** (bootstrapped 2026-06-02, casehubio/clinical#54).
+> All content here is captured in `ARC42STORIES.MD §4` (Solution Strategy), `§5` (Building Block View),
+> and `§9.4` (Layer Entries). This file is retained for git history — refer to `ARC42STORIES.MD` for current architecture.
+
 ## Architecture
 
 casehub-clinical is a layered agentic harness for clinical trial coordination.

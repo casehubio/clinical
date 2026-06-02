@@ -121,7 +121,7 @@ type: java
 
 **Goal:** Production-grade clinical trial coordination harness demonstrating that GCP, FDA, and GDPR requirements are structurally satisfied by CaseHub's accountability layer where workflow-based LLM systems cannot provide equivalent compliance guarantees.
 
-**Architecture record:** `LAYER-LOG.md` tracks integration layer entries. A layer is not complete until its entry is written. Arc42Stories migration planned — layer entries will move to `ARC42STORIES.MD §9.4` when the document is bootstrapped. See `../parent/docs/arc42stories-spec.md` and `../parent/docs/arc42stories-casehub-profile.md`.
+**Architecture record:** `ARC42STORIES.MD` is the primary architecture record (bootstrapped 2026-06-02, casehubio/clinical#54). `LAYER-LOG.md` is the source-of-truth draft that feeds it. A layer is not complete until its entry is written in both. See `../parent/docs/arc42stories-spec.md` and `../parent/docs/arc42stories-casehub-profile.md`.
 
 ---
 

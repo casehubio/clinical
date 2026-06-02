@@ -3,9 +3,7 @@
 Architecture record of what was built at each integration layer. Entries are ordered for
 reading comprehension, not chronology. Each entry is complete when the layer closes.
 
-**Migration note:** This file will migrate to `ARC42STORIES.MD §9.4` Layer Entries when
-that document is bootstrapped. Format: `../parent/docs/arc42stories-spec.md` and
-`../parent/docs/arc42stories-casehub-profile.md`.
+**Migration note:** Content migrated to `ARC42STORIES.MD §9.4` (bootstrapped 2026-06-02, casehubio/clinical#54). `ARC42STORIES.MD` is the primary architecture record. This file is the source-of-truth draft that fed the migration and remains for reference — do not retire it until `ARC42STORIES.MD` has been verified complete.
 
 Cross-references:
 - Blog entries: workspace `blog/` (staged; published to mdproctor.github.io via `publish-blog`)
