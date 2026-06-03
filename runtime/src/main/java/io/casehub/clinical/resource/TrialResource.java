@@ -23,6 +23,11 @@ public class TrialResource {
 
     @Inject TrialActivationService trialActivationService;
 
+    public record SponsorConfigRequest(
+        @Size(max = 64) String connectorId,
+        @Size(max = 2048) String destination
+    ) {}
+
     public record RegisterTrialRequest(
         @NotBlank String protocolId,
         @NotNull TrialPhase phase,
@@ -56,6 +61,17 @@ public class TrialResource {
         ClinicalTrial trial = ClinicalTrial.findById(id);
         if (trial == null) return Response.status(Response.Status.NOT_FOUND).build();
         return Response.ok(trial).build();
+    }
+
+    @PATCH
+    @Path("/{id}/sponsor-config")
+    @Transactional
+    public Response updateSponsorConfig(@PathParam("id") UUID id, @NotNull @Valid SponsorConfigRequest req) {
+        ClinicalTrial trial = ClinicalTrial.findById(id);
+        if (trial == null) return Response.status(Response.Status.NOT_FOUND).build();
+        trial.sponsorNotificationConnectorId = req.connectorId();
+        trial.sponsorNotificationDestination = req.destination();
+        return Response.noContent().build();
     }
 
     // WILDCARD: POST with no body — overrides class-level APPLICATION_JSON
