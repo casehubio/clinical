@@ -1386,18 +1386,12 @@ Per the Arc42Stories spec: layer-specific decisions live in §9.4; this section 
 
 | Risk | Mitigation | Tracked |
 |---|---|---|
-| engine API incompatibility — `startCase(CaseDefinition, Object)` missing from `CaseHubRuntimeImpl`; 12 lifecycle tests failing | Blocked on engine-side fix; no clinical code change required | casehubio/clinical#53 |
-| Early-return audit gap — missing-config paths in notification listeners leave no ledger trace | `delivered=false` entries cover connector failures; silent skips (site not found, config missing) still leave no trace | casehubio/clinical#49 |
 | Grade 5 regulatory gap — `DefaultAdverseEventEscalationPolicy` does not evaluate `unexpected` qualifier (21 CFR 312.32) | Documented limitation; Layer 7 must add `boolean unexpected` to `AeEscalationCompletedEvent`; see Layer 7 stub in §9.4 | casehubio/clinical#10 (Layer 7 scope) |
 | Layer 7 trust routing absent — agents selected by availability | Bootstrap mode; routing quality improves as attestations accumulate | casehubio/clinical#10 |
 
 ### Technical Debt
 
-| Item | Description | Layer | Tracked |
-|---|---|---|---|
-| Test coverage gaps | `enrollmentId` null path in `AeEscalationListener`; `IrbDecisionListenerTest` missing `approvalId` assertion | L5 | casehubio/clinical#52 |
-| `actorId` inconsistency | Some ledger writers use `"system"` rather than `ClinicalActors.CLINICAL_SERVICE` constant — pre-existing, partially fixed | L4, L5 | casehubio/clinical#46 |
-| `StubWorkloadProvider` in every test module | `JpaWorkloadProvider` excluded; `StubWorkloadProvider` (`@DefaultBean`, returns 0) must be added to any new test module adding engine | L5 | casehubio/clinical#41 |
+*No open items.*
 
 ---
 
