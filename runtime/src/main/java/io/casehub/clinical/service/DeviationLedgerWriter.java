@@ -72,8 +72,13 @@ public class DeviationLedgerWriter {
      *
      * {@code notifiedAt} is caller-supplied (the connector delivery timestamp) rather than clock.instant()
      * so that the ledger accurately records when delivery was attempted, not when the record was written.
+     *
+     * {@code piId} and {@code piDisplayName} are null for EXPIRED terminal status (system-initiated
+     * expiration has no PI actor). Both are recorded to close the GCP compliance gap — an FDA auditor
+     * can reconstruct which PI was notified and by what name appeared in the notification body.
      */
-    public void writeSponsorNotifiedEntry(ProtocolDeviation dev, Instant notifiedAt, boolean delivered) {
+    public void writeSponsorNotifiedEntry(ProtocolDeviation dev, Instant notifiedAt, boolean delivered,
+                                          String piId, String piDisplayName) {
         ProtocolDeviationLedgerEntry entry = baseEntry(dev);
         entry.entryType = LedgerEntryType.EVENT;
         entry.actorId = ClinicalActors.CLINICAL_SERVICE;
@@ -81,6 +86,8 @@ public class DeviationLedgerWriter {
         entry.actorRole = delivered ? "sponsor-notifier" : "sponsor-notifier-failed";
         entry.occurredAt = notifiedAt;
         entry.sponsorNotifiedAt = delivered ? notifiedAt : null;
+        entry.piId = piId;
+        entry.piDisplayName = piDisplayName;
         ledgerEntryRepository.save(entry);
     }
 

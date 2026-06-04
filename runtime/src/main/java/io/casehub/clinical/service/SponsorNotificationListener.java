@@ -4,6 +4,7 @@ import io.casehub.clinical.api.ProtocolDeviationResolvedEvent;
 import io.casehub.clinical.api.SponsorNotificationRequest;
 import io.casehub.clinical.api.SponsorNotifier;
 import io.casehub.clinical.api.model.EscalationRequirement;
+import io.casehub.clinical.api.spi.PiIdentityResolver;
 import io.casehub.clinical.entity.ClinicalTrial;
 import io.casehub.clinical.entity.TrialSite;
 import io.quarkus.logging.Log;
@@ -18,6 +19,7 @@ public class SponsorNotificationListener {
 
     @Inject SponsorNotifier sponsorNotifier;
     @Inject DeviationLedgerWriter deviationLedgerWriter;
+    @Inject PiIdentityResolver piIdentityResolver;
     @Inject Clock clock;
 
     @Transactional
@@ -57,6 +59,39 @@ public class SponsorNotificationListener {
                 return;
             }
 
+            // Resolve PI formal name before delivery — null for EXPIRED (system-initiated, no PI actor).
+            // Resolution failure is a distinct audit role from delivery failure.
+            String piDisplayName = null;
+            if (event.piId() != null) {
+                try {
+                    piDisplayName = piIdentityResolver.resolveFormalName(event.piId());
+                    if (piDisplayName == null) {
+                        // Contract violation — implementations must not return null. Treat as a fault.
+                        Log.errorf("PiIdentityResolver returned null for piId=%s (deviation %s) — writing resolver-failed entry",
+                            event.piId(), event.deviationId());
+                        try {
+                            deviationLedgerWriter.writeSkippedSponsorEntry(event.deviationId(), event.siteId(),
+                                event.severity(), clock.instant(), "sponsor-notifier-pi-resolver-failed");
+                        } catch (Exception writeEx) {
+                            Log.errorf(writeEx, "AUDIT GAP: could not write resolver-failed entry for deviation %s",
+                                event.deviationId());
+                        }
+                        return;
+                    }
+                } catch (Exception resolveEx) {
+                    Log.errorf(resolveEx, "PI identity resolution failed for deviation %s — writing resolver-failed entry",
+                        event.deviationId());
+                    try {
+                        deviationLedgerWriter.writeSkippedSponsorEntry(event.deviationId(), event.siteId(),
+                            event.severity(), clock.instant(), "sponsor-notifier-pi-resolver-failed");
+                    } catch (Exception writeEx) {
+                        Log.errorf(writeEx, "AUDIT GAP: could not write resolver-failed entry for deviation %s",
+                            event.deviationId());
+                    }
+                    return;
+                }
+            }
+
             sponsorNotifier.notify(new SponsorNotificationRequest(
                 site.trialId,
                 event.siteId(),
@@ -65,6 +100,7 @@ public class SponsorNotificationListener {
                 event.severity(),
                 event.terminalStatus(),
                 event.piId(),
+                piDisplayName,
                 trial.sponsorNotificationConnectorId,
                 trial.sponsorNotificationDestination
             ));

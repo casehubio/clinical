@@ -1,6 +1,7 @@
 package io.casehub.clinical.service;
 
 import io.casehub.clinical.api.model.*;
+import io.casehub.clinical.api.spi.PiIdentityResolver;
 import io.casehub.clinical.entity.*;
 import io.casehub.qhorus.api.message.MessageType;
 import io.quarkus.test.InjectMock;
@@ -19,6 +20,7 @@ import java.util.UUID;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.doNothing;
+import static org.mockito.Mockito.when;
 
 @QuarkusTest
 class SponsorNotificationIntegrationTest {
@@ -26,6 +28,7 @@ class SponsorNotificationIntegrationTest {
     @Inject PiResponseListener piResponseListener;
     @Inject TestSlackConnector slackConnector;
     @InjectMock DeviationLedgerWriter ledgerWriter;
+    @InjectMock PiIdentityResolver piIdentityResolver;
 
     private UUID deviationId;
     private String channelName;
@@ -37,7 +40,10 @@ class SponsorNotificationIntegrationTest {
 
         // Suppress all ledger writes
         doNothing().when(ledgerWriter).writeResolutionEntry(any(), any(), any(), any(), any());
-        doNothing().when(ledgerWriter).writeSponsorNotifiedEntry(any(), any(Instant.class), any(Boolean.class));
+        doNothing().when(ledgerWriter).writeSponsorNotifiedEntry(any(), any(Instant.class), any(Boolean.class), any(), any());
+
+        // Stub resolver for all tests — avoids null piDisplayName corrupting notification bodies
+        when(piIdentityResolver.resolveFormalName("dr-jones@v1")).thenReturn("Dr. Jones");
 
         UUID trialId = UUID.randomUUID();
         UUID siteId = UUID.randomUUID();
@@ -88,7 +94,8 @@ class SponsorNotificationIntegrationTest {
             .isEqualTo("https://hooks.slack.com/integration-test");
         assertThat(slackConnector.sent().get(0).body())
             .contains("INFORMED_CONSENT")
-            .contains("dr-jones@v1")
+            .contains("Dr. Jones")              // resolved formal name, not raw piId
+            .doesNotContain("dr-jones@v1")
             .contains("corrective action committed");
     }
 
@@ -101,20 +108,20 @@ class SponsorNotificationIntegrationTest {
         );
 
         assertThat(slackConnector.sent()).hasSize(1);
-        assertThat(slackConnector.sent().get(0).body()).contains("refused to authorise");
+        assertThat(slackConnector.sent().get(0).body())
+            .contains("refused to authorise")
+            .contains("Dr. Jones");             // resolved formal name in REJECTED body too
     }
 
     @Test
     void connector_delivery_failure_does_not_propagate_exception() {
         slackConnector.setShouldThrow(true);
 
-        // Must complete without exception even when connector throws
         piResponseListener.process(channelName, MessageType.DONE, "dr-jones@v1");
 
-        // Give async events time to process; verify ledger write was called (with delivered=false)
         Awaitility.await().atMost(Duration.ofSeconds(5)).untilAsserted(() ->
             Mockito.verify(ledgerWriter, Mockito.atLeastOnce())
-                .writeSponsorNotifiedEntry(any(), any(Instant.class), Mockito.eq(false))
+                .writeSponsorNotifiedEntry(any(), any(Instant.class), Mockito.eq(false), any(), any())
         );
     }
 }

@@ -711,7 +711,9 @@ None — this layer establishes the gaps that subsequent layers close.
 - `runtime/src/main/java/io/casehub/clinical/entity/AdverseEvent.java` — enrollmentId, grade, occurredAt, reportedAt, slaDeadline, workItemId
 - `runtime/src/main/java/io/casehub/clinical/entity/ProtocolDeviation.java` — siteId, deviationType, severity, piApprovalStatus, reportedAt
 - `runtime/src/main/java/io/casehub/clinical/entity/IrbApproval.java` — siteId, reviewType, committeeId, decisionDeadline, decision
-- `runtime/src/main/java/io/casehub/clinical/resource/TrialResource.java` — POST/GET `/trials` and `/trials/{id}`
+- `runtime/src/main/java/io/casehub/clinical/resource/TrialResource.java` — POST/GET `/trials` and `/trials/{id}`; PATCH `/trials/{id}/sponsor-config` (full-replace sponsor notification config)
+- `api/src/main/java/io/casehub/clinical/api/spi/PiIdentityResolver.java` — resolves PI actor IDs to formal names for GCP-regulated sponsor notifications; default passthrough in `runtime/`
+- `runtime/src/main/java/io/casehub/clinical/service/DefaultPiIdentityResolver.java` — passthrough `@DefaultBean`; production deployments override; WARN log in non-dev/test profiles
 - `runtime/src/main/java/io/casehub/clinical/resource/SiteResource.java` — POST/GET `/trials/{id}/sites` and `/trials/{id}/sites/{id}`
 - `runtime/src/main/java/io/casehub/clinical/resource/PatientResource.java` — POST/GET patients; POST adverse events (delegates to service in L2)
 - `runtime/src/test/java/io/casehub/clinical/resource/ShowcaseScenarioTest.java` — 3-site oncology scenario: register trial, 3 independent sites, enroll patients, verify ownership chain
@@ -731,6 +733,10 @@ None — this layer establishes the gaps that subsequent layers close.
 #### Architectural decisions
 
 **Why Active Record over the service interface pattern:** Clinical has no downstream JPA consumers — no other module depends on `casehub-clinical-api` for JPA entities. The `api/` module carries only pure Java types (enums, constants, SPIs, CDI events). Extracting POJO classes from Panache entities would add a mapping layer with no consumer. Tradeoff: the convention documented in CLAUDE.md means this exception must be noted explicitly; it cannot be assumed.
+
+**Why PATCH `/trials/{id}/sponsor-config` uses full-replace semantics:** `sponsorNotificationConnectorId` and `sponsorNotificationDestination` are co-dependent — a connector ID without a destination is non-functional. Partial update (RFC 7396 merge patch) would allow one field to be set without the other, producing an inert configuration that fails silently at notification time. Full replace forces both fields to be explicit on every update.
+
+**Why `PiIdentityResolver` resolves in `SponsorNotificationListener`, not `DefaultSponsorNotifier`:** If resolution happens in `buildBody()`, any exception from the resolver propagates to `notify()`'s catch block, which records `delivered: false`. A directory service timeout would produce an audit entry claiming sponsor notification delivery failed — but delivery was never attempted. Moving resolution to the listener gives each failure a distinct audit role: `sponsor-notifier-pi-resolver-failed` for resolver failures, `sponsor-notifier-observer-failed` for delivery failures. The resolved name flows into `SponsorNotificationRequest.piDisplayName` and is recorded in `ProtocolDeviationLedgerEntry.piDisplayName` (V1014), closing the GCP compliance gap. Null return from the resolver is treated as a contract violation — same halt path as throw — so a misbehaving deployer implementation cannot silently produce an ESCALATED ledger entry with `piDisplayName = null`.
 
 **Why `CtcaeGrade` embeds SLA durations rather than externalising them:** CTCAE grades are a stable international standard — CTCAE v5.0 grade definitions do not change between trials. Embedding SLA durations in the enum makes them part of the domain model, not configuration. A deployer who needs a stricter Grade 5 SLA (1h internal vs GCP 24h minimum) sets it in the enum with documented rationale. Tradeoff: changing a grade SLA requires code changes; this is the right constraint, not a limitation.
 

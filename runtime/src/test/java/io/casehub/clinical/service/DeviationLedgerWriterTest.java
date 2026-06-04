@@ -170,7 +170,7 @@ class DeviationLedgerWriterTest {
         when(ledgerEntryRepository.findLatestBySubjectId(dev.id))
             .thenReturn(Optional.of(existingEntry(2)));
 
-        writer.writeSponsorNotifiedEntry(dev, FIXED_INSTANT, true);
+        writer.writeSponsorNotifiedEntry(dev, FIXED_INSTANT, true, "dr-smith@v1", "Dr. Smith");
 
         ProtocolDeviationLedgerEntry entry = captureEntry();
         assertThat(entry.actorRole).isEqualTo("sponsor-notifier");
@@ -179,6 +179,8 @@ class DeviationLedgerWriterTest {
         assertThat(entry.occurredAt).isEqualTo(FIXED_INSTANT);
         assertThat(entry.sponsorNotifiedAt).isEqualTo(FIXED_INSTANT);
         assertThat(entry.sequenceNumber).isEqualTo(3);
+        assertThat(entry.piId).isEqualTo("dr-smith@v1");
+        assertThat(entry.piDisplayName).isEqualTo("Dr. Smith");
     }
 
     @Test
@@ -186,7 +188,7 @@ class DeviationLedgerWriterTest {
         when(ledgerEntryRepository.findLatestBySubjectId(dev.id))
             .thenReturn(Optional.empty());
 
-        writer.writeSponsorNotifiedEntry(dev, FIXED_INSTANT, false);
+        writer.writeSponsorNotifiedEntry(dev, FIXED_INSTANT, false, "dr-smith@v1", "Dr. Smith");
 
         ProtocolDeviationLedgerEntry entry = captureEntry();
         assertThat(entry.actorRole).isEqualTo("sponsor-notifier-failed");
@@ -194,6 +196,18 @@ class DeviationLedgerWriterTest {
         assertThat(entry.entryType).isEqualTo(LedgerEntryType.EVENT);
         assertThat(entry.sponsorNotifiedAt).isNull();
         assertThat(entry.sequenceNumber).isEqualTo(1);
+    }
+
+    @Test
+    void writeSponsorNotifiedEntry_expired_passes_null_pi_fields() {
+        when(ledgerEntryRepository.findLatestBySubjectId(dev.id)).thenReturn(Optional.empty());
+
+        writer.writeSponsorNotifiedEntry(dev, FIXED_INSTANT, true, null, null);
+
+        ProtocolDeviationLedgerEntry entry = captureEntry();
+        assertThat(entry.piId).isNull();
+        assertThat(entry.piDisplayName).isNull();
+        assertThat(entry.actorRole).isEqualTo("sponsor-notifier");
     }
 
     @Test

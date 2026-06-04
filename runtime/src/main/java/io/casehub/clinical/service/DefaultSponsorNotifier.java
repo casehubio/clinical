@@ -65,19 +65,19 @@ public class DefaultSponsorNotifier implements SponsorNotifier {
             Log.errorf("ProtocolDeviation %s not found — cannot write ledger entry", req.deviationId());
             return;
         }
-        ledgerWriter.writeSponsorNotifiedEntry(dev, clock.instant(), delivered);
+        ledgerWriter.writeSponsorNotifiedEntry(dev, clock.instant(), delivered, req.piId(), req.piDisplayName());
     }
 
     private String buildTitle(SponsorNotificationRequest req) {
         return "[" + req.severity().name() + " Deviation] " + req.deviationType() + " — " + req.terminalStatus().name();
     }
 
-    private String buildBody(SponsorNotificationRequest req) {
+    String buildBody(SponsorNotificationRequest req) {
         return switch (req.terminalStatus()) {
-            case ESCALATED -> "PI " + req.piId() + " approved — corrective action committed. " +
+            case ESCALATED -> "PI " + req.piDisplayName() + " approved — corrective action committed. " +
                 "Site: " + req.siteId() + ". Type: " + req.deviationType() + ". " +
                 "Ref: clinical/deviation/" + req.deviationId() + "/pi-oversight";
-            case REJECTED -> "PI " + req.piId() + " refused to authorise — no corrective action. " +
+            case REJECTED -> "PI " + req.piDisplayName() + " refused to authorise — no corrective action. " +
                 "Site: " + req.siteId() + ". Type: " + req.deviationType() + ".";
             case EXPIRED -> "PI response deadline expired — no response received. " +
                 "Site: " + req.siteId() + ". Type: " + req.deviationType() + ".";

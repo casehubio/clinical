@@ -9,6 +9,7 @@ import io.casehub.clinical.api.model.PiApprovalStatus;
 import io.casehub.clinical.api.model.SiteStatus;
 import io.casehub.clinical.api.model.TrialPhase;
 import io.casehub.clinical.api.model.TrialStatus;
+import io.casehub.clinical.api.spi.PiIdentityResolver;
 import io.casehub.clinical.entity.ClinicalTrial;
 import io.casehub.clinical.entity.TrialSite;
 import io.casehub.clinical.ledger.ProtocolDeviationLedgerEntry;
@@ -27,14 +28,17 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatCode;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.doThrow;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
+import static org.mockito.Mockito.when;
 
 @QuarkusTest
 class SponsorNotificationListenerTest {
 
     @Inject SponsorNotificationListener listener;
     @InjectMock SponsorNotifier sponsorNotifier;
+    @InjectMock PiIdentityResolver piIdentityResolver;
     @Inject LedgerEntryRepository ledgerEntryRepository;
 
     private UUID trialId;
@@ -43,6 +47,10 @@ class SponsorNotificationListenerTest {
     @BeforeEach
     @Transactional
     void setUp() {
+        // Default resolver stub — prevents null-return guard from firing in tests that exercise
+        // the full notification path. Individual tests override with specific values when needed.
+        when(piIdentityResolver.resolveFormalName(any())).thenReturn("Dr. Smith");
+
         trialId = UUID.randomUUID();
         siteId = UUID.randomUUID();
 
@@ -67,6 +75,8 @@ class SponsorNotificationListenerTest {
 
     @Test
     void sponsor_notification_event_calls_spi_with_correct_request() {
+        when(piIdentityResolver.resolveFormalName("dr-smith@v1")).thenReturn("Dr. Smith");
+
         ProtocolDeviationResolvedEvent event = new ProtocolDeviationResolvedEvent(
             UUID.randomUUID(), siteId, DeviationSeverity.MAJOR,
             EscalationRequirement.SPONSOR_NOTIFICATION, PiApprovalStatus.ESCALATED,
@@ -84,10 +94,68 @@ class SponsorNotificationListenerTest {
         assertThat(req.deviationId()).isEqualTo(event.deviationId());
         assertThat(req.deviationType()).isEqualTo("CONSENT_DEVIATION");
         assertThat(req.piId()).isEqualTo("dr-smith@v1");
+        assertThat(req.piDisplayName()).isEqualTo("Dr. Smith");  // resolved via PiIdentityResolver
         assertThat(req.terminalStatus()).isEqualTo(PiApprovalStatus.ESCALATED);
         assertThat(req.sponsorNotificationConnectorId()).isEqualTo("slack");
         assertThat(req.sponsorNotificationDestination()).isEqualTo("https://hooks.slack.com/test");
         assertThat(req.severity()).isEqualTo(DeviationSeverity.MAJOR);
+    }
+
+    @Test
+    void expired_terminal_status_does_not_invoke_pi_identity_resolver() {
+        ProtocolDeviationResolvedEvent event = new ProtocolDeviationResolvedEvent(
+            UUID.randomUUID(), siteId, DeviationSeverity.MAJOR,
+            EscalationRequirement.SPONSOR_NOTIFICATION, PiApprovalStatus.EXPIRED,
+            "CONSENT_DEVIATION", null  // piId is null for EXPIRED
+        );
+
+        listener.onDeviationResolved(event);
+
+        verify(piIdentityResolver, never()).resolveFormalName(any());
+    }
+
+    @Test
+    @Transactional
+    void pi_resolver_returns_null_writes_resolver_failed_entry_and_does_not_call_notifier() {
+        UUID deviationId = UUID.randomUUID();
+        when(piIdentityResolver.resolveFormalName("dr-smith@v1")).thenReturn(null); // contract violation
+
+        ProtocolDeviationResolvedEvent event = new ProtocolDeviationResolvedEvent(
+            deviationId, siteId, DeviationSeverity.MAJOR,
+            EscalationRequirement.SPONSOR_NOTIFICATION, PiApprovalStatus.ESCALATED,
+            "CONSENT_DEVIATION", "dr-smith@v1"
+        );
+
+        assertThatCode(() -> listener.onDeviationResolved(event)).doesNotThrowAnyException();
+
+        verify(sponsorNotifier, never()).notify(any());
+        var entries = ledgerEntryRepository.findBySubjectId(deviationId);
+        assertThat(entries).hasSize(1);
+        ProtocolDeviationLedgerEntry entry = (ProtocolDeviationLedgerEntry) entries.get(0);
+        assertThat(entry.actorRole).isEqualTo("sponsor-notifier-pi-resolver-failed");
+    }
+
+    @Test
+    @Transactional
+    void pi_resolver_throws_writes_resolver_failed_entry_and_does_not_call_notifier() {
+        UUID deviationId = UUID.randomUUID();
+        when(piIdentityResolver.resolveFormalName("dr-smith@v1"))
+            .thenThrow(new RuntimeException("LDAP timeout"));
+
+        ProtocolDeviationResolvedEvent event = new ProtocolDeviationResolvedEvent(
+            deviationId, siteId, DeviationSeverity.MAJOR,
+            EscalationRequirement.SPONSOR_NOTIFICATION, PiApprovalStatus.ESCALATED,
+            "CONSENT_DEVIATION", "dr-smith@v1"
+        );
+
+        assertThatCode(() -> listener.onDeviationResolved(event)).doesNotThrowAnyException();
+
+        verify(sponsorNotifier, never()).notify(any());
+        var entries = ledgerEntryRepository.findBySubjectId(deviationId);
+        assertThat(entries).hasSize(1);
+        ProtocolDeviationLedgerEntry entry = (ProtocolDeviationLedgerEntry) entries.get(0);
+        assertThat(entry.actorRole).isEqualTo("sponsor-notifier-pi-resolver-failed");
+        assertThat(entry.sponsorNotifiedAt).isNull();
     }
 
     @Test

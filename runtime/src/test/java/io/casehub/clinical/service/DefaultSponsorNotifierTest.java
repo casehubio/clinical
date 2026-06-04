@@ -18,6 +18,7 @@ import java.util.UUID;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.ArgumentMatchers.isNull;
 import static org.mockito.Mockito.verify;
 
 @QuarkusTest
@@ -52,24 +53,27 @@ class DefaultSponsorNotifierTest {
 
     @Test
     void escalated_notification_sends_to_connector_and_writes_delivered_ledger_entry() {
-        notifier.notify(request(PiApprovalStatus.ESCALATED, "dr-smith@v1", "slack"));
+        notifier.notify(request(PiApprovalStatus.ESCALATED, "dr-smith@v1", "Dr. Jane Smith", "slack"));
 
         assertThat(slackConnector.sent()).hasSize(1);
         assertThat(slackConnector.sent().get(0).body())
             .contains("CONSENT_DEVIATION")
-            .contains("dr-smith@v1")
+            .contains("Dr. Jane Smith")         // resolved formal name, not raw piId
+            .doesNotContain("dr-smith@v1")
             .contains("corrective action committed");
         verify(ledgerWriter).writeSponsorNotifiedEntry(
-            any(ProtocolDeviation.class), any(Instant.class), eq(true));
+            any(ProtocolDeviation.class), any(Instant.class), eq(true),
+            eq("dr-smith@v1"), eq("Dr. Jane Smith"));
     }
 
     @Test
     void unknown_connector_id_writes_failed_ledger_entry_without_sending() {
-        notifier.notify(request(PiApprovalStatus.ESCALATED, "dr-smith@v1", "unknown-connector"));
+        notifier.notify(request(PiApprovalStatus.ESCALATED, "dr-smith@v1", "Dr. Smith", "unknown-connector"));
 
         assertThat(slackConnector.sent()).isEmpty();
         verify(ledgerWriter).writeSponsorNotifiedEntry(
-            any(ProtocolDeviation.class), any(Instant.class), eq(false));
+            any(ProtocolDeviation.class), any(Instant.class), eq(false),
+            eq("dr-smith@v1"), eq("Dr. Smith"));
     }
 
     @Test
@@ -77,7 +81,7 @@ class DefaultSponsorNotifierTest {
         SponsorNotificationRequest req = new SponsorNotificationRequest(
             UUID.randomUUID(), siteId, deviationId,
             "CONSENT_DEVIATION", DeviationSeverity.MAJOR,
-            PiApprovalStatus.EXPIRED, null,
+            PiApprovalStatus.EXPIRED, null, null,
             "slack", "https://hooks.slack.com/test"
         );
 
@@ -89,17 +93,19 @@ class DefaultSponsorNotifierTest {
             .contains("CONSENT_DEVIATION")
             .doesNotContain("null");
         verify(ledgerWriter).writeSponsorNotifiedEntry(
-            any(ProtocolDeviation.class), any(Instant.class), eq(true));
+            any(ProtocolDeviation.class), any(Instant.class), eq(true),
+            isNull(), isNull());
     }
 
     @Test
     void connector_send_exception_writes_failed_entry_without_rethrowing() {
         slackConnector.setShouldThrow(true);
 
-        notifier.notify(request(PiApprovalStatus.ESCALATED, "dr-smith@v1", "slack"));  // must not throw
+        notifier.notify(request(PiApprovalStatus.ESCALATED, "dr-smith@v1", "Dr. Smith", "slack"));
 
         verify(ledgerWriter).writeSponsorNotifiedEntry(
-            any(ProtocolDeviation.class), any(Instant.class), eq(false));
+            any(ProtocolDeviation.class), any(Instant.class), eq(false),
+            eq("dr-smith@v1"), eq("Dr. Smith"));
     }
 
     @Test
@@ -107,7 +113,7 @@ class DefaultSponsorNotifierTest {
         SponsorNotificationRequest req = new SponsorNotificationRequest(
             UUID.randomUUID(), siteId, deviationId,
             "PROTOCOL_PROCEDURE", DeviationSeverity.CRITICAL,
-            PiApprovalStatus.ESCALATED, "dr-smith@v1",
+            PiApprovalStatus.ESCALATED, "dr-smith@v1", "Dr. Smith",
             "slack", "https://hooks.slack.com/test"
         );
 
@@ -119,11 +125,12 @@ class DefaultSponsorNotifierTest {
             .doesNotContain("[MAJOR");
     }
 
-    private SponsorNotificationRequest request(PiApprovalStatus status, String piId, String connectorId) {
+    private SponsorNotificationRequest request(PiApprovalStatus status, String piId,
+                                               String piDisplayName, String connectorId) {
         return new SponsorNotificationRequest(
             UUID.randomUUID(), siteId, deviationId,
             "CONSENT_DEVIATION", DeviationSeverity.MAJOR,
-            status, piId, connectorId, "https://hooks.slack.com/test"
+            status, piId, piDisplayName, connectorId, "https://hooks.slack.com/test"
         );
     }
 }
