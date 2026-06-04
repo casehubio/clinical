@@ -371,6 +371,8 @@ Quarkus ArC ignores `beans.xml` `<alternatives>` — the config property is requ
 
 **SPI override tests — use `@InjectMock`, not `@TestProfile + @Alternative`:** `getEnabledAlternatives()` in `QuarkusTestProfile` **replaces** (does not merge with) `quarkus.arc.selected-alternatives` from `application.properties`. Returning `Set.of(MyTestBean.class)` deactivates `MemoryPlanItemStore`, `MemorySubCaseGroupRepository`, and `JpaLedgerEntryRepository` — causing startup failures. Use `@io.quarkus.test.InjectMock` on the SPI field instead; the mock replaces the CDI bean without touching selected-alternatives. See `IrbCommitteePolicySpiTest` for the reference pattern. (Protocol PP-20260601-aec35f; GE-20260601-cee623)
 
+**`@InjectMock` replaces the CDI bean for the entire class — stub in `@BeforeEach`:** When `@InjectMock SomeService mock` is added to a multi-test class, all tests see the Mockito mock. Unstubbed String methods return `null` (Mockito default). If production code has a null-guard that triggers an alternate path (e.g. an audit failure entry), tests that never reference `mock` will silently fail with the wrong side effect. Add `when(mock.method(any())).thenReturn(safeValue)` in `@BeforeEach`; override in specific tests as needed. See `SponsorNotificationListenerTest` for the pattern. (GE-20260604-4298f9)
+
 **Multi-datasource XA:** Any `@Transactional` method writing to both datasources requires XA in **both** `application.properties` (production) and test `application.properties`:
 ```properties
 quarkus.datasource.jdbc.transactions=xa
