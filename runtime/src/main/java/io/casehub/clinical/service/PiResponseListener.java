@@ -20,7 +20,7 @@ import java.util.regex.Pattern;
 public class PiResponseListener {
 
     private static final Pattern CHANNEL_PATTERN =
-        Pattern.compile("clinical/deviation/([0-9a-f-]+)/pi-oversight");
+        Pattern.compile("clinical/deviation/dev-([0-9a-f-]+)/pi-oversight");
 
     @Inject Event<ProtocolDeviationResolvedEvent> resolvedEvent;
     @Inject DeviationLedgerWriter ledgerWriter;

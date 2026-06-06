@@ -113,6 +113,25 @@
         <version>6.0.3</version>
         <scope>test</scope>
       </dependency>
+      <!-- In-memory ledger repository — for @QuarkusTest isolation (no DB table required) -->
+      <dependency>
+        <groupId>io.casehub</groupId>
+        <artifactId>casehub-ledger-memory</artifactId>
+        <version>${version.io.casehub}</version>
+        <scope>test</scope>
+      </dependency>
+      <!-- Platform shared types — PreferenceKey, SingleValuePreference, Preferences SPI -->
+      <dependency>
+        <groupId>io.casehub</groupId>
+        <artifactId>casehub-platform-api</artifactId>
+        <version>${version.io.casehub}</version>
+      </dependency>
+      <!-- Platform YAML preference backend — backs SponsorNotificationRetryPolicy -->
+      <dependency>
+        <groupId>io.casehub</groupId>
+        <artifactId>casehub-platform-config</artifactId>
+        <version>${version.io.casehub}</version>
+      </dependency>
       <!-- Platform expression engine — JQEvaluator required by casehub-engine (engine#316) -->
       <dependency>
         <groupId>io.casehub</groupId>

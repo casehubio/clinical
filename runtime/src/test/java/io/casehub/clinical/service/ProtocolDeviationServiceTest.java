@@ -80,7 +80,7 @@ class ProtocolDeviationServiceTest {
         ProtocolDeviation loaded = ProtocolDeviation.findById(dev.id);
         assertThat(loaded.piApprovalStatus).isEqualTo(PiApprovalStatus.COMMANDED);
         assertThat(loaded.piCommandChannelName)
-            .isEqualTo("clinical/deviation/" + dev.id + "/pi-oversight");
+            .isEqualTo("clinical/deviation/dev-" + dev.id + "/pi-oversight");
         assertThat(loaded.commandedAt).isNotNull();
         assertThat(loaded.responseDeadline)
             .isAfter(Instant.now().plusSeconds(6 * 24 * 3600)); // > 6 days for MINOR
@@ -91,7 +91,7 @@ class ProtocolDeviationServiceTest {
     @Order(2)
     void channelExistsWithCorrectAllowedTypes() {
         assertThat(deviationId).as("deviationId set by Order(1)").isNotNull();
-        var channel = channelService.findByName("clinical/deviation/" + deviationId + "/pi-oversight");
+        var channel = channelService.findByName("clinical/deviation/dev-" + deviationId + "/pi-oversight");
         assertThat(channel).isPresent();
         assertThat(channel.get().allowedTypes).contains("COMMAND");
     }
@@ -100,7 +100,7 @@ class ProtocolDeviationServiceTest {
     @Order(3)
     void commandMessageInChannelWithCorrelationId() {
         assertThat(deviationId).as("deviationId set by Order(1)").isNotNull();
-        var channel = channelService.findByName("clinical/deviation/" + deviationId + "/pi-oversight").orElseThrow();
+        var channel = channelService.findByName("clinical/deviation/dev-" + deviationId + "/pi-oversight").orElseThrow();
         var messages = messageService.pollAfter(channel.id, 0L, 10);
         assertThat(messages).hasSize(1);
         assertThat(messages.get(0).messageType).isEqualTo(MessageType.COMMAND);

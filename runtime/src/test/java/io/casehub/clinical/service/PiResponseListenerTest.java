@@ -46,7 +46,7 @@ class PiResponseListenerTest {
         ProtocolDeviation d = new ProtocolDeviation();
         d.id = UUID.randomUUID(); d.siteId = siteId; d.deviationType = "test"; d.severity = sev;
         d.piApprovalStatus = PiApprovalStatus.COMMANDED; d.escalationRequirement = esc;
-        d.piCommandChannelName = "clinical/deviation/" + d.id + "/pi-oversight";
+        d.piCommandChannelName = "clinical/deviation/dev-" + d.id + "/pi-oversight";
         d.commandedAt = Instant.now();
         d.responseDeadline = Instant.now().plus(24, ChronoUnit.HOURS);
         d.persist();
@@ -55,7 +55,7 @@ class PiResponseListenerTest {
 
     @Test @Order(1)
     void approvedMinorDeviationSetsApproved() {
-        listener.process("clinical/deviation/" + minorDeviationId + "/pi-oversight",
+        listener.process("clinical/deviation/dev-" +minorDeviationId + "/pi-oversight",
             MessageType.DONE, "human:pi-L");
         ProtocolDeviation loaded = ProtocolDeviation.findById(minorDeviationId);
         assertThat(loaded.piApprovalStatus).isEqualTo(PiApprovalStatus.APPROVED);
@@ -63,7 +63,7 @@ class PiResponseListenerTest {
 
     @Test @Order(2)
     void approvedCriticalDeviationSetsEscalated() {
-        listener.process("clinical/deviation/" + criticalDeviationId + "/pi-oversight",
+        listener.process("clinical/deviation/dev-" +criticalDeviationId + "/pi-oversight",
             MessageType.DONE, "human:pi-L");
         ProtocolDeviation loaded = ProtocolDeviation.findById(criticalDeviationId);
         assertThat(loaded.piApprovalStatus).isEqualTo(PiApprovalStatus.ESCALATED);
@@ -71,7 +71,7 @@ class PiResponseListenerTest {
 
     @Test @Order(3)
     void rejectedDeviationSetsRejected() {
-        listener.process("clinical/deviation/" + rejectedDeviationId + "/pi-oversight",
+        listener.process("clinical/deviation/dev-" +rejectedDeviationId + "/pi-oversight",
             MessageType.DECLINE, "human:pi-L");
         ProtocolDeviation loaded = ProtocolDeviation.findById(rejectedDeviationId);
         assertThat(loaded.piApprovalStatus).isEqualTo(PiApprovalStatus.REJECTED);
@@ -85,7 +85,7 @@ class PiResponseListenerTest {
 
     @Test @Order(5)
     void alreadyTerminalDeviationIsIdempotent() {
-        listener.process("clinical/deviation/" + minorDeviationId + "/pi-oversight",
+        listener.process("clinical/deviation/dev-" +minorDeviationId + "/pi-oversight",
             MessageType.DONE, "human:pi-L");
         ProtocolDeviation loaded = ProtocolDeviation.findById(minorDeviationId);
         assertThat(loaded.piApprovalStatus).isEqualTo(PiApprovalStatus.APPROVED);

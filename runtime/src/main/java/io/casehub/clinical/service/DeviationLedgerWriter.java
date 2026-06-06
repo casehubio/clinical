@@ -68,26 +68,59 @@ public class DeviationLedgerWriter {
     }
 
     /**
-     * Records a sponsor notification event in the ledger.
+     * Records successful sponsor notification delivery in the deviation's audit chain.
      *
-     * {@code notifiedAt} is caller-supplied (the connector delivery timestamp) rather than clock.instant()
-     * so that the ledger accurately records when delivery was attempted, not when the record was written.
+     * <p>Takes fields from a {@code SponsorNotification} snapshot so the delivery service does not
+     * need to load {@code ProtocolDeviation} in Phase 3. Only caller was {@code DefaultSponsorNotifier}
+     * (deleted) — this overload replaces it for the durable notifier path.
      *
-     * {@code piId} and {@code piDisplayName} are null for EXPIRED terminal status (system-initiated
-     * expiration has no PI actor). Both are recorded to close the GCP compliance gap — an FDA auditor
-     * can reconstruct which PI was notified and by what name appeared in the notification body.
+     * <p>{@code notifiedAt} is caller-supplied (connector acknowledgement time) so both audit chains
+     * record the same timestamp for the same delivery event.
      */
-    public void writeSponsorNotifiedEntry(ProtocolDeviation dev, Instant notifiedAt, boolean delivered,
-                                          String piId, String piDisplayName) {
-        ProtocolDeviationLedgerEntry entry = baseEntry(dev);
+    @Transactional(Transactional.TxType.REQUIRES_NEW)
+    public void writeSponsorNotifiedEntry(UUID deviationId, UUID siteId, DeviationSeverity severity,
+                                          Instant notifiedAt, String piId, String piDisplayName) {
+        final var entry = new ProtocolDeviationLedgerEntry();
+        entry.id = UUID.randomUUID();
+        entry.subjectId = deviationId;
+        entry.sequenceNumber = nextSequenceNumber(deviationId);
+        entry.deviationId = deviationId;
+        entry.siteId = siteId;
+        entry.severity = severity.name();
         entry.entryType = LedgerEntryType.EVENT;
         entry.actorId = ClinicalActors.CLINICAL_SERVICE;
         entry.actorType = ActorType.SYSTEM;
-        entry.actorRole = delivered ? "sponsor-notifier" : "sponsor-notifier-failed";
+        entry.actorRole = "sponsor-notifier";
         entry.occurredAt = notifiedAt;
-        entry.sponsorNotifiedAt = delivered ? notifiedAt : null;
+        entry.sponsorNotifiedAt = notifiedAt;
         entry.piId = piId;
         entry.piDisplayName = piDisplayName;
+        ledgerEntryRepository.save(entry);
+    }
+
+    /**
+     * Records terminal notification exhaustion in the deviation's audit chain.
+     *
+     * <p>Distinct from {@link #writeObserverFailureEntry} — "exhausted" means we attempted N
+     * times and the sponsor remains unreached; "observer-failed" means listener-level CDI failure.
+     * An FDA auditor must be able to distinguish these two failure modes.
+     */
+    @Transactional(Transactional.TxType.REQUIRES_NEW)
+    public void writeExhaustedNotificationEntry(UUID deviationId, UUID siteId,
+                                                 DeviationSeverity severity, Instant occurredAt) {
+        final var entry = new ProtocolDeviationLedgerEntry();
+        entry.id = UUID.randomUUID();
+        entry.subjectId = deviationId;
+        entry.sequenceNumber = nextSequenceNumber(deviationId);
+        entry.deviationId = deviationId;
+        entry.siteId = siteId;
+        entry.severity = severity.name();
+        entry.entryType = LedgerEntryType.EVENT;
+        entry.actorId = ClinicalActors.CLINICAL_SERVICE;
+        entry.actorType = ActorType.SYSTEM;
+        entry.actorRole = "sponsor-notifier-exhausted";
+        entry.occurredAt = occurredAt;
+        entry.sponsorNotifiedAt = null;
         ledgerEntryRepository.save(entry);
     }
 

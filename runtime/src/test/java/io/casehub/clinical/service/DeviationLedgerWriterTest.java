@@ -165,49 +165,85 @@ class DeviationLedgerWriterTest {
         assertThat(entry.actorRole).isEqualTo("deviation-expiration-job");
     }
 
+    // ── writeSponsorNotifiedEntry(UUID, ...) ─────────────────────────────────
+    // New overload: takes fields from SponsorNotification snapshot (delivery service context)
+    // rather than a loaded ProtocolDeviation entity.
+
     @Test
-    void writeSponsorNotifiedEntry_sets_sponsor_notifier_role_and_notified_at_when_delivered() {
-        when(ledgerEntryRepository.findLatestBySubjectId(dev.id))
+    void writeSponsorNotifiedEntry_uuid_sets_sponsor_notifier_role_and_notified_at() {
+        final UUID deviationId = dev.id;
+        final UUID siteId = dev.siteId;
+        when(ledgerEntryRepository.findLatestBySubjectId(deviationId))
             .thenReturn(Optional.of(existingEntry(2)));
 
-        writer.writeSponsorNotifiedEntry(dev, FIXED_INSTANT, true, "dr-smith@v1", "Dr. Smith");
+        writer.writeSponsorNotifiedEntry(deviationId, siteId, DeviationSeverity.MINOR,
+                FIXED_INSTANT, "dr-smith@v1", "Dr. Smith");
 
-        ProtocolDeviationLedgerEntry entry = captureEntry();
+        final ProtocolDeviationLedgerEntry entry = captureEntry();
         assertThat(entry.actorRole).isEqualTo("sponsor-notifier");
         assertThat(entry.actorType).isEqualTo(ActorType.SYSTEM);
+        assertThat(entry.actorId).isEqualTo("clinical-service");
         assertThat(entry.entryType).isEqualTo(LedgerEntryType.EVENT);
         assertThat(entry.occurredAt).isEqualTo(FIXED_INSTANT);
         assertThat(entry.sponsorNotifiedAt).isEqualTo(FIXED_INSTANT);
         assertThat(entry.sequenceNumber).isEqualTo(3);
+        assertThat(entry.subjectId).isEqualTo(deviationId);
+        assertThat(entry.deviationId).isEqualTo(deviationId);
+        assertThat(entry.siteId).isEqualTo(siteId);
+        assertThat(entry.severity).isEqualTo("MINOR");
         assertThat(entry.piId).isEqualTo("dr-smith@v1");
         assertThat(entry.piDisplayName).isEqualTo("Dr. Smith");
     }
 
     @Test
-    void writeSponsorNotifiedEntry_sets_failed_role_and_null_notified_at_when_not_delivered() {
-        when(ledgerEntryRepository.findLatestBySubjectId(dev.id))
-            .thenReturn(Optional.empty());
+    void writeSponsorNotifiedEntry_uuid_null_pi_fields_for_expired_status() {
+        when(ledgerEntryRepository.findLatestBySubjectId(dev.id)).thenReturn(Optional.empty());
 
-        writer.writeSponsorNotifiedEntry(dev, FIXED_INSTANT, false, "dr-smith@v1", "Dr. Smith");
+        writer.writeSponsorNotifiedEntry(dev.id, dev.siteId, DeviationSeverity.MAJOR,
+                FIXED_INSTANT, null, null);
 
-        ProtocolDeviationLedgerEntry entry = captureEntry();
-        assertThat(entry.actorRole).isEqualTo("sponsor-notifier-failed");
+        final ProtocolDeviationLedgerEntry entry = captureEntry();
+        assertThat(entry.piId).isNull();
+        assertThat(entry.piDisplayName).isNull();
+        assertThat(entry.actorRole).isEqualTo("sponsor-notifier");
+        assertThat(entry.sponsorNotifiedAt).isEqualTo(FIXED_INSTANT);
+    }
+
+    // ── writeExhaustedNotificationEntry ──────────────────────────────────────
+    // Distinct from writeObserverFailureEntry: "exhausted" = we tried N times and failed;
+    // "observer-failed" = listener-level CDI infrastructure failure.
+
+    @Test
+    void writeExhaustedNotificationEntry_sets_exhausted_role_and_null_sponsorNotifiedAt() {
+        when(ledgerEntryRepository.findLatestBySubjectId(dev.id)).thenReturn(Optional.empty());
+
+        writer.writeExhaustedNotificationEntry(dev.id, dev.siteId, DeviationSeverity.CRITICAL,
+                FIXED_INSTANT);
+
+        final ProtocolDeviationLedgerEntry entry = captureEntry();
+        assertThat(entry.actorRole).isEqualTo("sponsor-notifier-exhausted");
         assertThat(entry.actorType).isEqualTo(ActorType.SYSTEM);
+        assertThat(entry.actorId).isEqualTo("clinical-service");
         assertThat(entry.entryType).isEqualTo(LedgerEntryType.EVENT);
+        assertThat(entry.occurredAt).isEqualTo(FIXED_INSTANT);
         assertThat(entry.sponsorNotifiedAt).isNull();
+        assertThat(entry.subjectId).isEqualTo(dev.id);
+        assertThat(entry.deviationId).isEqualTo(dev.id);
+        assertThat(entry.siteId).isEqualTo(dev.siteId);
+        assertThat(entry.severity).isEqualTo("CRITICAL");
         assertThat(entry.sequenceNumber).isEqualTo(1);
     }
 
     @Test
-    void writeSponsorNotifiedEntry_expired_passes_null_pi_fields() {
-        when(ledgerEntryRepository.findLatestBySubjectId(dev.id)).thenReturn(Optional.empty());
+    void writeExhaustedNotificationEntry_sequenceNumber_increments_after_prior_entries() {
+        when(ledgerEntryRepository.findLatestBySubjectId(dev.id))
+            .thenReturn(Optional.of(existingEntry(4)));
 
-        writer.writeSponsorNotifiedEntry(dev, FIXED_INSTANT, true, null, null);
+        writer.writeExhaustedNotificationEntry(dev.id, dev.siteId, DeviationSeverity.MINOR,
+                FIXED_INSTANT);
 
-        ProtocolDeviationLedgerEntry entry = captureEntry();
-        assertThat(entry.piId).isNull();
-        assertThat(entry.piDisplayName).isNull();
-        assertThat(entry.actorRole).isEqualTo("sponsor-notifier");
+        final ProtocolDeviationLedgerEntry entry = captureEntry();
+        assertThat(entry.sequenceNumber).isEqualTo(5);
     }
 
     @Test

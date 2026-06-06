@@ -24,7 +24,7 @@ class TestDeviationPersister {
         d.severity = severity;
         d.piApprovalStatus = PiApprovalStatus.COMMANDED;
         d.escalationRequirement = esc;
-        d.piCommandChannelName = "clinical/deviation/" + d.id + "/pi-oversight";
+        d.piCommandChannelName = "clinical/deviation/dev-" + d.id + "/pi-oversight";
         d.commandedAt = Instant.now().minus(10, ChronoUnit.DAYS);
         d.responseDeadline = deadline;
         d.persist();

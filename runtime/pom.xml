@@ -44,6 +44,12 @@
       <artifactId>casehub-connectors-core</artifactId>
     </dependency>
 
+    <!-- Retry policy preferences — YAML-backed SingleValuePreference for SponsorNotificationRetryPolicy -->
+    <dependency>
+      <groupId>io.casehub</groupId>
+      <artifactId>casehub-platform-config</artifactId>
+    </dependency>
+
     <!-- Layer 5: platform expression engine + @DefaultBean mocks (required by casehub-engine) -->
     <dependency>
       <groupId>io.casehub</groupId>
@@ -57,6 +63,14 @@
     <dependency>
       <groupId>io.casehub</groupId>
       <artifactId>casehub-platform-testing</artifactId>
+      <scope>test</scope>
+    </dependency>
+    <!-- In-memory ledger entry repository — avoids ledger_subject_sequence table in H2 tests.
+         JpaLedgerEntryRepository now uses LedgerSequenceAllocator (native SQL, not entity-mapped).
+         InMemoryLedgerEntryRepository provides the same SPI without requiring the sequence table. -->
+    <dependency>
+      <groupId>io.casehub</groupId>
+      <artifactId>casehub-ledger-memory</artifactId>
       <scope>test</scope>
     </dependency>
 

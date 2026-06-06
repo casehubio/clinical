@@ -87,7 +87,7 @@ class ClinicalTrialPersistenceTest {
         dev.deviationType = "sample-window";
         dev.severity = DeviationSeverity.MAJOR;
         dev.piApprovalStatus = PiApprovalStatus.COMMANDED;
-        dev.piCommandChannelName = "clinical/deviation/" + dev.id + "/pi-oversight";
+        dev.piCommandChannelName = "clinical/deviation/dev-" + dev.id + "/pi-oversight";
         dev.commandedAt = Instant.now();
         dev.responseDeadline = Instant.now().plus(72, ChronoUnit.HOURS);
         dev.escalationRequirement = EscalationRequirement.SPONSOR_NOTIFICATION;

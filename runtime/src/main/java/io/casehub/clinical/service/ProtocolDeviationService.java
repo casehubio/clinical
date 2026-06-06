@@ -52,7 +52,9 @@ public class ProtocolDeviationService {
         );
         DeviationResponseRequirements requirements = policy.evaluate(context);
 
-        String channelName = "clinical/deviation/" + deviation.id + "/pi-oversight";
+        // "dev-" prefix ensures the UUID segment matches the slug pattern [a-z][a-z0-9]*(-[a-z0-9]+)*
+        // UUIDs start with hex digits which must be preceded by a letter prefix (qhorus#NNN)
+        String channelName = "clinical/deviation/dev-" + deviation.id + "/pi-oversight";
         ensureChannel(channelName);
 
         var channel = channelService.findByName(channelName).orElseThrow();

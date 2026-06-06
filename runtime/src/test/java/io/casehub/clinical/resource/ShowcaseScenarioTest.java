@@ -231,7 +231,7 @@ class ShowcaseScenarioTest {
 
         // PI responds DONE to the minor deviation
         piResponseListener.process(
-            "clinical/deviation/" + minorId + "/pi-oversight",
+            "clinical/deviation/dev-" + minorId + "/pi-oversight",
             MessageType.DONE,
             "human:site-c-pi"
         );
@@ -245,7 +245,7 @@ class ShowcaseScenarioTest {
 
         // PI responds DONE to the critical deviation
         piResponseListener.process(
-            "clinical/deviation/" + criticalId + "/pi-oversight",
+            "clinical/deviation/dev-" + criticalId + "/pi-oversight",
             MessageType.DONE,
             "human:site-c-pi"
         );
