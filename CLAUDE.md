@@ -217,7 +217,7 @@ Read these **before designing**, not after. The concern column tells you when ea
 | Concern | Read first |
 |---------|-----------|
 | New Flyway migration | Clinical uses datasource-scoped dirs — see Flyway migration structure in Ecosystem Conventions |
-| Migration version number | V100–V999 clinical domain (default datasource); V1005+ ledger subclass join tables (qhorus datasource) |
+| Migration version number | V100–V999 clinical domain (default datasource); V2000+ ledger subclass join tables (qhorus datasource) |
 | LedgerEntry subclass | Must live in `io.casehub.clinical.ledger` — never in `io.casehub.clinical.entity`; Panache cannot span two PUs |
 | Cross-datasource `@Transactional` | Requires XA on both datasources — see Multi-datasource XA in Ecosystem Conventions |
 
@@ -348,11 +348,11 @@ JAVA_HOME=/Library/Java/JavaVirtualMachines/graalvm-25.jdk/Contents/Home  # nati
 casehub-work (V1–V21+) and casehub-qhorus (V1–V9) both ship migrations at `classpath:db/migration`. When both are on the classpath, Flyway finds duplicate version numbers and fails at startup. Clinical avoids this by placing migrations in datasource-scoped subdirectories:
 
 - `db/migration/default/` — clinical domain migrations (V100–V110+). Default datasource Flyway configured as: `quarkus.flyway.locations=classpath:db/migration/default`
-- `db/migration/qhorus/` — clinical ledger subclass join tables (V1005+). qhorus datasource Flyway configured as: `quarkus.flyway.qhorus.locations=classpath:db/migration,classpath:db/migration/qhorus` (includes qhorus jar migrations)
+- `db/migration/qhorus/` — clinical ledger subclass join tables (V2000+). qhorus datasource Flyway configured as: `quarkus.flyway.qhorus.locations=classpath:db/migration,classpath:db/migration/qhorus` (includes qhorus jar migrations)
 
 Version range conventions still apply within each directory:
 - V100–V999: clinical domain tables (default datasource)
-- V1005+: consumer-owned ledger subclass join tables (qhorus datasource); V1000–V1004 are casehub-ledger base tables
+- V2000+: consumer-owned ledger subclass join tables (qhorus datasource); V1000–V1007 are casehub-ledger base tables (reserved; do not use in clinical)
 
 **Tests use `drop-and-create` + Flyway disabled.** Both H2 databases use `quarkus.flyway.migrate-at-start=false` and `quarkus.hibernate-orm.database.generation=drop-and-create`. The classpath migration collision cannot be resolved in tests without excluding JARs from scanning. AML has the same latent issue — tracked casehubio/aml#20.
 
