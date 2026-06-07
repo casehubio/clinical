@@ -19,6 +19,7 @@ import java.util.List;
 import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.Mockito.when;
 
 @QuarkusTest
@@ -71,6 +72,44 @@ class SponsorNotificationStoreTest {
         assertThat(n.deliveredAt).isNull();
         assertThat(n.failureReason).isNull();
         assertThat(n.lastAttemptedAt).isNull();
+    }
+
+    @Test
+    void createPending_rejects_approved_terminalStatus() {
+        final SponsorNotificationRequest bad = requestWithStatus(PiApprovalStatus.APPROVED);
+        assertThatThrownBy(() -> store.createPending(bad))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("APPROVED");
+    }
+
+    @Test
+    void createPending_rejects_commanded_terminalStatus() {
+        final SponsorNotificationRequest bad = requestWithStatus(PiApprovalStatus.COMMANDED);
+        assertThatThrownBy(() -> store.createPending(bad))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("COMMANDED");
+    }
+
+    @Test
+    void createPending_rejects_pending_terminalStatus() {
+        final SponsorNotificationRequest bad = requestWithStatus(PiApprovalStatus.PENDING);
+        assertThatThrownBy(() -> store.createPending(bad))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("PENDING");
+    }
+
+    @Test
+    void createPending_accepts_rejected_terminalStatus() {
+        store.createPending(requestWithStatus(PiApprovalStatus.REJECTED));
+        final SponsorNotification n = loadByDeviationId(deviationId);
+        assertThat(n.terminalStatus).isEqualTo(PiApprovalStatus.REJECTED);
+    }
+
+    @Test
+    void createPending_accepts_expired_terminalStatus() {
+        store.createPending(requestWithStatus(PiApprovalStatus.EXPIRED));
+        final SponsorNotification n = loadByDeviationId(deviationId);
+        assertThat(n.terminalStatus).isEqualTo(PiApprovalStatus.EXPIRED);
     }
 
     @Test
@@ -207,6 +246,13 @@ class SponsorNotificationStoreTest {
     }
 
     // ── helpers ───────────────────────────────────────────────────────────────
+
+    private SponsorNotificationRequest requestWithStatus(final PiApprovalStatus status) {
+        return new SponsorNotificationRequest(
+                trialId, siteId, deviationId, "CONSENT_DEVIATION",
+                DeviationSeverity.MAJOR, status,
+                "dr-smith@v1", "Dr. Smith", "slack", "https://hooks.slack.com/test");
+    }
 
     @Transactional
     SponsorNotification loadByDeviationId(final UUID devId) {

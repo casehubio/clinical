@@ -1,6 +1,7 @@
 package io.casehub.clinical.service;
 
 import io.casehub.clinical.api.SponsorNotificationRequest;
+import io.casehub.clinical.api.model.PiApprovalStatus;
 import io.casehub.clinical.api.model.SponsorNotificationStatus;
 import io.casehub.clinical.entity.SponsorNotification;
 import jakarta.enterprise.context.ApplicationScoped;
@@ -9,6 +10,7 @@ import jakarta.transaction.Transactional;
 import java.time.Clock;
 import java.time.Instant;
 import java.util.List;
+import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
@@ -26,12 +28,20 @@ import java.util.stream.Collectors;
 @ApplicationScoped
 class SponsorNotificationStore {
 
+    private static final Set<PiApprovalStatus> VALID_TERMINAL_STATUSES =
+            Set.of(PiApprovalStatus.ESCALATED, PiApprovalStatus.REJECTED, PiApprovalStatus.EXPIRED);
+
     @Inject SponsorNotificationLedgerWriter ledgerWriter;
     @Inject Clock clock;
 
     /** Creates a PENDING entity. Commits in its own REQUIRES_NEW so it survives listener rollback. */
     @Transactional(Transactional.TxType.REQUIRES_NEW)
     void createPending(final SponsorNotificationRequest req) {
+        if (!VALID_TERMINAL_STATUSES.contains(req.terminalStatus())) {
+            throw new IllegalArgumentException(
+                    "Invalid terminalStatus for sponsor notification: " + req.terminalStatus()
+                    + " — must be one of ESCALATED, REJECTED, EXPIRED");
+        }
         final SponsorNotification n = new SponsorNotification();
         n.id = UUID.randomUUID();
         n.deviationId = req.deviationId();
