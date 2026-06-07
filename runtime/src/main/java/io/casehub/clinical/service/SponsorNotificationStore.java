@@ -12,7 +12,6 @@ import java.time.Instant;
 import java.util.List;
 import java.util.Set;
 import java.util.UUID;
-import java.util.stream.Collectors;
 
 /**
  * Owns all {@link SponsorNotification} entity mutations.
@@ -74,18 +73,23 @@ class SponsorNotificationStore {
     /**
      * Returns IDs of notifications eligible for delivery: PENDING or FAILED with
      * {@code nextRetryAfter} in the past (or null).
+     *
+     * <p>Uses a JPQL projection to fetch only the {@code id} column — avoids loading
+     * all entity fields for potentially large backlogs.
      */
     @Transactional
     List<UUID> findEligibleIds(final Instant now, final int limit) {
-        return SponsorNotification
-                .<SponsorNotification>find(
-                        "status in (?1, ?2) and (nextRetryAfter is null or nextRetryAfter <= ?3)",
-                        SponsorNotificationStatus.PENDING, SponsorNotificationStatus.FAILED, now)
-                .page(0, limit)
-                .list()
-                .stream()
-                .map(n -> n.id)
-                .collect(Collectors.toList());
+        return SponsorNotification.getEntityManager()
+                .createQuery(
+                        "SELECT n.id FROM SponsorNotification n"
+                        + " WHERE n.status IN (:s1, :s2)"
+                        + " AND (n.nextRetryAfter IS NULL OR n.nextRetryAfter <= :now)",
+                        UUID.class)
+                .setParameter("s1", SponsorNotificationStatus.PENDING)
+                .setParameter("s2", SponsorNotificationStatus.FAILED)
+                .setParameter("now", now)
+                .setMaxResults(limit)
+                .getResultList();
     }
 
     /**
