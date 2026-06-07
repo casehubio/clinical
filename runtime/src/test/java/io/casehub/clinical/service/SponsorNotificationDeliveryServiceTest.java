@@ -46,9 +46,13 @@ class SponsorNotificationDeliveryServiceTest {
 
     private static final Instant FIXED = Instant.parse("2026-06-05T10:00:00Z");
     private static final SponsorNotificationRetryPolicy THREE_ATTEMPTS =
-            new SponsorNotificationRetryPolicy(3, Duration.ofMinutes(30));
+            new SponsorNotificationRetryPolicy(3, Duration.ofMinutes(30), 1.0, null);
     private static final SponsorNotificationRetryPolicy ONE_ATTEMPT =
-            new SponsorNotificationRetryPolicy(1, Duration.ofMinutes(30));
+            new SponsorNotificationRetryPolicy(1, Duration.ofMinutes(30), 1.0, null);
+    private static final SponsorNotificationRetryPolicy EXPONENTIAL =
+            new SponsorNotificationRetryPolicy(5, Duration.ofMinutes(15), 2.0, null);
+    private static final SponsorNotificationRetryPolicy EXPONENTIAL_CAPPED =
+            new SponsorNotificationRetryPolicy(5, Duration.ofMinutes(15), 2.0, Duration.ofMinutes(60));
 
     @BeforeEach
     void setUp() {
@@ -285,9 +289,68 @@ class SponsorNotificationDeliveryServiceTest {
 
     void stubPolicy(final SponsorNotificationRetryPolicy policy) {
         final Map<String, Object> values = new HashMap<>();
-        values.put(SponsorNotificationRetryPolicy.KEY.qualifiedName(),
-                policy.maxAttempts() + "," + policy.retryInterval().toMinutes());
+        final StringBuilder sb = new StringBuilder()
+                .append(policy.maxAttempts()).append(',')
+                .append(policy.retryInterval().toMinutes()).append(',')
+                .append(policy.backoffMultiplier());
+        if (policy.maxInterval() != null) {
+            sb.append(',').append(policy.maxInterval().toMinutes());
+        }
+        values.put(SponsorNotificationRetryPolicy.KEY.qualifiedName(), sb.toString());
         final Preferences prefs = new MapPreferences(values);
         when(preferenceProvider.resolve(any(SettingsScope.class))).thenReturn(prefs);
+    }
+
+    // ── exponential backoff ───────────────────────────────────────────────────
+
+    @Test
+    void exponential_backoff_doubles_delay_on_second_failure() {
+        // attempt 1: delay = 15m * 2^0 = 15m
+        // attempt 2: delay = 15m * 2^1 = 30m
+        final UUID id = createPending("slack");
+        slackConnector.setShouldThrow(true);
+        stubPolicy(EXPONENTIAL);
+
+        delivery.attemptDelivery(id);   // attempt 1 → FAILED, nextRetryAfter = now + 15m
+        assertThat(load(id).nextRetryAfter).isEqualTo(FIXED.plus(Duration.ofMinutes(15)));
+
+        // Simulate second attempt (reset attempt count in entity to 1 so service sees attemptNumber=2)
+        setAttempts(id, 1);
+        delivery.attemptDelivery(id);   // attempt 2 → FAILED, nextRetryAfter = now + 30m
+        assertThat(load(id).nextRetryAfter).isEqualTo(FIXED.plus(Duration.ofMinutes(30)));
+    }
+
+    @Test
+    void multiplier_1_0_produces_fixed_interval_regardless_of_attempt_number() {
+        final UUID id = createPending("slack");
+        slackConnector.setShouldThrow(true);
+        stubPolicy(THREE_ATTEMPTS);   // multiplier=1.0
+
+        delivery.attemptDelivery(id);   // attempt 1 → delay = 30m * 1.0^0 = 30m
+        assertThat(load(id).nextRetryAfter).isEqualTo(FIXED.plus(Duration.ofMinutes(30)));
+
+        setAttempts(id, 1);
+        delivery.attemptDelivery(id);   // attempt 2 → delay = 30m * 1.0^1 = 30m (fixed)
+        assertThat(load(id).nextRetryAfter).isEqualTo(FIXED.plus(Duration.ofMinutes(30)));
+    }
+
+    @Test
+    void max_interval_caps_exponential_growth() {
+        // 15m * 2^3 = 120m > cap of 60m → should be capped at 60m
+        final UUID id = createPending("slack");
+        slackConnector.setShouldThrow(true);
+        stubPolicy(EXPONENTIAL_CAPPED);
+
+        setAttempts(id, 3);   // simulate we're on attempt 4: delay = 15m * 2^3 = 120m > 60m cap
+        delivery.attemptDelivery(id);
+        assertThat(load(id).nextRetryAfter).isEqualTo(FIXED.plus(Duration.ofMinutes(60)));
+    }
+
+    @Transactional
+    void setAttempts(final UUID id, final int attempts) {
+        final SponsorNotification n = SponsorNotification.findById(id);
+        n.attempts = attempts;
+        n.status = io.casehub.clinical.api.model.SponsorNotificationStatus.FAILED;
+        n.nextRetryAfter = FIXED.minusSeconds(1); // mark eligible for retry
     }
 }

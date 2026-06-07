@@ -14,6 +14,7 @@ import jakarta.enterprise.event.Event;
 import jakarta.inject.Inject;
 import io.quarkus.arc.All;
 import java.time.Clock;
+import java.time.Duration;
 import java.time.Instant;
 import java.util.List;
 import java.util.Map;
@@ -136,9 +137,26 @@ class SponsorNotificationDeliveryService {
                     id, snapshot.deviationId, snapshot.trialId, snapshot.siteId,
                     snapshot.severity, snapshot.terminalStatus, reason, attemptNumber));
         } else {
-            final Instant nextRetry = clock.instant().plus(policy.retryInterval());
+            final Instant nextRetry = clock.instant().plus(computeDelay(policy, attemptNumber));
             store.markFailed(id, snapshot, reason, attemptNumber, nextRetry);
         }
+    }
+
+    private static Duration computeDelay(final SponsorNotificationRetryPolicy policy,
+                                        final int attemptNumber) {
+        final Duration delay;
+        if (policy.backoffMultiplier() == 1.0) {
+            delay = policy.retryInterval();
+        } else {
+            final long baseMinutes = policy.retryInterval().toMinutes();
+            final long delayMinutes =
+                    Math.round(baseMinutes * Math.pow(policy.backoffMultiplier(), attemptNumber - 1));
+            delay = Duration.ofMinutes(delayMinutes);
+        }
+        if (policy.maxInterval() != null && delay.compareTo(policy.maxInterval()) > 0) {
+            return policy.maxInterval();
+        }
+        return delay;
     }
 
     private String buildTitle(final SponsorNotification n) {
