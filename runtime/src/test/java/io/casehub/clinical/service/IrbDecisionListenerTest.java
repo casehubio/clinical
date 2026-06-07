@@ -6,7 +6,7 @@ import io.casehub.clinical.entity.IrbApproval;
 import io.casehub.work.runtime.event.WorkItemLifecycleEvent;
 import io.casehub.work.runtime.model.WorkItem;
 import io.casehub.work.runtime.model.WorkItemStatus;
-import io.casehub.workadapter.CallerRef;
+import io.casehub.workadapter.PlanItemCallerRef;
 import io.quarkus.test.InjectMock;
 import io.quarkus.test.junit.QuarkusTest;
 import jakarta.enterprise.event.Event;
@@ -73,7 +73,7 @@ class IrbDecisionListenerTest {
         workItem.id = UUID.randomUUID();
         workItem.status = WorkItemStatus.EXPIRED;
         workItem.payload = "{\"deviationId\":\"" + deviationId + "\"}";
-        workItem.callerRef = CallerRef.encode(caseId, "irb-consultation");
+        workItem.callerRef = PlanItemCallerRef.encode(caseId, "irb-consultation");
         return WorkItemLifecycleEvent.of("EXPIRED", workItem, "irb-test", null);
     }
 
