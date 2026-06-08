@@ -1189,7 +1189,7 @@ bindings:
 
 **Why per-event engine cases over per-site cases (ADR-0001):** Engine cases are bounded processes — clear start, bindings, completion goals. A per-site case without the trial-level parent (L6) is architecturally incomplete (orphaned sub-cases). Per-event cases demonstrate content-driven routing clearly without the accidental complexity of event-keyed context tracking. Tradeoff: two case types; separate observers for each event type.
 
-**Why YAML over a fluent Java DSL:** YAML case definitions are human-readable — a reader can understand goals, bindings, and conditions without knowing the engine API. YAML also enables future runtime loading of case definitions without recompilation. Tradeoff: YAML syntax errors are runtime failures, not compile-time failures; mitigated by load verification tests (`@QuarkusTest` asserting expected binding/goal counts).
+**Why YAML over a fluent Java DSL:** YAML case definitions are human-readable — a reader can understand goals, bindings, and conditions without knowing the engine API. YAML also enables future runtime loading of case definitions without recompilation. Tradeoff: YAML syntax errors are runtime failures, not compile-time failures; mitigated by load verification tests (`@QuarkusTest` asserting expected binding/goal counts) and `ClinicalCaseDefinitionEquivalenceTest` (plain JUnit 5, protocol PP-20260518-case-definition-layers) which verifies full structural parity between YAML-loaded and DSL-companion-built `CaseDefinition` instances via `JQExpressionEvaluator` record equality.
 
 #### Pattern introduced
 
@@ -1226,7 +1226,7 @@ bindings:
 6. Index all engine JARs in test `application.properties`: `quarkus.index-dependency.engine-runtime.artifact-id=casehub-engine` (and engine-common, work-adapter, blackboard, testing, persistence-memory)
 7. Write domain listeners for case completion: accept both `GoalReached` and `CaseCompleted` event types; extract status write to `@Transactional(REQUIRES_NEW)` with idempotency guard
 8. Apply `ledgerWritten` boolean flag pattern to every listener that (a) writes a ledger entry, (b) then calls `fireAsync`. Guard the REQUIRES_NEW fallback write with `if (!ledgerWritten)`. Protocol: PP-20260530-49856c.
-9. Test binding conditions with unit tests using `MapCaseContext` (no Quarkus required); write a `@QuarkusTest` asserting YAML loads cleanly with expected binding/goal counts
+9. Test binding conditions with unit tests using `MapCaseContext` (no Quarkus required); write a `@QuarkusTest` asserting YAML loads cleanly with expected binding/goal counts (`TrialCoordinationYamlTest`); add fluent DSL companion classes in `io.casehub.clinical.casedefinition` (protocol PP-20260518-case-definition-layers) and verify full structural parity via `ClinicalCaseDefinitionEquivalenceTest` (plain JUnit 5, no Quarkus)
 
 ---
 
