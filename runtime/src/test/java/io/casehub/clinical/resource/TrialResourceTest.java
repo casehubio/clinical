@@ -2,7 +2,10 @@ package io.casehub.clinical.resource;
 
 import io.casehub.clinical.api.model.TrialPhase;
 import io.casehub.clinical.api.model.TrialStatus;
+import io.casehub.platform.testing.FixedCurrentPrincipal;
 import io.quarkus.test.junit.QuarkusTest;
+import jakarta.inject.Inject;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 import java.util.UUID;
 
@@ -11,6 +14,52 @@ import static org.hamcrest.Matchers.*;
 
 @QuarkusTest
 class TrialResourceTest {
+
+    @Inject FixedCurrentPrincipal principal;
+
+    @AfterEach
+    void resetPrincipal() { principal.reset(); }
+
+    @Test
+    void get_returns_404_for_wrong_tenant() {
+        String location = given()
+            .contentType("application/json")
+            .body("{\"protocolId\":\"ISO-T-001\",\"phase\":\"PHASE_I\",\"sponsor\":\"T\",\"targetEnrollment\":5}")
+            .when().post("/trials").then().statusCode(201).extract().header("Location");
+        UUID id = UUID.fromString(location.substring(location.lastIndexOf('/') + 1));
+
+        principal.setTenancyId("other-tenant");
+        given().when().get("/trials/{id}", id).then().statusCode(404);
+    }
+
+    @Test
+    void patch_sponsor_config_returns_404_for_wrong_tenant() {
+        String location = given()
+            .contentType("application/json")
+            .body("{\"protocolId\":\"ISO-T-002\",\"phase\":\"PHASE_I\",\"sponsor\":\"T\",\"targetEnrollment\":5}")
+            .when().post("/trials").then().statusCode(201).extract().header("Location");
+        UUID id = UUID.fromString(location.substring(location.lastIndexOf('/') + 1));
+
+        principal.setTenancyId("other-tenant");
+        given()
+            .contentType("application/json")
+            .body("{\"connectorId\":\"slack\",\"destination\":\"https://example.com\"}")
+            .when().patch("/trials/{id}/sponsor-config", id)
+            .then().statusCode(404);
+    }
+
+    @Test
+    void get_succeeds_for_cross_tenant_admin() {
+        String location = given()
+            .contentType("application/json")
+            .body("{\"protocolId\":\"ISO-T-003\",\"phase\":\"PHASE_I\",\"sponsor\":\"T\",\"targetEnrollment\":5}")
+            .when().post("/trials").then().statusCode(201).extract().header("Location");
+        UUID id = UUID.fromString(location.substring(location.lastIndexOf('/') + 1));
+
+        principal.setTenancyId("other-tenant");
+        principal.setCrossTenantAdmin(true);
+        given().when().get("/trials/{id}", id).then().statusCode(200);
+    }
 
     @Test
     void post_trial_returns_201_with_location() {

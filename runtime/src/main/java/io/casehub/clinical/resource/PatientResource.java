@@ -43,13 +43,13 @@ public class PatientResource {
                            @PathParam("siteId") UUID siteId,
                            @Valid EnrollPatientRequest req,
                            @Context UriInfo uriInfo) {
-        TrialSite site = TrialSite.findById(siteId);
+        TrialSite site = TrialSite.findByIdForTenant(siteId, principal);
         if (site == null || !site.trialId.equals(trialId))
             return Response.status(Response.Status.NOT_FOUND).build();
 
         PatientEnrollment enrollment = new PatientEnrollment();
         enrollment.id = UUID.randomUUID();
-        enrollment.tenantId = principal.tenancyId();
+        enrollment.tenantId = site.tenantId;
         enrollment.siteId = siteId;
         enrollment.patientId = req.patientId();
         enrollment.consentStatus = ConsentStatus.PENDING;
@@ -65,10 +65,10 @@ public class PatientResource {
     public Response get(@PathParam("trialId") UUID trialId,
                         @PathParam("siteId") UUID siteId,
                         @PathParam("enrollmentId") UUID enrollmentId) {
-        PatientEnrollment enrollment = PatientEnrollment.findById(enrollmentId);
+        PatientEnrollment enrollment = PatientEnrollment.findByIdForTenant(enrollmentId, principal);
         if (enrollment == null || !enrollment.siteId.equals(siteId))
             return Response.status(Response.Status.NOT_FOUND).build();
-        TrialSite site = TrialSite.findById(siteId);
+        TrialSite site = TrialSite.findByIdForTenant(siteId, principal);
         if (site == null || !site.trialId.equals(trialId))
             return Response.status(Response.Status.NOT_FOUND).build();
         return Response.ok(enrollment).build();
@@ -82,10 +82,10 @@ public class PatientResource {
             @PathParam("enrollmentId") UUID enrollmentId,
             @Valid ReportAdverseEventRequest req,
             @Context UriInfo uriInfo) {
-        PatientEnrollment enrollment = PatientEnrollment.findById(enrollmentId);
+        PatientEnrollment enrollment = PatientEnrollment.findByIdForTenant(enrollmentId, principal);
         if (enrollment == null || !enrollment.siteId.equals(siteId))
             return Response.status(Response.Status.NOT_FOUND).build();
-        TrialSite site = TrialSite.findById(siteId);
+        TrialSite site = TrialSite.findByIdForTenant(siteId, principal);
         if (site == null || !site.trialId.equals(trialId))
             return Response.status(Response.Status.NOT_FOUND).build();
 

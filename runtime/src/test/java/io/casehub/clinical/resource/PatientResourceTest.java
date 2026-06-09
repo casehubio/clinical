@@ -1,6 +1,9 @@
 package io.casehub.clinical.resource;
 
+import io.casehub.platform.testing.FixedCurrentPrincipal;
 import io.quarkus.test.junit.QuarkusTest;
+import jakarta.inject.Inject;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 import java.util.UUID;
 
@@ -9,6 +12,26 @@ import static org.hamcrest.Matchers.*;
 
 @QuarkusTest
 class PatientResourceTest {
+
+    @Inject FixedCurrentPrincipal principal;
+
+    @AfterEach
+    void resetPrincipal() { principal.reset(); }
+
+    private UUID[] createTrialAndSiteIds() {
+        String trialLoc = given()
+            .contentType("application/json")
+            .body("{\"protocolId\":\"ISO-P-" + java.util.UUID.randomUUID() + "\",\"phase\":\"PHASE_I\",\"sponsor\":\"T\",\"targetEnrollment\":5}")
+            .when().post("/trials").then().statusCode(201).extract().header("Location");
+        UUID trialId = UUID.fromString(trialLoc.substring(trialLoc.lastIndexOf('/') + 1));
+
+        String siteLoc = given()
+            .contentType("application/json")
+            .body("{\"investigatorId\":\"pi-iso\"}")
+            .when().post("/trials/{id}/sites", trialId).then().statusCode(201).extract().header("Location");
+        UUID siteId = UUID.fromString(siteLoc.substring(siteLoc.lastIndexOf('/') + 1));
+        return new UUID[]{trialId, siteId};
+    }
 
     /** Creates a trial and site, returns the siteId. */
     private UUID createTrialAndSite() {
@@ -124,5 +147,77 @@ class PatientResourceTest {
 
         given().when().get("/trials/{t}/sites/{s}/patients/{e}", tidB, sidA, enrollmentId)
         .then().statusCode(404);
+    }
+
+    @Test
+    void get_enrollment_returns_404_for_wrong_tenant() {
+        UUID[] ids = createTrialAndSiteIds();
+        UUID trialId = ids[0], siteId = ids[1];
+
+        String patientLoc = given()
+            .contentType("application/json")
+            .body("{\"patientId\":\"PAT-ISO-001\"}")
+            .when().post("/trials/{t}/sites/{s}/patients", trialId, siteId)
+            .then().statusCode(201).extract().header("Location");
+
+        principal.setTenancyId("other-tenant");
+        given().when().get(patientLoc).then().statusCode(404);
+    }
+
+    @Test
+    void report_ae_returns_404_for_wrong_tenant_enrollment() {
+        UUID[] ids = createTrialAndSiteIds();
+        UUID trialId = ids[0], siteId = ids[1];
+
+        String patientLoc = given()
+            .contentType("application/json")
+            .body("{\"patientId\":\"PAT-ISO-002\"}")
+            .when().post("/trials/{t}/sites/{s}/patients", trialId, siteId)
+            .then().statusCode(201).extract().header("Location");
+        UUID enrollmentId = UUID.fromString(patientLoc.substring(patientLoc.lastIndexOf('/') + 1));
+
+        principal.setTenancyId("other-tenant");
+        given()
+            .contentType("application/json")
+            .body("{\"grade\":\"GRADE_1\",\"occurredAt\":\"2026-01-01T10:00:00Z\"}")
+            .when().post("/trials/{t}/sites/{s}/patients/{e}/adverse-events",
+                trialId, siteId, enrollmentId)
+            .then().statusCode(404);
+    }
+
+    @Test
+    void enrollment_inherits_site_tenantId_not_principal_tenantId() {
+        UUID[] ids = createTrialAndSiteIds();
+        UUID trialId = ids[0], siteId = ids[1];
+
+        principal.setTenancyId("admin-tenant");
+        principal.setCrossTenantAdmin(true);
+        String patientLoc = given()
+            .contentType("application/json")
+            .body("{\"patientId\":\"PAT-ISO-INHERIT\"}")
+            .when().post("/trials/{t}/sites/{s}/patients", trialId, siteId)
+            .then().statusCode(201).extract().header("Location");
+
+        principal.reset();
+        given().when().get(patientLoc).then().statusCode(200);
+
+        principal.setTenancyId("admin-tenant");
+        given().when().get(patientLoc).then().statusCode(404);
+    }
+
+    @Test
+    void get_enrollment_succeeds_for_cross_tenant_admin() {
+        UUID[] ids = createTrialAndSiteIds();
+        UUID trialId = ids[0], siteId = ids[1];
+
+        String patientLoc = given()
+            .contentType("application/json")
+            .body("{\"patientId\":\"PAT-BYPASS-001\"}")
+            .when().post("/trials/{t}/sites/{s}/patients", trialId, siteId)
+            .then().statusCode(201).extract().header("Location");
+
+        principal.setTenancyId("other-tenant");
+        principal.setCrossTenantAdmin(true);
+        given().when().get(patientLoc).then().statusCode(200);
     }
 }

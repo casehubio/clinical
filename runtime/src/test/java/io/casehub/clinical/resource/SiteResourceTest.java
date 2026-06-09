@@ -1,6 +1,9 @@
 package io.casehub.clinical.resource;
 
+import io.casehub.platform.testing.FixedCurrentPrincipal;
 import io.quarkus.test.junit.QuarkusTest;
+import jakarta.inject.Inject;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 import java.util.UUID;
 
@@ -9,6 +12,11 @@ import static org.hamcrest.Matchers.*;
 
 @QuarkusTest
 class SiteResourceTest {
+
+    @Inject FixedCurrentPrincipal principal;
+
+    @AfterEach
+    void resetPrincipal() { principal.reset(); }
 
     private String createTrial() {
         return given()
@@ -83,5 +91,84 @@ class SiteResourceTest {
             .get("/trials/{trialId}/sites/{siteId}", trialId, UUID.randomUUID())
         .then()
             .statusCode(404);
+    }
+
+    @Test
+    void get_site_returns_404_for_wrong_tenant() {
+        String trialLoc = given()
+            .contentType("application/json")
+            .body("{\"protocolId\":\"ISO-S-001\",\"phase\":\"PHASE_I\",\"sponsor\":\"T\",\"targetEnrollment\":5}")
+            .when().post("/trials").then().statusCode(201).extract().header("Location");
+        UUID trialId = UUID.fromString(trialLoc.substring(trialLoc.lastIndexOf('/') + 1));
+
+        String siteLoc = given()
+            .contentType("application/json")
+            .body("{\"investigatorId\":\"pi-iso\"}")
+            .when().post("/trials/{id}/sites", trialId).then().statusCode(201).extract().header("Location");
+        UUID siteId = UUID.fromString(siteLoc.substring(siteLoc.lastIndexOf('/') + 1));
+
+        principal.setTenancyId("other-tenant");
+        given().when().get("/trials/{t}/sites/{s}", trialId, siteId).then().statusCode(404);
+    }
+
+    @Test
+    void add_site_returns_404_when_trial_belongs_to_different_tenant() {
+        String trialLoc = given()
+            .contentType("application/json")
+            .body("{\"protocolId\":\"ISO-S-002\",\"phase\":\"PHASE_I\",\"sponsor\":\"T\",\"targetEnrollment\":5}")
+            .when().post("/trials").then().statusCode(201).extract().header("Location");
+        UUID trialId = UUID.fromString(trialLoc.substring(trialLoc.lastIndexOf('/') + 1));
+
+        principal.setTenancyId("other-tenant");
+        given()
+            .contentType("application/json")
+            .body("{\"investigatorId\":\"pi-iso\"}")
+            .when().post("/trials/{id}/sites", trialId)
+            .then().statusCode(404);
+    }
+
+    @Test
+    void get_site_succeeds_for_cross_tenant_admin() {
+        String trialLoc = given()
+            .contentType("application/json")
+            .body("{\"protocolId\":\"ISO-S-004\",\"phase\":\"PHASE_I\",\"sponsor\":\"T\",\"targetEnrollment\":5}")
+            .when().post("/trials").then().statusCode(201).extract().header("Location");
+        UUID trialId = UUID.fromString(trialLoc.substring(trialLoc.lastIndexOf('/') + 1));
+
+        String siteLoc = given()
+            .contentType("application/json")
+            .body("{\"investigatorId\":\"pi-iso\"}")
+            .when().post("/trials/{id}/sites", trialId).then().statusCode(201).extract().header("Location");
+        UUID siteId = UUID.fromString(siteLoc.substring(siteLoc.lastIndexOf('/') + 1));
+
+        principal.setTenancyId("other-tenant");
+        principal.setCrossTenantAdmin(true);
+        given().when().get("/trials/{t}/sites/{s}", trialId, siteId).then().statusCode(200);
+    }
+
+    @Test
+    void site_inherits_trial_tenantId_not_principal_tenantId() {
+        String trialLoc = given()
+            .contentType("application/json")
+            .body("{\"protocolId\":\"ISO-S-003\",\"phase\":\"PHASE_I\",\"sponsor\":\"T\",\"targetEnrollment\":5}")
+            .when().post("/trials").then().statusCode(201).extract().header("Location");
+        UUID trialId = UUID.fromString(trialLoc.substring(trialLoc.lastIndexOf('/') + 1));
+
+        // cross-tenant admin adds a site to a different tenant's trial
+        principal.setTenancyId("admin-tenant");
+        principal.setCrossTenantAdmin(true);
+        String siteLoc = given()
+            .contentType("application/json")
+            .body("{\"investigatorId\":\"pi-iso\"}")
+            .when().post("/trials/{id}/sites", trialId).then().statusCode(201).extract().header("Location");
+        UUID siteId = UUID.fromString(siteLoc.substring(siteLoc.lastIndexOf('/') + 1));
+
+        // default tenant can find the site (site.tenantId = trial.tenantId = default tenant)
+        principal.reset();
+        given().when().get("/trials/{t}/sites/{s}", trialId, siteId).then().statusCode(200);
+
+        // admin's own tenant (no bypass) cannot find it — proves site.tenantId != "admin-tenant"
+        principal.setTenancyId("admin-tenant");
+        given().when().get("/trials/{t}/sites/{s}", trialId, siteId).then().statusCode(404);
     }
 }

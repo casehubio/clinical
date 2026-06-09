@@ -61,7 +61,7 @@ public class TrialResource {
     @GET
     @Path("/{id}")
     public Response get(@PathParam("id") UUID id) {
-        ClinicalTrial trial = ClinicalTrial.findById(id);
+        ClinicalTrial trial = ClinicalTrial.findByIdForTenant(id, principal);
         if (trial == null) return Response.status(Response.Status.NOT_FOUND).build();
         return Response.ok(trial).build();
     }
@@ -70,7 +70,7 @@ public class TrialResource {
     @Path("/{id}/sponsor-config")
     @Transactional
     public Response updateSponsorConfig(@PathParam("id") UUID id, @NotNull @Valid SponsorConfigRequest req) {
-        ClinicalTrial trial = ClinicalTrial.findById(id);
+        ClinicalTrial trial = ClinicalTrial.findByIdForTenant(id, principal);
         if (trial == null) return Response.status(Response.Status.NOT_FOUND).build();
         trial.sponsorNotificationConnectorId = req.connectorId();
         trial.sponsorNotificationDestination = req.destination();

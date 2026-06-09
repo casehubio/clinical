@@ -27,12 +27,13 @@ public class SiteResource {
     public Response add(@PathParam("trialId") UUID trialId,
                         @Valid AddSiteRequest req,
                         @Context UriInfo uriInfo) {
-        if (ClinicalTrial.findById(trialId) == null)
+        ClinicalTrial trial = ClinicalTrial.findByIdForTenant(trialId, principal);
+        if (trial == null)
             return Response.status(Response.Status.NOT_FOUND).build();
 
         TrialSite site = new TrialSite();
         site.id = UUID.randomUUID();
-        site.tenantId = principal.tenancyId();
+        site.tenantId = trial.tenantId;
         site.trialId = trialId;
         site.investigatorId = req.investigatorId();
         site.status = SiteStatus.PENDING;
@@ -46,7 +47,7 @@ public class SiteResource {
     @Path("/{siteId}")
     public Response get(@PathParam("trialId") UUID trialId,
                         @PathParam("siteId") UUID siteId) {
-        TrialSite site = TrialSite.findById(siteId);
+        TrialSite site = TrialSite.findByIdForTenant(siteId, principal);
         if (site == null || !site.trialId.equals(trialId))
             return Response.status(Response.Status.NOT_FOUND).build();
         return Response.ok(site).build();

@@ -36,13 +36,13 @@ public class DeviationResource {
             @PathParam("siteId") UUID siteId,
             @Valid ReportDeviationRequest req,
             @Context UriInfo uriInfo) {
-        TrialSite site = TrialSite.findById(siteId);
+        TrialSite site = TrialSite.findByIdForTenant(siteId, principal);
         if (site == null || !site.trialId.equals(trialId))
             return Response.status(Response.Status.NOT_FOUND).build();
 
         ProtocolDeviation deviation = new ProtocolDeviation();
         deviation.id = UUID.randomUUID();
-        deviation.tenantId = principal.tenancyId();
+        deviation.tenantId = site.tenantId;
         deviation.siteId = siteId;
         deviation.deviationType = req.deviationType();
         deviation.severity = req.severity();
@@ -60,10 +60,10 @@ public class DeviationResource {
             @PathParam("trialId") UUID trialId,
             @PathParam("siteId") UUID siteId,
             @PathParam("deviationId") UUID deviationId) {
-        ProtocolDeviation dev = ProtocolDeviation.findById(deviationId);
+        ProtocolDeviation dev = ProtocolDeviation.findByIdForTenant(deviationId, principal);
         if (dev == null || !dev.siteId.equals(siteId))
             return Response.status(Response.Status.NOT_FOUND).build();
-        TrialSite site = TrialSite.findById(siteId);
+        TrialSite site = TrialSite.findByIdForTenant(siteId, principal);
         if (site == null || !site.trialId.equals(trialId))
             return Response.status(Response.Status.NOT_FOUND).build();
         return Response.ok(dev).build();

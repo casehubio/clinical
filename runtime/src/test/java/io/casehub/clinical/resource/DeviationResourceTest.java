@@ -1,6 +1,9 @@
 package io.casehub.clinical.resource;
 
+import io.casehub.platform.testing.FixedCurrentPrincipal;
 import io.quarkus.test.junit.QuarkusTest;
+import jakarta.inject.Inject;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 import java.util.UUID;
 import static io.restassured.RestAssured.given;
@@ -8,6 +11,11 @@ import static org.hamcrest.Matchers.*;
 
 @QuarkusTest
 class DeviationResourceTest {
+
+    @Inject FixedCurrentPrincipal principal;
+
+    @AfterEach
+    void resetPrincipal() { principal.reset(); }
 
     /** Creates a trial and site via REST, returns {trialId, siteId}. */
     private UUID[] createTrialAndSite() {
@@ -82,6 +90,67 @@ class DeviationResourceTest {
 
         given().when()
             .get("/trials/{t}/sites/{s}/deviations/{d}", trialId, siteId, UUID.randomUUID())
+            .then().statusCode(404);
+    }
+
+    @Test
+    void get_deviation_returns_404_for_wrong_tenant() {
+        UUID[] ids = createTrialAndSite();
+        UUID trialId = ids[0], siteId = ids[1];
+
+        var resp = given()
+            .contentType("application/json")
+            .body("{\"deviationType\":\"consent-gap\",\"severity\":\"MINOR\"}")
+            .when().post("/trials/{t}/sites/{s}/deviations", trialId, siteId)
+            .then().statusCode(201).extract();
+        String location = resp.header("Location");
+        String deviationId = location.substring(location.lastIndexOf('/') + 1);
+
+        principal.setTenancyId("other-tenant");
+        given().when().get("/trials/{t}/sites/{s}/deviations/{d}", trialId, siteId, deviationId)
+            .then().statusCode(404);
+    }
+
+    @Test
+    void get_deviation_succeeds_for_cross_tenant_admin() {
+        UUID[] ids = createTrialAndSite();
+        UUID trialId = ids[0], siteId = ids[1];
+
+        var resp = given()
+            .contentType("application/json")
+            .body("{\"deviationType\":\"consent-gap\",\"severity\":\"MINOR\"}")
+            .when().post("/trials/{t}/sites/{s}/deviations", trialId, siteId)
+            .then().statusCode(201).extract();
+        String location = resp.header("Location");
+        String deviationId = location.substring(location.lastIndexOf('/') + 1);
+
+        principal.setTenancyId("other-tenant");
+        principal.setCrossTenantAdmin(true);
+        given().when().get("/trials/{t}/sites/{s}/deviations/{d}", trialId, siteId, deviationId)
+            .then().statusCode(200);
+    }
+
+    @Test
+    void deviation_inherits_site_tenantId_not_principal_tenantId() {
+        UUID[] ids = createTrialAndSite();
+        UUID trialId = ids[0], siteId = ids[1];
+
+        principal.setTenancyId("admin-tenant");
+        principal.setCrossTenantAdmin(true);
+        var resp = given()
+            .contentType("application/json")
+            .body("{\"deviationType\":\"sample-window\",\"severity\":\"MINOR\"}")
+            .when().post("/trials/{t}/sites/{s}/deviations", trialId, siteId)
+            .then().statusCode(201).extract();
+        String location = resp.header("Location");
+        String deviationId = location.substring(location.lastIndexOf('/') + 1);
+
+        principal.reset();
+        given().when().get("/trials/{t}/sites/{s}/deviations/{d}", trialId, siteId, deviationId)
+            .then().statusCode(200);
+
+        principal.setTenancyId("admin-tenant");
+        given().when().get("/trials/{t}/sites/{s}/deviations/{d}", trialId, siteId, deviationId)
             .then().statusCode(404);
     }
 }
