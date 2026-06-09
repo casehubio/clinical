@@ -30,7 +30,7 @@ public class ClinicalMemoryService {
     }
 
     public void storeAeReport(final UUID aeId, final UUID enrollmentId, final UUID siteId,
-                              final CtcaeGrade grade, final String tenantId) {
+                              final UUID trialId, final CtcaeGrade grade, final String tenantId) {
         final Map<String, String> attrs = Map.of(
             MemoryAttributeKeys.ACTOR_ID, ACTOR,
             MemoryAttributeKeys.OUTCOME, "REPORTED",
@@ -49,6 +49,18 @@ public class ClinicalMemoryService {
                 tenantId, null, text, attrs));
         } catch (Exception e) {
             LOG.warnf(e, "ClinicalMemoryService: storeAeReport (site) failed for siteId=%s — ignored", siteId);
+        }
+        if (trialId != null && siteId != null) {
+            try {
+                store.store(new MemoryInput("trial:" + trialId, ClinicalMemoryDomains.DRUG,
+                    tenantId, null, text,
+                    Map.of(MemoryAttributeKeys.ACTOR_ID, ACTOR,
+                        MemoryAttributeKeys.OUTCOME, "REPORTED",
+                        ClinicalMemoryAttributes.GRADE, grade.name(),
+                        ClinicalMemoryAttributes.SITE_ID, siteId.toString())));
+            } catch (Exception e) {
+                LOG.warnf(e, "ClinicalMemoryService: storeAeReport (drug) failed for trialId=%s — ignored", trialId);
+            }
         }
     }
 
@@ -119,6 +131,17 @@ public class ClinicalMemoryService {
         } catch (Exception e) {
             LOG.warnf(e, "ClinicalMemoryService: querySiteContext failed for siteId=%s — returning empty", siteId);
             return ClinicalSiteContext.empty();
+        }
+    }
+
+    public ClinicalDrugContext queryDrugContext(final UUID trialId, final String tenantId) {
+        try {
+            final var query = MemoryQuery.forEntity("trial:" + trialId, ClinicalMemoryDomains.DRUG, tenantId)
+                .withLimit(200);
+            return new ClinicalDrugContext(store.query(query));
+        } catch (Exception e) {
+            LOG.warnf(e, "ClinicalMemoryService: queryDrugContext failed for trialId=%s — returning empty", trialId);
+            return ClinicalDrugContext.empty();
         }
     }
 }

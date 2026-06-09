@@ -8,6 +8,7 @@ import io.casehub.clinical.api.spi.AdverseEventEscalationPolicy;
 import io.casehub.clinical.api.spi.AdverseEventEscalationRequirements;
 import io.casehub.clinical.entity.AdverseEvent;
 import io.casehub.clinical.entity.PatientEnrollment;
+import io.casehub.clinical.entity.TrialSite;
 import io.casehub.clinical.memory.ClinicalMemoryService;
 import io.casehub.platform.api.identity.CurrentPrincipal;
 import io.casehub.work.runtime.model.WorkItemCreateRequest;
@@ -39,6 +40,7 @@ public class AdverseEventService {
         ae.tenantId = principal.tenancyId();
 
         UUID siteId = resolveSiteId(ae.enrollmentId);
+        UUID trialId = resolveTrialId(siteId);
         AdverseEventEscalationRequirements requirements =
                 policy.evaluate(new AdverseEventContext(ae.id, ae.enrollmentId, siteId, ae.grade));
 
@@ -62,7 +64,7 @@ public class AdverseEventService {
 
         ae.persist();
         ledgerWriter.writeReportEntry(ae);
-        memoryService.storeAeReport(ae.id, ae.enrollmentId, siteId, ae.grade, ae.tenantId);
+        memoryService.storeAeReport(ae.id, ae.enrollmentId, siteId, trialId, ae.grade, ae.tenantId);
 
         if (requirements.engineCaseRequired()) {
             reportedEvents.fireAsync(new AdverseEventReportedEvent(
@@ -73,6 +75,12 @@ public class AdverseEventService {
     private UUID resolveSiteId(UUID enrollmentId) {
         PatientEnrollment enrollment = PatientEnrollment.findById(enrollmentId);
         return enrollment != null ? enrollment.siteId : null;
+    }
+
+    private UUID resolveTrialId(UUID siteId) {
+        if (siteId == null) return null;
+        TrialSite site = TrialSite.findById(siteId);
+        return site != null ? site.trialId : null;
     }
 
     private WorkItemPriority priority(AdverseEvent ae) {

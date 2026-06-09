@@ -44,18 +44,19 @@ class ClinicalMemoryServiceTest {
     // ── storeAeReport ─────────────────────────────────────────────────────────
 
     @Test
-    void storeAeReport_writes_to_patient_and_site_domains() {
+    void storeAeReport_writes_to_patient_site_and_drug_domains() {
         UUID aeId = UUID.randomUUID();
         UUID enrollmentId = UUID.randomUUID();
         UUID siteId = UUID.randomUUID();
+        UUID trialId = UUID.randomUUID();
 
-        service.storeAeReport(aeId, enrollmentId, siteId, CtcaeGrade.GRADE_3, "tenant-1");
+        service.storeAeReport(aeId, enrollmentId, siteId, trialId, CtcaeGrade.GRADE_3, "tenant-1");
 
         ArgumentCaptor<MemoryInput> captor = ArgumentCaptor.forClass(MemoryInput.class);
-        verify(store, org.mockito.Mockito.times(2)).store(captor.capture());
+        verify(store, org.mockito.Mockito.times(3)).store(captor.capture());
 
         List<MemoryInput> inputs = captor.getAllValues();
-        assertThat(inputs).hasSize(2);
+        assertThat(inputs).hasSize(3);
 
         MemoryInput patient = inputs.stream()
             .filter(i -> i.entityId().startsWith("patient:")).findFirst().orElseThrow();
@@ -69,6 +70,23 @@ class ClinicalMemoryServiceTest {
             .filter(i -> i.entityId().startsWith("site:")).findFirst().orElseThrow();
         assertThat(site.domain()).isEqualTo(ClinicalMemoryDomains.SITE);
         assertThat(site.entityId()).isEqualTo("site:" + siteId);
+
+        MemoryInput drug = inputs.stream()
+            .filter(i -> i.entityId().startsWith("trial:")).findFirst().orElseThrow();
+        assertThat(drug.domain()).isEqualTo(ClinicalMemoryDomains.DRUG);
+        assertThat(drug.entityId()).isEqualTo("trial:" + trialId);
+        assertThat(drug.attributes()).containsEntry(ClinicalMemoryAttributes.GRADE, "GRADE_3");
+        assertThat(drug.attributes()).containsEntry(ClinicalMemoryAttributes.SITE_ID, siteId.toString());
+    }
+
+    @Test
+    void storeAeReport_skips_drug_domain_when_trialId_null() {
+        service.storeAeReport(UUID.randomUUID(), UUID.randomUUID(), UUID.randomUUID(),
+            null, CtcaeGrade.GRADE_3, "tenant-1");
+
+        ArgumentCaptor<MemoryInput> captor = ArgumentCaptor.forClass(MemoryInput.class);
+        verify(store, org.mockito.Mockito.times(2)).store(captor.capture());
+        assertThat(captor.getAllValues()).noneMatch(i -> i.entityId().startsWith("trial:"));
     }
 
     // ── storeAeOutcome ────────────────────────────────────────────────────────
@@ -148,7 +166,7 @@ class ClinicalMemoryServiceTest {
 
         assertThatCode(() ->
             service.storeAeReport(UUID.randomUUID(), UUID.randomUUID(), UUID.randomUUID(),
-                CtcaeGrade.GRADE_3, "tenant-1"))
+                UUID.randomUUID(), CtcaeGrade.GRADE_3, "tenant-1"))
             .doesNotThrowAnyException();
     }
 
@@ -220,5 +238,36 @@ class ClinicalMemoryServiceTest {
         ClinicalSiteContext ctx = service.querySiteContext(UUID.randomUUID(), "tenant-1");
 
         assertThat(ctx.hasComplianceIssues()).isFalse();
+    }
+
+    // ── queryDrugContext ──────────────────────────────────────────────────────
+
+    @Test
+    void queryDrugContext_returns_populated_context() {
+        UUID trialId = UUID.randomUUID();
+        UUID siteId = UUID.randomUUID();
+        Memory m = new Memory(UUID.randomUUID().toString(), "trial:" + trialId,
+            ClinicalMemoryDomains.DRUG, "tenant-1", null, "AE signal",
+            Map.of(ClinicalMemoryAttributes.GRADE, "GRADE_3",
+                ClinicalMemoryAttributes.SITE_ID, siteId.toString(),
+                MemoryAttributeKeys.OUTCOME, "REPORTED",
+                MemoryAttributeKeys.ACTOR_ID, "clinical-service"),
+            Instant.now());
+        when(store.query(any(MemoryQuery.class))).thenReturn(List.of(m));
+
+        ClinicalDrugContext ctx = service.queryDrugContext(trialId, "tenant-1");
+
+        assertThat(ctx.totalAeCount()).isEqualTo(1);
+        assertThat(ctx.grade3PlusCount()).isEqualTo(1);
+        assertThat(ctx.hasSignal()).isTrue();
+    }
+
+    @Test
+    void queryDrugContext_returns_empty_on_store_failure() {
+        when(store.query(any(MemoryQuery.class))).thenThrow(new RuntimeException("store unavailable"));
+
+        ClinicalDrugContext ctx = service.queryDrugContext(UUID.randomUUID(), "tenant-1");
+
+        assertThat(ctx.hasSignal()).isFalse();
     }
 }
