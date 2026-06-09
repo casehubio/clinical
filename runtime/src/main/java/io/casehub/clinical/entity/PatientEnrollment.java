@@ -2,6 +2,7 @@ package io.casehub.clinical.entity;
 
 import io.casehub.clinical.api.model.ConsentStatus;
 import io.casehub.clinical.api.model.EnrollmentStatus;
+import io.casehub.platform.api.identity.CurrentPrincipal;
 import io.quarkus.hibernate.orm.panache.PanacheEntityBase;
 import jakarta.persistence.*;
 import java.time.Instant;
@@ -33,4 +34,9 @@ public class PatientEnrollment extends PanacheEntityBase {
 
     @Column(name = "enrolled_at")
     public Instant enrolledAt;
+
+    public static PatientEnrollment findByIdForTenant(UUID id, CurrentPrincipal principal) {
+        if (principal.isCrossTenantAdmin()) return findById(id);
+        return find("id = ?1 AND tenantId = ?2", id, principal.tenancyId()).firstResult();
+    }
 }

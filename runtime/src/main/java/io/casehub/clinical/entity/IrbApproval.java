@@ -1,6 +1,7 @@
 package io.casehub.clinical.entity;
 
 import io.casehub.clinical.api.model.IrbDecision;
+import io.casehub.platform.api.identity.CurrentPrincipal;
 import io.quarkus.hibernate.orm.panache.PanacheEntityBase;
 import jakarta.persistence.*;
 import java.time.Instant;
@@ -48,4 +49,9 @@ public class IrbApproval extends PanacheEntityBase {
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
     public IrbDecision decision = IrbDecision.PENDING;
+
+    public static IrbApproval findByIdForTenant(UUID id, CurrentPrincipal principal) {
+        if (principal.isCrossTenantAdmin()) return findById(id);
+        return find("id = ?1 AND tenantId = ?2", id, principal.tenancyId()).firstResult();
+    }
 }

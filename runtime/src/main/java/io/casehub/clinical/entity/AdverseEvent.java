@@ -4,6 +4,7 @@ import io.casehub.clinical.api.model.AeEscalationStatus;
 import io.casehub.clinical.api.model.AeOutcome;
 import io.casehub.clinical.api.model.CtcaeGrade;
 import io.casehub.clinical.api.model.EventActuality;
+import io.casehub.platform.api.identity.CurrentPrincipal;
 import io.quarkus.hibernate.orm.panache.PanacheEntityBase;
 import jakarta.persistence.*;
 import java.time.Instant;
@@ -54,4 +55,9 @@ public class AdverseEvent extends PanacheEntityBase {
 
     @Column(name = "engine_case_id")
     public UUID engineCaseId;
+
+    public static AdverseEvent findByIdForTenant(UUID id, CurrentPrincipal principal) {
+        if (principal.isCrossTenantAdmin()) return findById(id);
+        return find("id = ?1 AND tenantId = ?2", id, principal.tenancyId()).firstResult();
+    }
 }

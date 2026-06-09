@@ -3,6 +3,7 @@ package io.casehub.clinical.entity;
 import io.casehub.clinical.api.model.DeviationSeverity;
 import io.casehub.clinical.api.model.EscalationRequirement;
 import io.casehub.clinical.api.model.PiApprovalStatus;
+import io.casehub.platform.api.identity.CurrentPrincipal;
 import io.quarkus.hibernate.orm.panache.PanacheEntityBase;
 import jakarta.persistence.*;
 import java.time.Instant;
@@ -48,4 +49,9 @@ public class ProtocolDeviation extends PanacheEntityBase {
     /** Links this CRITICAL deviation to its IRB review engine case. Null until IrbDeviationCaseService starts the case. */
     @Column(name = "engine_case_id")
     public UUID engineCaseId;
+
+    public static ProtocolDeviation findByIdForTenant(UUID id, CurrentPrincipal principal) {
+        if (principal.isCrossTenantAdmin()) return findById(id);
+        return find("id = ?1 AND tenantId = ?2", id, principal.tenancyId()).firstResult();
+    }
 }

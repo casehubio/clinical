@@ -2,6 +2,7 @@ package io.casehub.clinical.entity;
 
 import io.casehub.clinical.api.model.TrialPhase;
 import io.casehub.clinical.api.model.TrialStatus;
+import io.casehub.platform.api.identity.CurrentPrincipal;
 import io.quarkus.hibernate.orm.panache.PanacheEntityBase;
 import jakarta.persistence.*;
 import java.util.UUID;
@@ -48,4 +49,9 @@ public class ClinicalTrial extends PanacheEntityBase {
     /** Engine case ID — set when trial transitions to ACTIVE; null until then. */
     @Column(name = "engine_case_id")
     public UUID engineCaseId;
+
+    public static ClinicalTrial findByIdForTenant(UUID id, CurrentPrincipal principal) {
+        if (principal.isCrossTenantAdmin()) return findById(id);
+        return find("id = ?1 AND tenantId = ?2", id, principal.tenancyId()).firstResult();
+    }
 }
