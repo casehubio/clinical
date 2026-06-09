@@ -19,10 +19,10 @@ public record ClinicalPatientContext(List<Memory> aeHistory) {
 
     public boolean hasPriorGrade3OrAbove() {
         return aeHistory.stream().anyMatch(m -> {
-            String outcome = m.attributes().get(MemoryAttributeKeys.OUTCOME);
-            if (outcome == null) return false;
+            String grade = m.attributes().get(ClinicalMemoryAttributes.GRADE);
+            if (grade == null) return false;
             try {
-                CtcaeGrade g = CtcaeGrade.valueOf(outcome);
+                CtcaeGrade g = CtcaeGrade.valueOf(grade);
                 return g.ordinal() >= CtcaeGrade.GRADE_3.ordinal();
             } catch (IllegalArgumentException e) {
                 return false;
@@ -40,6 +40,7 @@ public record ClinicalPatientContext(List<Memory> aeHistory) {
     public Map<String, Object> toContextMap() {
         List<Map<String, Object>> facts = aeHistory.stream()
             .map(m -> Map.<String, Object>of(
+                "grade", m.attributes().getOrDefault(ClinicalMemoryAttributes.GRADE, ""),
                 "outcome", m.attributes().getOrDefault(MemoryAttributeKeys.OUTCOME, ""),
                 "createdAt", m.createdAt().toString()))
             .toList();

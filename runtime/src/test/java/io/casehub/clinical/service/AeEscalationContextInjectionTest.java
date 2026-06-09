@@ -7,6 +7,7 @@ import io.casehub.clinical.api.model.AeOutcome;
 import io.casehub.clinical.api.model.CtcaeGrade;
 import io.casehub.clinical.api.model.EventActuality;
 import io.casehub.clinical.entity.AdverseEvent;
+import io.casehub.clinical.memory.ClinicalMemoryAttributes;
 import io.casehub.platform.api.memory.CaseMemoryStore;
 import io.casehub.platform.api.memory.MemoryAttributeKeys;
 import io.casehub.platform.api.memory.MemoryInput;
@@ -78,7 +79,8 @@ class AeEscalationContextInjectionTest {
             TEST_TENANT, null,
             "Grade 3 AE report",
             Map.of(MemoryAttributeKeys.ACTOR_ID, "clinical-service",
-                   MemoryAttributeKeys.OUTCOME, "GRADE_3")));
+                   ClinicalMemoryAttributes.GRADE, "GRADE_3",
+                   MemoryAttributeKeys.OUTCOME, "REPORTED")));
 
         var event = new AdverseEventReportedEvent(aeId, enrollmentId, siteId,
             CtcaeGrade.GRADE_3, Instant.now(), TEST_TENANT);
@@ -105,7 +107,8 @@ class AeEscalationContextInjectionTest {
             TEST_TENANT, null,
             "Grade 4 AE report",
             Map.of(MemoryAttributeKeys.ACTOR_ID, "clinical-service",
-                   MemoryAttributeKeys.OUTCOME, "GRADE_4")));
+                   ClinicalMemoryAttributes.GRADE, "GRADE_4",
+                   MemoryAttributeKeys.OUTCOME, "REPORTED")));
 
         var event = new AdverseEventReportedEvent(aeId, enrollmentId, siteId,
             CtcaeGrade.GRADE_4, Instant.now(), TEST_TENANT);

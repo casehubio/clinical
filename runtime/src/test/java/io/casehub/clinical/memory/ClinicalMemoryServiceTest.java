@@ -3,6 +3,7 @@ package io.casehub.clinical.memory;
 import io.casehub.clinical.api.model.CtcaeGrade;
 import io.casehub.clinical.api.model.DeviationSeverity;
 import io.casehub.clinical.api.model.PiApprovalStatus;
+import io.casehub.clinical.memory.ClinicalMemoryAttributes;
 import io.casehub.platform.api.memory.CaseMemoryStore;
 import io.casehub.platform.api.memory.Memory;
 import io.casehub.platform.api.memory.MemoryAttributeKeys;
@@ -60,7 +61,8 @@ class ClinicalMemoryServiceTest {
             .filter(i -> i.entityId().startsWith("patient:")).findFirst().orElseThrow();
         assertThat(patient.domain()).isEqualTo(ClinicalMemoryDomains.PATIENT);
         assertThat(patient.tenantId()).isEqualTo("tenant-1");
-        assertThat(patient.attributes()).containsEntry(MemoryAttributeKeys.OUTCOME, "GRADE_3");
+        assertThat(patient.attributes()).containsEntry(ClinicalMemoryAttributes.GRADE, "GRADE_3");
+        assertThat(patient.attributes()).containsEntry(MemoryAttributeKeys.OUTCOME, "REPORTED");
         assertThat(patient.attributes()).containsEntry(MemoryAttributeKeys.ACTOR_ID, "clinical-service");
 
         MemoryInput site = inputs.stream()
@@ -82,6 +84,7 @@ class ClinicalMemoryServiceTest {
         MemoryInput input = captor.getValue();
         assertThat(input.domain()).isEqualTo(ClinicalMemoryDomains.PATIENT);
         assertThat(input.attributes()).containsEntry(MemoryAttributeKeys.OUTCOME, "ESCALATED");
+        assertThat(input.attributes()).containsEntry(ClinicalMemoryAttributes.GRADE, "GRADE_3");
     }
 
     @Test
@@ -92,8 +95,8 @@ class ClinicalMemoryServiceTest {
         ArgumentCaptor<MemoryInput> captor = ArgumentCaptor.forClass(MemoryInput.class);
         verify(store).store(captor.capture());
 
-        assertThat(captor.getValue().attributes())
-            .containsEntry(MemoryAttributeKeys.OUTCOME, "DSMB_ESCALATED");
+        assertThat(captor.getValue().attributes()).containsEntry(MemoryAttributeKeys.OUTCOME, "DSMB_ESCALATED");
+        assertThat(captor.getValue().attributes()).containsEntry(ClinicalMemoryAttributes.GRADE, "GRADE_4");
     }
 
     // ── storeDeviationReport ──────────────────────────────────────────────────
@@ -156,7 +159,9 @@ class ClinicalMemoryServiceTest {
         UUID enrollmentId = UUID.randomUUID();
         Memory m = new Memory(UUID.randomUUID().toString(), "patient:" + enrollmentId,
             ClinicalMemoryDomains.PATIENT, "tenant-1", null, "AE report",
-            Map.of(MemoryAttributeKeys.OUTCOME, "GRADE_3", MemoryAttributeKeys.ACTOR_ID, "clinical-service"),
+            Map.of(ClinicalMemoryAttributes.GRADE, "GRADE_3",
+                MemoryAttributeKeys.OUTCOME, "REPORTED",
+                MemoryAttributeKeys.ACTOR_ID, "clinical-service"),
             Instant.now());
         when(store.query(any(MemoryQuery.class))).thenReturn(List.of(m));
 

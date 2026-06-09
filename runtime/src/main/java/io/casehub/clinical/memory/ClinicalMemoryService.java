@@ -31,10 +31,10 @@ public class ClinicalMemoryService {
 
     public void storeAeReport(final UUID aeId, final UUID enrollmentId, final UUID siteId,
                               final CtcaeGrade grade, final String tenantId) {
-        final String outcome = grade.name();
         final Map<String, String> attrs = Map.of(
             MemoryAttributeKeys.ACTOR_ID, ACTOR,
-            MemoryAttributeKeys.OUTCOME, outcome);
+            MemoryAttributeKeys.OUTCOME, "REPORTED",
+            ClinicalMemoryAttributes.GRADE, grade.name());
         final String text = "Grade " + grade.name() + " AE " + aeId + " reported for enrollment "
             + enrollmentId + " at site " + siteId;
 
@@ -62,7 +62,8 @@ public class ClinicalMemoryService {
                 ClinicalMemoryDomains.PATIENT,
                 tenantId, null,
                 "AE " + aeId + " escalation completed: safetyReview=" + safetyReview + ", dsmb=" + dsmbEscalated,
-                Map.of(MemoryAttributeKeys.ACTOR_ID, ACTOR, MemoryAttributeKeys.OUTCOME, outcome)));
+                Map.of(MemoryAttributeKeys.ACTOR_ID, ACTOR, MemoryAttributeKeys.OUTCOME, outcome,
+                    ClinicalMemoryAttributes.GRADE, grade.name())));
         } catch (Exception e) {
             LOG.warnf(e, "ClinicalMemoryService: storeAeOutcome failed for aeId=%s — ignored", aeId);
         }

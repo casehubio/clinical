@@ -1,6 +1,7 @@
 package io.casehub.clinical.memory;
 
 import io.casehub.clinical.api.model.CtcaeGrade;
+import io.casehub.clinical.memory.ClinicalMemoryAttributes;
 import io.casehub.platform.api.memory.Memory;
 import io.casehub.platform.api.memory.MemoryAttributeKeys;
 import io.casehub.platform.api.memory.MemoryDomain;
@@ -89,19 +90,22 @@ class ClinicalPatientContextTest {
         assertThat(map.get("aeCount")).isEqualTo(1);
         List<?> facts = (List<?>) map.get("facts");
         assertThat(facts).hasSize(1);
+        Map<?, ?> fact = (Map<?, ?>) facts.get(0);
+        assertThat(fact.get("grade")).isEqualTo("GRADE_3");
+        assertThat(fact.get("outcome")).isEqualTo("REPORTED");
     }
 
     // -- helpers --
 
     private static ClinicalPatientContext contextWith(CtcaeGrade grade) {
-        return new ClinicalPatientContext(List.of(memory(grade.name())));
+        return new ClinicalPatientContext(List.of(memoryWithGrade(grade.name())));
     }
 
     private static ClinicalPatientContext contextWithOutcome(String outcome) {
-        return new ClinicalPatientContext(List.of(memory(outcome)));
+        return new ClinicalPatientContext(List.of(memoryWithOutcome(outcome)));
     }
 
-    private static Memory memory(String outcome) {
+    private static Memory memoryWithGrade(String grade) {
         return new Memory(
             UUID.randomUUID().toString(),
             "patient:" + UUID.randomUUID(),
@@ -109,7 +113,22 @@ class ClinicalPatientContextTest {
             "test-tenant",
             null,
             "AE report",
-            Map.of(MemoryAttributeKeys.OUTCOME, outcome, MemoryAttributeKeys.ACTOR_ID, "clinical-service"),
+            Map.of(ClinicalMemoryAttributes.GRADE, grade,
+                MemoryAttributeKeys.OUTCOME, "REPORTED",
+                MemoryAttributeKeys.ACTOR_ID, "clinical-service"),
+            Instant.now());
+    }
+
+    private static Memory memoryWithOutcome(String outcome) {
+        return new Memory(
+            UUID.randomUUID().toString(),
+            "patient:" + UUID.randomUUID(),
+            new MemoryDomain("clinical-patient"),
+            "test-tenant",
+            null,
+            "AE outcome",
+            Map.of(MemoryAttributeKeys.OUTCOME, outcome,
+                MemoryAttributeKeys.ACTOR_ID, "clinical-service"),
             Instant.now());
     }
 }
