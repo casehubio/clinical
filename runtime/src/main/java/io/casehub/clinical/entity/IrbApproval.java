@@ -27,6 +27,15 @@ public class IrbApproval extends PanacheEntityBase {
     @Column(name = "deviation_id")
     public UUID deviationId;
 
+    /**
+     * The deviation type this IRB approval covers (e.g. "CONSENT_VIOLATION").
+     * Nullable for legacy rows; always set from ProtocolDeviationResolvedEvent on new rows.
+     * Used to write CaseMemoryStore IRB domain entries keyed by deviation type.
+     * Added in V117.
+     */
+    @Column(name = "deviation_type")
+    public String deviationType;
+
     @Column(name = "review_type", nullable = false)
     public String reviewType;
 

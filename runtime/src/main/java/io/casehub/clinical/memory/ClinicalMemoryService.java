@@ -2,6 +2,7 @@ package io.casehub.clinical.memory;
 
 import io.casehub.clinical.api.model.CtcaeGrade;
 import io.casehub.clinical.api.model.DeviationSeverity;
+import io.casehub.clinical.api.model.IrbDecision;
 import io.casehub.clinical.api.model.PiApprovalStatus;
 import io.casehub.platform.api.memory.CaseMemoryStore;
 import io.casehub.platform.api.memory.MemoryAttributeKeys;
@@ -142,6 +143,37 @@ public class ClinicalMemoryService {
         } catch (Exception e) {
             LOG.warnf(e, "ClinicalMemoryService: queryDrugContext failed for trialId=%s — returning empty", trialId);
             return ClinicalDrugContext.empty();
+        }
+    }
+
+    public void storeIrbDecision(final UUID approvalId, final UUID siteId,
+                                 final String deviationType, final IrbDecision decision,
+                                 final String tenantId) {
+        if (deviationType == null || deviationType.isBlank()) return;
+        final String siteStr = siteId != null ? siteId.toString() : "";
+        try {
+            store.store(new MemoryInput(
+                "deviation-type:" + deviationType,
+                ClinicalMemoryDomains.IRB,
+                tenantId, null,
+                "IRB " + decision + " for deviation type " + deviationType + " at site " + siteStr,
+                Map.of(MemoryAttributeKeys.ACTOR_ID, ACTOR,
+                    MemoryAttributeKeys.OUTCOME, decision.name(),
+                    ClinicalMemoryAttributes.SITE_ID, siteStr)));
+        } catch (Exception e) {
+            LOG.warnf(e, "ClinicalMemoryService: storeIrbDecision failed for approvalId=%s — ignored", approvalId);
+        }
+    }
+
+    public ClinicalIrbContext queryIrbContext(final String deviationType, final String tenantId) {
+        if (deviationType == null || deviationType.isBlank()) return ClinicalIrbContext.empty();
+        try {
+            final var query = MemoryQuery.forEntity("deviation-type:" + deviationType, ClinicalMemoryDomains.IRB, tenantId)
+                .withLimit(200);
+            return new ClinicalIrbContext(store.query(query));
+        } catch (Exception e) {
+            LOG.warnf(e, "ClinicalMemoryService: queryIrbContext failed for deviationType=%s — returning empty", deviationType);
+            return ClinicalIrbContext.empty();
         }
     }
 }

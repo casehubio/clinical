@@ -3,6 +3,7 @@ package io.casehub.clinical.service;
 import io.casehub.clinical.api.IrbApprovalResolvedEvent;
 import io.casehub.clinical.api.model.IrbDecision;
 import io.casehub.clinical.entity.IrbApproval;
+import io.casehub.clinical.memory.ClinicalMemoryService;
 import io.casehub.work.runtime.event.WorkItemLifecycleEvent;
 import io.casehub.work.runtime.model.WorkItem;
 import io.casehub.work.runtime.model.WorkItemStatus;
@@ -23,6 +24,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatCode;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
@@ -35,9 +37,15 @@ class IrbDecisionListenerTest {
     @InjectMock IrbApprovalLedgerWriter ledgerWriter;
     @InjectMock ClinicalDeviationCaseHub caseHub;
     @InjectMock Event<IrbApprovalResolvedEvent> resolvedEvents;
+    @InjectMock ClinicalMemoryService memoryService;
 
     private UUID approvalId;
     private UUID deviationId;
+
+    @BeforeEach
+    void setUpMocks() {
+        doNothing().when(memoryService).storeIrbDecision(any(), any(), any(), any(), any());
+    }
 
     @BeforeEach
     @Transactional

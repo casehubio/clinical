@@ -64,6 +64,7 @@ public class IrbDeviationCaseService {
         approval.tenantId = event.tenantId();
         approval.siteId = event.siteId();
         approval.deviationId = event.deviationId();
+        approval.deviationType = event.deviationType();
         approval.reviewType = "PROTOCOL_DEVIATION";
         approval.committeeId = assignment.committeeId();
         approval.decisionDeadline = Instant.now().plus(Duration.ofHours(72));

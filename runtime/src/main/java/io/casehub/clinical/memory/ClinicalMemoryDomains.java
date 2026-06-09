@@ -14,5 +14,13 @@ public final class ClinicalMemoryDomains {
      */
     public static final MemoryDomain DRUG = new MemoryDomain("clinical-drug");
 
+    /**
+     * IRB decision precedent per deviation type.
+     * entityId convention: {@code deviation-type:{deviationType}}.
+     * Aggregates all IRB decisions for a given deviation type across sites and trials.
+     * Enables the IRB consultation agent to query "how has this type been decided before?"
+     */
+    public static final MemoryDomain IRB = new MemoryDomain("clinical-irb");
+
     private ClinicalMemoryDomains() {}
 }

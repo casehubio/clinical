@@ -2,6 +2,7 @@ package io.casehub.clinical.memory;
 
 import io.casehub.clinical.api.model.CtcaeGrade;
 import io.casehub.clinical.api.model.DeviationSeverity;
+import io.casehub.clinical.api.model.IrbDecision;
 import io.casehub.clinical.api.model.PiApprovalStatus;
 import io.casehub.clinical.memory.ClinicalMemoryAttributes;
 import io.casehub.platform.api.memory.CaseMemoryStore;
@@ -269,5 +270,78 @@ class ClinicalMemoryServiceTest {
         ClinicalDrugContext ctx = service.queryDrugContext(UUID.randomUUID(), "tenant-1");
 
         assertThat(ctx.hasSignal()).isFalse();
+    }
+
+    // ── storeIrbDecision ──────────────────────────────────────────────────────
+
+    @Test
+    void storeIrbDecision_writes_to_irb_domain() {
+        UUID siteId = UUID.randomUUID();
+
+        service.storeIrbDecision(UUID.randomUUID(), siteId, "CONSENT_VIOLATION",
+            IrbDecision.APPROVED, "tenant-1");
+
+        ArgumentCaptor<MemoryInput> captor = ArgumentCaptor.forClass(MemoryInput.class);
+        verify(store).store(captor.capture());
+
+        MemoryInput input = captor.getValue();
+        assertThat(input.domain()).isEqualTo(ClinicalMemoryDomains.IRB);
+        assertThat(input.entityId()).isEqualTo("deviation-type:CONSENT_VIOLATION");
+        assertThat(input.tenantId()).isEqualTo("tenant-1");
+        assertThat(input.attributes()).containsEntry(MemoryAttributeKeys.OUTCOME, "APPROVED");
+        assertThat(input.attributes()).containsEntry(ClinicalMemoryAttributes.SITE_ID, siteId.toString());
+    }
+
+    @Test
+    void storeIrbDecision_skips_write_when_deviationType_null() {
+        service.storeIrbDecision(UUID.randomUUID(), UUID.randomUUID(), null,
+            IrbDecision.APPROVED, "tenant-1");
+
+        verify(store, org.mockito.Mockito.never()).store(any());
+    }
+
+    @Test
+    void storeIrbDecision_skips_write_when_deviationType_blank() {
+        service.storeIrbDecision(UUID.randomUUID(), UUID.randomUUID(), "",
+            IrbDecision.APPROVED, "tenant-1");
+
+        verify(store, org.mockito.Mockito.never()).store(any());
+    }
+
+    // ── queryIrbContext ───────────────────────────────────────────────────────
+
+    @Test
+    void queryIrbContext_returns_populated_context() {
+        UUID siteId = UUID.randomUUID();
+        Memory m = new Memory(UUID.randomUUID().toString(), "deviation-type:CONSENT_VIOLATION",
+            ClinicalMemoryDomains.IRB, "tenant-1", null, "IRB APPROVED",
+            Map.of(MemoryAttributeKeys.OUTCOME, "APPROVED",
+                ClinicalMemoryAttributes.SITE_ID, siteId.toString(),
+                MemoryAttributeKeys.ACTOR_ID, "clinical-service"),
+            Instant.now());
+        when(store.query(any(MemoryQuery.class))).thenReturn(List.of(m));
+
+        ClinicalIrbContext ctx = service.queryIrbContext("CONSENT_VIOLATION", "tenant-1");
+
+        assertThat(ctx.totalDecisions()).isEqualTo(1);
+        assertThat(ctx.approvedCount()).isEqualTo(1);
+        assertThat(ctx.hasPrecedent()).isTrue();
+    }
+
+    @Test
+    void queryIrbContext_returns_empty_for_null_deviationType() {
+        ClinicalIrbContext ctx = service.queryIrbContext(null, "tenant-1");
+
+        assertThat(ctx.hasPrecedent()).isFalse();
+        verify(store, org.mockito.Mockito.never()).query(any());
+    }
+
+    @Test
+    void queryIrbContext_returns_empty_on_store_failure() {
+        when(store.query(any(MemoryQuery.class))).thenThrow(new RuntimeException("store unavailable"));
+
+        ClinicalIrbContext ctx = service.queryIrbContext("CONSENT_VIOLATION", "tenant-1");
+
+        assertThat(ctx.hasPrecedent()).isFalse();
     }
 }

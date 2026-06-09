@@ -5,6 +5,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import io.casehub.clinical.api.IrbApprovalResolvedEvent;
 import io.casehub.clinical.api.model.IrbDecision;
 import io.casehub.clinical.entity.IrbApproval;
+import io.casehub.clinical.memory.ClinicalMemoryService;
 import io.casehub.work.runtime.event.WorkItemLifecycleEvent;
 import io.casehub.work.runtime.model.WorkItem;
 import io.casehub.work.runtime.model.WorkItemStatus;
@@ -39,6 +40,7 @@ public class IrbDecisionListener {
     @Inject Event<IrbApprovalResolvedEvent> resolvedEvents;
     @Inject ClinicalDeviationCaseHub caseHub;
     @Inject ObjectMapper objectMapper;
+    @Inject ClinicalMemoryService memoryService;
 
     @Transactional
     public void onWorkItemLifecycle(@ObservesAsync WorkItemLifecycleEvent event) {
@@ -84,6 +86,7 @@ public class IrbDecisionListener {
 
             ledgerWriter.writeDecisionEntry(approval);
             ledgerDecisionWritten = true;
+            memoryService.storeIrbDecision(approval.id, approval.siteId, approval.deviationType, decision, approval.tenantId);
 
             resolvedEvents.fireAsync(new IrbApprovalResolvedEvent(
                     approval.id, deviationId, approval.siteId, decision, Instant.now(),
