@@ -20,6 +20,7 @@ import io.casehub.work.runtime.model.WorkItemStatus;
 import io.casehub.work.runtime.service.WorkItemService;
 import io.casehub.workadapter.WorkItemLifecycleAdapter;
 import io.casehub.work.runtime.event.WorkItemLifecycleEvent;
+import io.casehub.platform.api.identity.CurrentPrincipal;
 import io.quarkus.test.junit.QuarkusTest;
 import jakarta.inject.Inject;
 import jakarta.transaction.Transactional;
@@ -44,6 +45,7 @@ class DsmbRollupTest {
     @Inject WorkItemCompletionCapture completionCapture;
     @Inject WorkItemLifecycleAdapter lifecycleAdapter;
     @Inject CaseHubRuntime runtime;
+    @Inject CurrentPrincipal principal;
 
     private UUID trialId;
     private UUID siteAId;
@@ -144,6 +146,7 @@ class DsmbRollupTest {
         trial.sponsor = "TestSponsor";
         trial.targetEnrollment = 100;
         trial.status = io.casehub.clinical.api.model.TrialStatus.PLANNING;
+        trial.tenantId = principal.tenancyId();
         trial.persist();
         return trial.id;
     }
