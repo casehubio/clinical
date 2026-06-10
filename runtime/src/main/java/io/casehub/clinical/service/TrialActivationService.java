@@ -2,6 +2,7 @@ package io.casehub.clinical.service;
 
 import io.casehub.clinical.api.model.TrialStatus;
 import io.casehub.clinical.entity.ClinicalTrial;
+import io.casehub.platform.api.identity.CurrentPrincipal;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 import jakarta.transaction.Transactional;
@@ -32,6 +33,7 @@ public class TrialActivationService {
     }
 
     @Inject ClinicalTrialCaseHub caseHub;
+    @Inject CurrentPrincipal principal;
 
     public void activate(UUID trialId) {
         Map<String, Object> initialContext = markActive(trialId);
@@ -41,7 +43,7 @@ public class TrialActivationService {
 
     @Transactional
     Map<String, Object> markActive(UUID trialId) {
-        ClinicalTrial trial = ClinicalTrial.findById(trialId);
+        ClinicalTrial trial = ClinicalTrial.findByIdForTenant(trialId, principal);
         if (trial == null) throw new TrialNotFoundException(trialId);
         if (trial.status != TrialStatus.PLANNING) throw new TrialNotInPlanningStatusException(trial.status);
         trial.status = TrialStatus.ACTIVE;

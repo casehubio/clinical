@@ -114,6 +114,18 @@ class AdverseEventServiceTest {
         assertThat(entry.slaDeadline).isEqualTo(ae.slaDeadline);
     }
 
+    @Test
+    @Transactional
+    void ae_tenantId_is_derived_from_enrollment_not_principal() {
+        AdverseEvent ae = newAe(CtcaeGrade.GRADE_1);
+        PatientEnrollment enrollment = PatientEnrollment.findById(ae.enrollmentId);
+        service.reportAdverseEvent(ae);
+        // enrollment.tenantId = "default" (entity field default, set in newAe())
+        // principal.tenancyId() = "278776f9-..." (FixedCurrentPrincipal default)
+        // These differ, so the assertion catches which source is used
+        assertThat(ae.tenantId).isEqualTo(enrollment.tenantId);
+    }
+
     private AdverseEvent newAe(CtcaeGrade grade) {
         ClinicalTrial trial = new ClinicalTrial();
         trial.id = UUID.randomUUID();

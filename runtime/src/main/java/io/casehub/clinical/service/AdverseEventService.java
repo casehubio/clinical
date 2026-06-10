@@ -10,7 +10,6 @@ import io.casehub.clinical.entity.AdverseEvent;
 import io.casehub.clinical.entity.PatientEnrollment;
 import io.casehub.clinical.entity.TrialSite;
 import io.casehub.clinical.memory.ClinicalMemoryService;
-import io.casehub.platform.api.identity.CurrentPrincipal;
 import io.casehub.work.runtime.model.WorkItemCreateRequest;
 import io.casehub.work.runtime.model.WorkItemPriority;
 import io.casehub.work.runtime.service.WorkItemService;
@@ -30,17 +29,19 @@ public class AdverseEventService {
     @Inject ObjectMapper objectMapper;
     @Inject AdverseEventEscalationPolicy policy;
     @Inject Event<AdverseEventReportedEvent> reportedEvents;
-    @Inject CurrentPrincipal principal;
     @Inject ClinicalMemoryService memoryService;
 
     @Transactional
     public void reportAdverseEvent(AdverseEvent ae) {
         ae.reportedAt = Instant.now();
         ae.slaDeadline = ae.reportedAt.plus(ae.grade.sla().orElseThrow());
-        ae.tenantId = principal.tenancyId();
 
-        UUID siteId = resolveSiteId(ae.enrollmentId);
-        UUID trialId = resolveTrialId(siteId);
+        PatientEnrollment enrollment = PatientEnrollment.findById(ae.enrollmentId);
+        UUID siteId = enrollment != null ? enrollment.siteId : null;
+        ae.tenantId = enrollment != null ? enrollment.tenantId : "default";
+
+        TrialSite site = siteId != null ? TrialSite.findById(siteId) : null;
+        UUID trialId = site != null ? site.trialId : null;
         AdverseEventEscalationRequirements requirements =
                 policy.evaluate(new AdverseEventContext(ae.id, ae.enrollmentId, siteId, ae.grade));
 
@@ -70,17 +71,6 @@ public class AdverseEventService {
             reportedEvents.fireAsync(new AdverseEventReportedEvent(
                     ae.id, ae.enrollmentId, siteId, ae.grade, ae.reportedAt, ae.tenantId));
         }
-    }
-
-    private UUID resolveSiteId(UUID enrollmentId) {
-        PatientEnrollment enrollment = PatientEnrollment.findById(enrollmentId);
-        return enrollment != null ? enrollment.siteId : null;
-    }
-
-    private UUID resolveTrialId(UUID siteId) {
-        if (siteId == null) return null;
-        TrialSite site = TrialSite.findById(siteId);
-        return site != null ? site.trialId : null;
     }
 
     private WorkItemPriority priority(AdverseEvent ae) {

@@ -7,9 +7,11 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.awaitility.Awaitility.await;
 
 import io.casehub.clinical.entity.ClinicalTrial;
+import io.casehub.platform.testing.FixedCurrentPrincipal;
 import io.quarkus.test.junit.QuarkusTest;
 import jakarta.inject.Inject;
 import jakarta.transaction.Transactional;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 
 import java.util.UUID;
@@ -18,6 +20,10 @@ import java.util.UUID;
 class TrialActivationTest {
 
     @Inject TrialActivationService trialActivationService;
+    @Inject FixedCurrentPrincipal principal;
+
+    @AfterEach
+    void resetPrincipal() { principal.reset(); }
 
     @Test
     void activation_persists_engine_case_id_and_sets_status_active() {
@@ -62,6 +68,21 @@ class TrialActivationTest {
                 .untilAsserted(() -> assertThat(findTrial(trialId).engineCaseId).isNotNull());
 
         given().when().post("/trials/" + trialId + "/activate").then().statusCode(409);
+    }
+
+    @Test
+    void activating_wrong_tenant_trial_returns_404() {
+        UUID trialId = createTrial();
+        principal.setTenancyId("other-tenant");
+        given().when().post("/trials/" + trialId + "/activate").then().statusCode(404);
+    }
+
+    @Test
+    void activating_cross_tenant_trial_succeeds_for_admin() {
+        UUID trialId = createTrial();
+        principal.setTenancyId("other-tenant");
+        principal.setCrossTenantAdmin(true);
+        given().when().post("/trials/" + trialId + "/activate").then().statusCode(204);
     }
 
     // ── helpers ───────────────────────────────────────────────────────────────
