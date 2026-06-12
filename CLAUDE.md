@@ -218,6 +218,7 @@ Read these **before designing**, not after. The concern column tells you when ea
 | New Flyway migration | Clinical uses datasource-scoped dirs — see Flyway migration structure in Ecosystem Conventions |
 | Migration version number | V100–V999 clinical domain (default datasource); V2000+ ledger subclass join tables (qhorus datasource) |
 | LedgerEntry subclass | Must live in `io.casehub.clinical.ledger` — never in `io.casehub.clinical.entity`; Panache cannot span two PUs |
+| LedgerEntry subclass `domainContentBytes()` | Every `LedgerEntry` subclass with persistent `@Column` fields MUST override `domainContentBytes()`. The `LedgerProcessor` build-time validator (casehub-ledger SNAPSHOT) enforces this — CDI deployment fails if missing. Return `String.join("|", field1, field2, ...).getBytes(StandardCharsets.UTF_8)`. See all 6 clinical subclasses for reference. |
 | Cross-datasource `@Transactional` | Requires XA on both datasources — see Multi-datasource XA in Ecosystem Conventions |
 
 ### Testing
