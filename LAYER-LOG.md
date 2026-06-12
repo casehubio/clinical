@@ -604,15 +604,90 @@ protocol uses a different reporting window (7-day / 15-day) rather than the imme
 safety report path. Grade alone is insufficient — the event's `unexpected` flag must also
 be evaluated.
 
-**API gap:** `AeEscalationCompletedEvent` currently carries `grade` but not `unexpected`.
-Layer 7 must add `unexpected` to the event (or derive it from the protocol at event
+**Partial resolution in Layer 8 (clinical#47):** `AdverseEvent.unexpected` and
+`AdverseEvent.suspected` entity fields were added in Layer 8 (Flyway V111). The
+`AeEscalationCaseService` now propagates both to the engine case context. The
+`AeEscalationCompletedEvent` gap (carrying `unexpected` for downstream consumers) remains
+for Layer 7 to address — the entity is now the authoritative source, so Layer 7 can
+derive it at event fire time without an additional DB query.
+
+**API gap still open:** `AeEscalationCompletedEvent` currently carries `grade` but not `unexpected`.
+Layer 7 must add `unexpected` to the event (derived from `AdverseEvent.unexpected` at event
 fire time) before the regulatory-submission binding can correctly discriminate.
 
 Required wiring:
-- Add `boolean unexpected` to `AeEscalationCompletedEvent` — set from the
-  `AdverseEvent` entity's protocol-expectedness assessment at event fire time.
+- Add `boolean unexpected` to `AeEscalationCompletedEvent` — read from `AdverseEvent.unexpected`
+  at event fire time (entity already has the field from Layer 8).
 - Add a `regulatory-submission` capability binding (or CDI observer on
   `AeEscalationCompletedEvent`) that fires when `grade == GRADE_5 && unexpected`.
 - The two escalation paths (DSMB + IND reporting) must be independent — not sequential.
 
 Refs #30 (casehubio/clinical)
+
+---
+
+## Layer 8 — ActionRiskClassifier oversight gate
+
+**Completed:** 2026-06-12 (casehubio/clinical#47)
+**Issues:** casehubio/clinical#47
+**Navigation:** `git log --grep="#47" --oneline`
+**Spec:** workspace `specs/2026-06-11-action-risk-classifier-design.md`
+**Key files:**
+- `api/src/main/java/io/casehub/clinical/api/model/ClinicalActionType.java` — 5 regulatory gate constants; pure Java, no framework deps
+- `runtime/src/main/java/io/casehub/clinical/service/SusarEvaluatorFunction.java` — named CDI displacement interface
+- `runtime/src/main/java/io/casehub/clinical/routing/ClinicalActionRiskClassifier.java` — `@RiskClassifier @ApplicationScoped`; delegates to enum
+- `runtime/src/main/java/io/casehub/clinical/service/SusarCriteriaEvaluator.java` — `@DefaultBean @ApplicationScoped`; `@Transactional apply()` loads entity from DB
+- `runtime/src/main/resources/db/migration/default/V111__adverse_event_unexpectedness.sql` — `unexpected BOOLEAN NOT NULL DEFAULT FALSE`, `suspected BOOLEAN NOT NULL DEFAULT TRUE`
+
+### What it adds
+
+`ClinicalActionRiskClassifier @RiskClassifier @ApplicationScoped` discovered by casehub-engine's
+`ChainedReactiveActionRiskClassifier` automatically. Encodes five regulatory gate constants
+(SUSAR_CRITERIA_DECISION, SUSAR_REGULATORY_FILING, PATIENT_WITHDRAWAL, DOSE_MODIFICATION,
+PROTOCOL_DEVIATION_RECORDING) in a pure-Java enum with `GateRequired` fields derived at
+classify-time. All five are ALWAYS-gated — regulatory obligations, not configurable thresholds.
+
+`SusarCriteriaEvaluator @DefaultBean` implements `SusarEvaluatorFunction` (named CDI interface
+for displacement contract). `@Transactional apply()` loads `AdverseEvent` by `aeId` from DB
+and evaluates: grade ∈ {GRADE_4, GRADE_5} AND unexpected==true AND suspected==true. Returns
+`WorkerResult` with `PlannedAction` (gate) or without (no gate).
+
+`AdverseEvent.unexpected` and `AdverseEvent.suspected` fields added (V111), propagated through
+`PatientResource.ReportAdverseEventRequest`, `AeEscalationCaseService.prepareAndMarkRequested()`.
+
+### Architecture note — worker binding deferred
+
+The SUSAR worker binding (connecting `SusarCriteriaEvaluator` to the `ae-escalation.yaml` case
+via a programmatic `ContextChangeTrigger`) is deferred to clinical#77. The engine fires
+`CaseContextChangedEvent` before applying the initial context to the live `CaseInstance`, so
+programmatic worker bindings receive empty `inputData`. Fix direction: AML Layer 9 pattern
+(dedicated oversight case hub). The classifier and evaluator are ready; the YAML binding and
+`ClinicalAdverseEventCaseHub.getDefinition()` override are not yet wired.
+
+### Key wiring
+
+**`@RiskClassifier` CDI qualifier discovery.** `ClinicalActionRiskClassifier @ApplicationScoped
+@RiskClassifier` is discovered automatically by `ChainedReactiveActionRiskClassifier` (internal
+engine class). No registration needed — CDI qualifier acts as the discovery mechanism. Zero
+`@RiskClassifier` beans → `Autonomous` (safe default); multiple beans → `mostRestrictive()`.
+
+**`SusarEvaluatorFunction` named interface placement.** `SusarEvaluatorFunction extends
+Function<Map<String,Object>,WorkerResult>` lives in `runtime/service/` (not `api/spi/`) because
+`WorkerResult` is from `casehub-engine-api` which is not a dependency of `clinical-api`. This is
+the correct placement per `consumer-spi-placement.md`: only runtime provides implementations.
+
+**`@DefaultBean` displacement contract.** A future ML agent implements `SusarEvaluatorFunction
+@ApplicationScoped` (no `@DefaultBean`) to displace `SusarCriteriaEvaluator` automatically.
+
+**`domainContentBytes()` on all 6 LedgerEntry subclasses.** `casehub-ledger` SNAPSHOT added a
+build-time `LedgerProcessor` validator that requires `domainContentBytes()` override on any
+subclass with persistent `@Column` fields. All clinical subclasses were updated in this layer.
+
+### Accountability gaps at end of Layer 8
+
+- Gate rejection / expiry path (clinical#76): `susarAssessmentComplete` never written on gate
+  decline; auditor cannot distinguish pending from rejected gate decision.
+- Grade 3 unexpected AE — 15-day expedited path (21 CFR 312.32(c)(1)(ii)) — not gated.
+- `SUSAR_REGULATORY_FILING`, `PATIENT_WITHDRAWAL`, `DOSE_MODIFICATION`,
+  `PROTOCOL_DEVIATION_RECORDING` — worker bindings absent pending agents.
+- Worker binding to `ae-escalation.yaml` (clinical#77) — deferred, see architecture note.
