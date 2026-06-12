@@ -1,7 +1,6 @@
 # clinical Workspace
 
-**Name:** clinical
-
+**Name:** casehub-clinical
 **Project repo:** /Users/mdproctor/claude/casehub/clinical
 **Workspace type:** public
 

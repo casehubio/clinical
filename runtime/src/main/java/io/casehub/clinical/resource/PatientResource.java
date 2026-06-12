@@ -34,7 +34,9 @@ public class PatientResource {
     public record ReportAdverseEventRequest(
         @NotNull CtcaeGrade grade,
         @NotNull Instant occurredAt,
-        EventActuality actuality
+        EventActuality actuality,
+        Boolean unexpected,
+        Boolean suspected
     ) {}
 
     @POST
@@ -96,6 +98,8 @@ public class PatientResource {
         ae.actuality = req.actuality() != null ? req.actuality() : EventActuality.ACTUAL;
         ae.outcome = AeOutcome.ONGOING;
         ae.occurredAt = req.occurredAt();
+        ae.unexpected = req.unexpected() != null ? req.unexpected() : false;
+        ae.suspected  = req.suspected()  != null ? req.suspected()  : true;
 
         adverseEventService.reportAdverseEvent(ae);
 

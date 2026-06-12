@@ -56,6 +56,13 @@ public class AdverseEvent extends PanacheEntityBase {
     @Column(name = "engine_case_id")
     public UUID engineCaseId;
 
+    @Column(nullable = false)
+    public boolean unexpected = false;
+
+    /** Conservative default per ICH E2A §I.A.1: all AEs assumed IMP-suspected unless explicitly false. */
+    @Column(nullable = false)
+    public boolean suspected = true;
+
     public static AdverseEvent findByIdForTenant(UUID id, CurrentPrincipal principal) {
         if (principal.isCrossTenantAdmin()) return findById(id);
         return find("id = ?1 AND tenantId = ?2", id, principal.tenancyId()).firstResult();

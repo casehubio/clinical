@@ -79,6 +79,8 @@ public class AeEscalationCaseService {
         var siteCtx    = memoryService.querySiteContext(event.siteId(), ae.tenantId);
         ctx.put("patientContext", patientCtx.toContextMap());
         ctx.put("siteContext",    siteCtx.toContextMap());
+        ctx.put("unexpected", ae.unexpected);
+        ctx.put("suspected",  ae.suspected);
         return ctx;
     }
 
