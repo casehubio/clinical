@@ -2,6 +2,7 @@ package io.casehub.clinical.ledger;
 
 import io.casehub.ledger.runtime.model.LedgerEntry;
 import jakarta.persistence.*;
+import java.nio.charset.StandardCharsets;
 import java.time.Instant;
 import java.util.UUID;
 
@@ -30,4 +31,15 @@ public class IrbApprovalLedgerEntry extends LedgerEntry {
 
     @Column(name = "decided_at", nullable = false)
     public Instant decidedAt;
+
+    @Override
+    protected byte[] domainContentBytes() {
+        return String.join("|",
+                irbApprovalId != null ? irbApprovalId.toString() : "",
+                deviationId   != null ? deviationId.toString()   : "",
+                irbDecision   != null ? irbDecision              : "",
+                committeeId   != null ? committeeId              : "",
+                decidedAt     != null ? decidedAt.toString()     : "")
+                .getBytes(StandardCharsets.UTF_8);
+    }
 }

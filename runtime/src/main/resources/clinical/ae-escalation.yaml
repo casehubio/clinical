@@ -42,11 +42,3 @@ spec:
         inputMapping: "{ aeId: .aeId, grade: .grade, enrollmentId: .enrollmentId }"
         outputMapping: "{ dsmbEscalation: . }"
 
-    - name: susar-assessment
-      on:
-        contextChange:
-          filter: ".susarAssessmentComplete == null"
-      worker:
-        capability: safety-monitoring
-        input: "{ aeId: .aeId, grade: .grade, enrollmentId: .enrollmentId, unexpected: (.unexpected // false), suspected: (.suspected // true) }"
-        output: "{ susarAssessmentComplete: true, susarRequired: .susarRequired }"

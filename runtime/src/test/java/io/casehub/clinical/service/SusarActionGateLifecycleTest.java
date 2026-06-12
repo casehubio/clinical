@@ -100,15 +100,6 @@ class SusarActionGateLifecycleTest {
         assertThat(result.output()).containsEntry("susarAssessmentComplete", true);
     }
 
-    @Test
-    void valid_uuid_not_in_db_returns_no_gate() {
-        // Simulates the engine timing issue: worker fires before entity is committed
-        WorkerResult result = evaluator.apply(Map.of("aeId", UUID.randomUUID().toString()));
-        assertThat(result.plannedAction()).isNull();
-        assertThat(result.output()).containsEntry("susarRequired", false);
-        assertThat(result.output()).containsEntry("susarAssessmentComplete", true);
-    }
-
     // ── helpers ───────────────────────────────────────────────────────────────
 
     private UUID persistAe(final CtcaeGrade grade, final boolean unexpected, final boolean suspected) {

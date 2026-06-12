@@ -2,6 +2,7 @@ package io.casehub.clinical.ledger;
 
 import io.casehub.ledger.runtime.model.LedgerEntry;
 import jakarta.persistence.*;
+import java.nio.charset.StandardCharsets;
 import java.time.Instant;
 import java.util.UUID;
 
@@ -34,4 +35,15 @@ public class AdverseEventLedgerEntry extends LedgerEntry {
 
     @Column(name = "sla_deadline", nullable = false)
     public Instant slaDeadline;
+
+    @Override
+    protected byte[] domainContentBytes() {
+        return String.join("|",
+                adverseEventId != null ? adverseEventId.toString() : "",
+                enrollmentId   != null ? enrollmentId.toString()   : "",
+                ctcaeGrade     != null ? ctcaeGrade                : "",
+                reportedAt     != null ? reportedAt.toString()     : "",
+                slaDeadline    != null ? slaDeadline.toString()    : "")
+                .getBytes(StandardCharsets.UTF_8);
+    }
 }

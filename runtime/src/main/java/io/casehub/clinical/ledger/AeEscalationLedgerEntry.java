@@ -2,6 +2,7 @@ package io.casehub.clinical.ledger;
 
 import io.casehub.ledger.runtime.model.LedgerEntry;
 import jakarta.persistence.*;
+import java.nio.charset.StandardCharsets;
 import java.time.Instant;
 import java.util.UUID;
 
@@ -33,4 +34,16 @@ public class AeEscalationLedgerEntry extends LedgerEntry {
 
     @Column(name = "completed_at", nullable = false)
     public Instant completedAt;
+
+    @Override
+    protected byte[] domainContentBytes() {
+        return String.join("|",
+                aeId               != null ? aeId.toString()           : "",
+                enrollmentId       != null ? enrollmentId.toString()   : "",
+                ctcaeGrade         != null ? ctcaeGrade                : "",
+                safetyReviewOutcome != null ? safetyReviewOutcome      : "",
+                String.valueOf(dsmbEscalated),
+                completedAt        != null ? completedAt.toString()    : "")
+                .getBytes(StandardCharsets.UTF_8);
+    }
 }

@@ -5,6 +5,7 @@ import jakarta.persistence.Column;
 import jakarta.persistence.DiscriminatorValue;
 import jakarta.persistence.Entity;
 import jakarta.persistence.Table;
+import java.nio.charset.StandardCharsets;
 import java.time.Instant;
 import java.util.UUID;
 
@@ -45,4 +46,18 @@ public class SafetyOfficerNotificationLedgerEntry extends LedgerEntry {
 
     @Column(name = "notified_at", nullable = false)
     public Instant notifiedAt;
+
+    @Override
+    protected byte[] domainContentBytes() {
+        return String.join("|",
+                aeId         != null ? aeId.toString()         : "",
+                enrollmentId != null ? enrollmentId.toString() : "",
+                siteId       != null ? siteId.toString()       : "",
+                ctcaeGrade   != null ? ctcaeGrade              : "",
+                connectorId  != null ? connectorId             : "",
+                destination  != null ? destination             : "",
+                String.valueOf(delivered),
+                notifiedAt   != null ? notifiedAt.toString()   : "")
+                .getBytes(StandardCharsets.UTF_8);
+    }
 }

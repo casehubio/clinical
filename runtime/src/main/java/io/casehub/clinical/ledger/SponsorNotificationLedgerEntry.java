@@ -5,6 +5,7 @@ import jakarta.persistence.Column;
 import jakarta.persistence.DiscriminatorValue;
 import jakarta.persistence.Entity;
 import jakarta.persistence.Table;
+import java.nio.charset.StandardCharsets;
 import java.util.UUID;
 
 /**
@@ -43,4 +44,15 @@ public class SponsorNotificationLedgerEntry extends LedgerEntry {
 
     @Column(name = "failure_reason", length = 1000)
     public String failureReason;
+
+    @Override
+    protected byte[] domainContentBytes() {
+        return String.join("|",
+                notificationId != null ? notificationId.toString() : "",
+                deviationId    != null ? deviationId.toString()    : "",
+                String.valueOf(attemptNumber),
+                String.valueOf(delivered),
+                failureReason  != null ? failureReason             : "")
+                .getBytes(StandardCharsets.UTF_8);
+    }
 }

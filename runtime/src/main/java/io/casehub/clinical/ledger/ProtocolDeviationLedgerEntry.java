@@ -2,6 +2,7 @@ package io.casehub.clinical.ledger;
 
 import io.casehub.ledger.runtime.model.LedgerEntry;
 import jakarta.persistence.*;
+import java.nio.charset.StandardCharsets;
 import java.time.Instant;
 import java.util.UUID;
 
@@ -57,4 +58,21 @@ public class ProtocolDeviationLedgerEntry extends LedgerEntry {
 
     @Column(name = "pi_display_name")
     public String piDisplayName;
+
+    @Override
+    protected byte[] domainContentBytes() {
+        return String.join("|",
+                deviationId            != null ? deviationId.toString()            : "",
+                siteId                 != null ? siteId.toString()                 : "",
+                severity               != null ? severity                           : "",
+                piId                   != null ? piId                               : "",
+                commandedAt            != null ? commandedAt.toString()            : "",
+                responseDeadline       != null ? responseDeadline.toString()       : "",
+                escalationRequirement  != null ? escalationRequirement             : "",
+                terminalStatus         != null ? terminalStatus                    : "",
+                resolvedAt             != null ? resolvedAt.toString()             : "",
+                sponsorNotifiedAt      != null ? sponsorNotifiedAt.toString()      : "",
+                piDisplayName          != null ? piDisplayName                     : "")
+                .getBytes(StandardCharsets.UTF_8);
+    }
 }
