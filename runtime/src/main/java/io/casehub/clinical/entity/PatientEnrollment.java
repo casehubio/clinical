@@ -35,6 +35,9 @@ public class PatientEnrollment extends PanacheEntityBase {
     @Column(name = "enrolled_at")
     public Instant enrolledAt;
 
+    @Column(name = "withdrawn_at")
+    public Instant withdrawnAt;
+
     public static PatientEnrollment findByIdForTenant(UUID id, CurrentPrincipal principal) {
         if (principal.isCrossTenantAdmin()) return findById(id);
         return find("id = ?1 AND tenantId = ?2", id, principal.tenancyId()).firstResult();
