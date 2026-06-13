@@ -9,6 +9,9 @@ import io.casehub.clinical.entity.AdverseEvent;
 import io.casehub.clinical.entity.PatientEnrollment;
 import io.casehub.clinical.entity.TrialSite;
 import io.casehub.clinical.service.AdverseEventService;
+import io.casehub.clinical.service.ConsentWithdrawalService;
+import io.casehub.ledger.runtime.service.LedgerProvExportService;
+import io.casehub.ledger.runtime.service.LedgerVerificationService;
 import io.casehub.platform.api.identity.CurrentPrincipal;
 import jakarta.inject.Inject;
 import jakarta.transaction.Transactional;
@@ -27,6 +30,9 @@ import java.util.UUID;
 public class PatientResource {
 
     @Inject AdverseEventService adverseEventService;
+    @Inject ConsentWithdrawalService consentWithdrawalService;
+    @Inject LedgerProvExportService ledgerProvExportService;
+    @Inject LedgerVerificationService ledgerVerificationService;
     @Inject CurrentPrincipal principal;
 
     public record EnrollPatientRequest(@NotBlank String patientId) {}
@@ -105,5 +111,56 @@ public class PatientResource {
 
         URI location = uriInfo.getAbsolutePathBuilder().path(ae.id.toString()).build();
         return Response.created(location).entity(ae).build();
+    }
+
+    @POST
+    @Path("/{enrollmentId}/withdraw-consent")
+    public Response withdrawConsent(
+            @PathParam("trialId") UUID trialId,
+            @PathParam("siteId") UUID siteId,
+            @PathParam("enrollmentId") UUID enrollmentId) {
+        PatientEnrollment enrollment = PatientEnrollment.findByIdForTenant(enrollmentId, principal);
+        if (enrollment == null || !enrollment.siteId.equals(siteId))
+            return Response.status(Response.Status.NOT_FOUND).build();
+        TrialSite site = TrialSite.findByIdForTenant(siteId, principal);
+        if (site == null || !site.trialId.equals(trialId))
+            return Response.status(Response.Status.NOT_FOUND).build();
+        return consentWithdrawalService.withdraw(enrollmentId, principal.tenancyId());
+    }
+
+    @GET
+    @Path("/{enrollmentId}/audit/prov")
+    @Produces("application/ld+json")
+    public Response getAuditProv(
+            @PathParam("trialId") UUID trialId,
+            @PathParam("siteId") UUID siteId,
+            @PathParam("enrollmentId") UUID enrollmentId) {
+        PatientEnrollment enrollment = PatientEnrollment.findByIdForTenant(enrollmentId, principal);
+        if (enrollment == null || !enrollment.siteId.equals(siteId))
+            return Response.status(Response.Status.NOT_FOUND).build();
+        try {
+            String jsonLd = ledgerProvExportService.exportSubject(enrollmentId, principal.tenancyId());
+            return Response.ok(jsonLd).build();
+        } catch (IllegalArgumentException e) {
+            return Response.status(Response.Status.NOT_FOUND).build();
+        }
+    }
+
+    @GET
+    @Path("/{enrollmentId}/audit/entries/{entryId}/proof")
+    public Response getMerkleProof(
+            @PathParam("trialId") UUID trialId,
+            @PathParam("siteId") UUID siteId,
+            @PathParam("enrollmentId") UUID enrollmentId,
+            @PathParam("entryId") UUID entryId) {
+        PatientEnrollment enrollment = PatientEnrollment.findByIdForTenant(enrollmentId, principal);
+        if (enrollment == null || !enrollment.siteId.equals(siteId))
+            return Response.status(Response.Status.NOT_FOUND).build();
+        try {
+            var proof = ledgerVerificationService.inclusionProof(entryId, principal.tenancyId());
+            return Response.ok(proof).build();
+        } catch (IllegalArgumentException e) {
+            return Response.status(Response.Status.NOT_FOUND).build();
+        }
     }
 }
