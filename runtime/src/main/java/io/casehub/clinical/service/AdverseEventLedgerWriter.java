@@ -44,6 +44,7 @@ public class AdverseEventLedgerWriter {
         entry.ctcaeGrade = ae.grade.name();
         entry.reportedAt = ae.reportedAt;
         entry.slaDeadline = ae.slaDeadline;
+        entry.attach(ClinicalComplianceSupplement.aeEscalation());
         ledgerEntryRepository.save(entry, "default");
     }
 

@@ -51,6 +51,7 @@ public class DeviationLedgerWriter {
         entry.responseDeadline = dev.responseDeadline;
         entry.escalationRequirement = dev.escalationRequirement != null
             ? dev.escalationRequirement.name() : null;
+        entry.attach(ClinicalComplianceSupplement.protocolDeviation());
         ledgerEntryRepository.save(entry, "default");
     }
 

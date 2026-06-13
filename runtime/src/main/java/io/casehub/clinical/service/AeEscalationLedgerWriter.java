@@ -42,6 +42,7 @@ public class AeEscalationLedgerWriter {
         entry.safetyReviewOutcome = safetyReviewOutcome;
         entry.dsmbEscalated = dsmbEscalated;
         entry.completedAt = completedAt;
+        entry.attach(ClinicalComplianceSupplement.aeEscalation());
         ledgerEntryRepository.save(entry, "default");
     }
 

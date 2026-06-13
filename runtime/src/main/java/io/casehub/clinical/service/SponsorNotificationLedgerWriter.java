@@ -48,6 +48,7 @@ public class SponsorNotificationLedgerWriter {
         entry.actorRole = "sponsor-notifier";
         entry.delivered = true;
         entry.occurredAt = deliveredAt;
+        entry.attach(ClinicalComplianceSupplement.sponsorNotification());
         repo.save(entry, "default");
     }
 

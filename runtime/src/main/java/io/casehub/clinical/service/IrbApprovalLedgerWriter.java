@@ -41,6 +41,7 @@ public class IrbApprovalLedgerWriter {
         entry.irbDecision = approval.decision.name();
         entry.committeeId = approval.committeeId;
         entry.decidedAt = now;
+        entry.attach(ClinicalComplianceSupplement.irbDecision());
         ledgerEntryRepository.save(entry, "default");
     }
 

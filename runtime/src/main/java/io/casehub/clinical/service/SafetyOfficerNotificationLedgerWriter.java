@@ -49,6 +49,7 @@ public class SafetyOfficerNotificationLedgerWriter {
         entry.destination = destination;
         entry.delivered = delivered;
         entry.notifiedAt = now;
+        entry.attach(ClinicalComplianceSupplement.safetyOfficerNotification());
         ledgerEntryRepository.save(entry, "default");
     }
 
