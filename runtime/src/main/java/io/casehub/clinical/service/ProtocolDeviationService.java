@@ -10,6 +10,7 @@ import io.casehub.clinical.entity.TrialSite;
 import io.casehub.platform.api.identity.ActorType;
 import io.casehub.qhorus.api.channel.ChannelSemantic;
 import io.casehub.qhorus.api.message.MessageType;
+import io.casehub.qhorus.runtime.channel.ChannelCreateRequest;
 import io.casehub.qhorus.runtime.channel.ChannelService;
 import io.casehub.qhorus.runtime.message.MessageService;
 import jakarta.enterprise.context.ApplicationScoped;
@@ -17,6 +18,7 @@ import jakarta.inject.Inject;
 import jakarta.transaction.Transactional;
 
 import java.time.Instant;
+import java.util.Set;
 
 /**
  * Orchestrates the PI authorisation COMMAND lifecycle for protocol deviations.
@@ -34,7 +36,10 @@ import java.time.Instant;
 public class ProtocolDeviationService {
 
     static final String CLINICAL_SENDER = "clinical-service";
-    static final String CHANNEL_ALLOWED_TYPES = "QUERY,COMMAND,DONE,DECLINE,EVENT";
+    // Must include EVENT — receiveHumanMessage dispatches an internal EVENT-type message (qhorus#153)
+    static final Set<MessageType> CHANNEL_ALLOWED_TYPES = Set.of(
+            MessageType.QUERY, MessageType.COMMAND, MessageType.DONE,
+            MessageType.DECLINE, MessageType.EVENT);
 
     @Inject DeviationResponsePolicy policy;
     @Inject ChannelService channelService;
@@ -91,13 +96,14 @@ public class ProtocolDeviationService {
         if (channelService.findByName(name).isPresent()) {
             return;
         }
-        channelService.create(
+        channelService.create(new ChannelCreateRequest(
             name,
             "PI governance channel for protocol deviation",
             ChannelSemantic.APPEND,
             null, null, null, null, null,
-            CHANNEL_ALLOWED_TYPES
-        );
+            CHANNEL_ALLOWED_TYPES,
+            null, null, null, null, null
+        ));
     }
 
     private String buildCommandContent(ProtocolDeviation dev, Instant responseDeadline) {
