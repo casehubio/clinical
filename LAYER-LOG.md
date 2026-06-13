@@ -685,9 +685,12 @@ subclass with persistent `@Column` fields. All clinical subclasses were updated 
 
 ### Accountability gaps at end of Layer 8
 
-- Gate rejection / expiry path (clinical#76): `susarAssessmentComplete` never written on gate
-  decline; auditor cannot distinguish pending from rejected gate decision.
-- Grade 3 unexpected AE — 15-day expedited path (21 CFR 312.32(c)(1)(ii)) — not gated.
-- `SUSAR_REGULATORY_FILING`, `PATIENT_WITHDRAWAL`, `DOSE_MODIFICATION`,
-  `PROTOCOL_DEVIATION_RECORDING` — worker bindings absent pending agents.
-- Worker binding to `ae-escalation.yaml` (clinical#77) — deferred, see architecture note.
+- ~~Gate rejection / expiry path (clinical#76)~~ — **closed 2026-06-13** by `SusarGateDecisionListener` (DB-discriminated `@ConsumeEvent` consumers for `casehub.action.gate.*` addresses; writes `SusarDecisionLedgerEntry` for all three outcomes). FDA audit trail now distinguishes pending / approved / rejected / expired gate states.
+- ~~Worker binding to `ae-escalation.yaml` (clinical#77)~~ — **closed 2026-06-13** by `ClinicalSusarOversightCaseHub` + `susar-oversight.yaml` (dedicated oversight case hub, started only when criteria confirmed; three-phase `SusarOversightCaseService` with idempotency guard). The `worker: { capability: ... }` YAML structure in the Layer 8 plan was also incorrect (`Binding` schema has no `worker:` field); corrected to `capability: name` directly on the binding with a programmatic `.function()` registration in `getDefinition()`.
+- Grade 3 unexpected AE — 15-day expedited path (21 CFR 312.32(c)(1)(ii)) — not gated. Deferred.
+- `SUSAR_REGULATORY_FILING`, `PATIENT_WITHDRAWAL`, `DOSE_MODIFICATION`, `PROTOCOL_DEVIATION_RECORDING` — worker bindings absent pending agents.
+
+**Layer 8 addendum — GDPR compliance (clinical#7, 2026-06-13):**
+- `ConsentWithdrawalService` — GDPR Art.17 consent withdrawal: pseudonymizes `PatientEnrollment.patientId`, calls `LedgerErasureService.erase()` to tokenize ledger actorId, erases patient memories. XA required (crosses default + qhorus datasources). Writes `ConsentWithdrawalLedgerEntry` (V2022).
+- `ClinicalComplianceSupplement` factory — EU AI Act Art.12 compliance supplements attached to all six AI-agent decision ledger entries via `entry.attach()`.
+- W3C PROV-DM export and Merkle inclusion proof endpoints added to `PatientResource`.
