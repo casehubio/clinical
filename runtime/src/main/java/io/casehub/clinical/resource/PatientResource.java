@@ -10,6 +10,7 @@ import io.casehub.clinical.entity.PatientEnrollment;
 import io.casehub.clinical.entity.TrialSite;
 import io.casehub.clinical.service.AdverseEventService;
 import io.casehub.clinical.service.ConsentWithdrawalService;
+import io.casehub.ledger.runtime.repository.LedgerEntryRepository;
 import io.casehub.ledger.runtime.service.LedgerProvExportService;
 import io.casehub.ledger.runtime.service.LedgerVerificationService;
 import io.casehub.platform.api.identity.CurrentPrincipal;
@@ -33,6 +34,7 @@ public class PatientResource {
     @Inject ConsentWithdrawalService consentWithdrawalService;
     @Inject LedgerProvExportService ledgerProvExportService;
     @Inject LedgerVerificationService ledgerVerificationService;
+    @Inject LedgerEntryRepository ledgerEntryRepository;
     @Inject CurrentPrincipal principal;
 
     public record EnrollPatientRequest(@NotBlank String patientId) {}
@@ -138,6 +140,9 @@ public class PatientResource {
         PatientEnrollment enrollment = PatientEnrollment.findByIdForTenant(enrollmentId, principal);
         if (enrollment == null || !enrollment.siteId.equals(siteId))
             return Response.status(Response.Status.NOT_FOUND).build();
+        TrialSite site = TrialSite.findByIdForTenant(siteId, principal);
+        if (site == null || !site.trialId.equals(trialId))
+            return Response.status(Response.Status.NOT_FOUND).build();
         try {
             String jsonLd = ledgerProvExportService.exportSubject(enrollmentId, principal.tenancyId());
             return Response.ok(jsonLd).build();
@@ -155,6 +160,13 @@ public class PatientResource {
             @PathParam("entryId") UUID entryId) {
         PatientEnrollment enrollment = PatientEnrollment.findByIdForTenant(enrollmentId, principal);
         if (enrollment == null || !enrollment.siteId.equals(siteId))
+            return Response.status(Response.Status.NOT_FOUND).build();
+        TrialSite site = TrialSite.findByIdForTenant(siteId, principal);
+        if (site == null || !site.trialId.equals(trialId))
+            return Response.status(Response.Status.NOT_FOUND).build();
+        // Verify the entry belongs to this patient — prevents cross-patient audit access
+        var ledgerEntry = ledgerEntryRepository.findEntryById(entryId, principal.tenancyId()).orElse(null);
+        if (ledgerEntry == null || !enrollmentId.equals(ledgerEntry.subjectId))
             return Response.status(Response.Status.NOT_FOUND).build();
         try {
             var proof = ledgerVerificationService.inclusionProof(entryId, principal.tenancyId());
