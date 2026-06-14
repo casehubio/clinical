@@ -4,7 +4,7 @@
 **Date:** 2026-06-02
 **Profile:** [Arc42Stories CaseHub Profile](../parent/docs/arc42stories-casehub-profile.md)
 **Spec:** [Arc42Stories Specification](../parent/docs/arc42stories-spec.md)
-**Status:** Layers 1–6 complete. Layer 7 stub. Layer 8 partial (classifier + evaluator wired; worker binding deferred to clinical#77). All Chapters complete.
+**Status:** Layers 1–8 complete. Layer 7 stub. All Chapters complete.
 
 ---
 
@@ -1506,10 +1506,12 @@ Per the Arc42Stories spec: layer-specific decisions live in §9.4; this section 
 - §12 Active Risks updated (clinical#53, #10 closed or updated)
 - §11 Quality Requirements updated (trust accuracy scenario from 🔲 to delivered)
 
-**Layer 8 gap (clinical#47 partial):**
-- Full §9.4 Layer 8 entry at worker binding close (clinical#77): `ClinicalActionRiskClassifier` wired, `SusarCriteriaEvaluator` evaluating from DB, worker binding to `ae-escalation.yaml` deferred
-- Gate rejection/expiry handler (clinical#76): `SusarGateRejectionListener` not yet implemented
-- Update §9.3 Knowledge gap table: mark Grade 5 regulatory gap partially addressed (entity field added in Layer 8; `AeEscalationCompletedEvent` still missing `unexpected`)
+**Layer 8 complete (clinical#47, #76, #77, #7 — 2026-06-13):**
+- `ClinicalSusarOversightCaseHub` + `susar-oversight.yaml` + `SusarOversightCaseService` (dedicated oversight case hub, three-phase pattern, idempotency guard)
+- `SusarGateDecisionListener` — DB-discriminated @ConsumeEvent for all three gate outcomes (approved/rejected/expired); `SusarDecisionLedgerEntry` in Merkle chain
+- `ClinicalComplianceSupplement` — EU AI Act Art.12 supplements on all six AI decision writers
+- GDPR Art.17 consent withdrawal — `ConsentWithdrawalService`, pseudonymized patientId, `LedgerErasureService` tokenisation, W3C PROV-DM and Merkle proof endpoints
+- §9.4 Layer 8 full entry still needed (LAYER-LOG.md updated 2026-06-13; ARC42STORIES §9.4 to follow)
 
 **Gaps to fill now (small, non-blocking):**
 - ✅ YAML snippet in §9.4 Layer — casehub-engine: `contextChange.filter` conditions and parallel `humanTask` firing added to Key wiring. Layer 5 replication is now fully self-contained (clinical#57).
