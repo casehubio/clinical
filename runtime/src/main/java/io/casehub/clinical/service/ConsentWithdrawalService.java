@@ -12,7 +12,6 @@ import io.casehub.platform.api.memory.CaseMemoryStore;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 import jakarta.transaction.Transactional;
-import jakarta.ws.rs.core.Response;
 import java.time.Clock;
 import java.time.Instant;
 import java.util.UUID;
@@ -51,16 +50,14 @@ public class ConsentWithdrawalService {
     @Inject Clock clock;
 
     @Transactional
-    public Response withdraw(UUID enrollmentId, String tenantId) {
+    public void withdraw(UUID enrollmentId, String tenantId) {
         PatientEnrollment enrollment = PatientEnrollment.find(
                 "id = ?1 AND tenantId = ?2", enrollmentId, tenantId).firstResult();
         if (enrollment == null) {
-            return Response.status(Response.Status.NOT_FOUND).build();
+            throw new PatientEnrollmentNotFoundException(enrollmentId);
         }
         if (enrollment.consentStatus == ConsentStatus.WITHDRAWN) {
-            return Response.status(Response.Status.CONFLICT)
-                    .entity("Consent already withdrawn for enrollment " + enrollmentId)
-                    .build();
+            throw new ConsentAlreadyWithdrawnException(enrollmentId);
         }
 
         Instant now = clock.instant();
@@ -109,7 +106,6 @@ public class ConsentWithdrawalService {
                     enrollmentId);
         }
 
-        return Response.noContent().build();
     }
 
     private int nextSequenceNumber(UUID enrollmentId) {

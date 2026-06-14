@@ -1,14 +1,16 @@
 package io.casehub.clinical.service;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import io.casehub.clinical.api.model.ConsentStatus;
 import io.casehub.clinical.api.model.EnrollmentStatus;
 import io.casehub.clinical.entity.PatientEnrollment;
+import io.casehub.clinical.ledger.ConsentWithdrawalLedgerEntry;
+import io.casehub.ledger.runtime.repository.LedgerEntryRepository;
 import io.quarkus.test.junit.QuarkusTest;
 import jakarta.inject.Inject;
 import jakarta.transaction.Transactional;
-import jakarta.ws.rs.core.Response;
 import java.util.UUID;
 import org.junit.jupiter.api.Test;
 
@@ -16,37 +18,44 @@ import org.junit.jupiter.api.Test;
 class ConsentWithdrawalServiceTest {
 
     @Inject ConsentWithdrawalService service;
+    @Inject LedgerEntryRepository ledgerEntryRepository;
 
     @Test
     void withdraw_sets_both_statuses_pseudonymizes_patientId_sets_withdrawnAt() {
         String originalPatientId = "patient-mrn-12345";
         UUID enrollmentId = persistEnrollment(originalPatientId);
 
-        Response response = service.withdraw(enrollmentId, "default");
+        service.withdraw(enrollmentId, "default");
 
-        assertThat(response.getStatus()).isEqualTo(204);
         PatientEnrollment updated = findEnrollment(enrollmentId);
         assertThat(updated.consentStatus).isEqualTo(ConsentStatus.WITHDRAWN);
         assertThat(updated.enrollmentStatus).isEqualTo(EnrollmentStatus.WITHDRAWN);
         assertThat(updated.patientId).startsWith("erased-");
         assertThat(updated.patientId).doesNotContain(originalPatientId);
         assertThat(updated.withdrawnAt).isNotNull();
+
+        // Ledger entry written for tamper-evident audit trail (GDPR Art.17)
+        var entry = ledgerEntryRepository.findLatestBySubjectId(enrollmentId, "default");
+        assertThat(entry).isPresent()
+                .get().isInstanceOf(ConsentWithdrawalLedgerEntry.class);
+        var withdrawalEntry = (ConsentWithdrawalLedgerEntry) entry.get();
+        assertThat(withdrawalEntry.enrollmentId).isEqualTo(enrollmentId);
+        assertThat(withdrawalEntry.withdrawnAt).isNotNull();
     }
 
     @Test
-    void withdraw_returns_409_if_already_withdrawn() {
+    void withdraw_throws_on_already_withdrawn() {
         UUID enrollmentId = persistEnrollment("patient-xyz");
         setWithdrawn(enrollmentId);
 
-        Response response = service.withdraw(enrollmentId, "default");
-
-        assertThat(response.getStatus()).isEqualTo(409);
+        assertThatThrownBy(() -> service.withdraw(enrollmentId, "default"))
+                .isInstanceOf(ConsentAlreadyWithdrawnException.class);
     }
 
     @Test
-    void withdraw_returns_404_for_unknown_enrollment() {
-        Response response = service.withdraw(UUID.randomUUID(), "default");
-        assertThat(response.getStatus()).isEqualTo(404);
+    void withdraw_throws_on_unknown_enrollment() {
+        assertThatThrownBy(() -> service.withdraw(UUID.randomUUID(), "default"))
+                .isInstanceOf(PatientEnrollmentNotFoundException.class);
     }
 
     @Transactional

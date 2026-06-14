@@ -9,7 +9,9 @@ import io.casehub.clinical.entity.AdverseEvent;
 import io.casehub.clinical.entity.PatientEnrollment;
 import io.casehub.clinical.entity.TrialSite;
 import io.casehub.clinical.service.AdverseEventService;
+import io.casehub.clinical.service.ConsentAlreadyWithdrawnException;
 import io.casehub.clinical.service.ConsentWithdrawalService;
+import io.casehub.clinical.service.PatientEnrollmentNotFoundException;
 import io.casehub.ledger.runtime.repository.LedgerEntryRepository;
 import io.casehub.ledger.runtime.service.LedgerProvExportService;
 import io.casehub.ledger.runtime.service.LedgerVerificationService;
@@ -127,7 +129,14 @@ public class PatientResource {
         TrialSite site = TrialSite.findByIdForTenant(siteId, principal);
         if (site == null || !site.trialId.equals(trialId))
             return Response.status(Response.Status.NOT_FOUND).build();
-        return consentWithdrawalService.withdraw(enrollmentId, principal.tenancyId());
+        try {
+            consentWithdrawalService.withdraw(enrollmentId, principal.tenancyId());
+            return Response.noContent().build();
+        } catch (ConsentAlreadyWithdrawnException e) {
+            return Response.status(Response.Status.CONFLICT).entity(e.getMessage()).build();
+        } catch (PatientEnrollmentNotFoundException e) {
+            return Response.status(Response.Status.NOT_FOUND).build();
+        }
     }
 
     @GET
