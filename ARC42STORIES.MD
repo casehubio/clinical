@@ -157,6 +157,7 @@ See `../parent/docs/PLATFORM.md` Capability Ownership table for the full boundar
 | casehub-ledger | `casehub-ledger` | L4 | ✅ complete |
 | casehub-engine | `casehub-engine` | L5 | ✅ complete |
 | Trial blackboard aggregation | `casehub-engine` (extended) | L6 | ✅ complete |
+| ActionRiskClassifier, SUSAR gate, GDPR, EU AI Act | `casehub-engine` (ActionRiskClassifier SPI); `casehub-ledger` (GDPR erasure, ComplianceSupplement) | L8 | ✅ complete |
 | Trust routing | `casehub-ledger` (trust APIs) | L7 | 🔲 stub |
 
 **L2 and L4 build order note:** Layers 2 and 4 were built simultaneously in Epic 4. The reading order (L2 before L4) follows the teaching sequence — SLA mechanics before audit trail — but both `casehub-work` and `casehub-ledger` dependencies landed in the same commit batch. Layer entries in §9.4 follow reading order.
@@ -1322,6 +1323,134 @@ Trial-level `YamlCaseHub` `CaseInstance` as cross-site blackboard — `runtime.s
 
 ---
 
+### Layer — ActionRiskClassifier, SUSAR Oversight Gate, GDPR + EU AI Act
+
+**Participates in chapters:** C2 (SUSAR oversight extends AE audit trail; consent withdrawal closes GDPR gap), C4 (action risk classifier extends engine gate mechanism)
+**Architectural patterns:** Strategy (`ClinicalActionRiskClassifier @RiskClassifier` discovered by `ChainedReactiveActionRiskClassifier` — pluggable gate policy without registration); CDI displacement (`SusarEvaluatorFunction` named interface; ML agent displaces default by classpath presence); Event-Driven (`@ConsumeEvent` for gate approved/rejected/expired with DB discriminator); Three-phase activation (`SusarOversightCaseService` — criteria check outside TX, `startCase().join()` outside TX, `persistCaseId()` in TX)
+**Key protocols:** `casehub/gate-listener-db-discrimination.md` (PP-20260614-09e213); `casehub/compliance-supplement-required.md` (PP-20260614-377e99); ADR-0004 (three-phase activation)
+**Design refs:** `docs/specs/2026-06-11-action-risk-classifier-design.md`; `docs/specs/2026-06-12-susar-fix-gdpr-design.md`
+**Issues:** casehubio/clinical#47 (ActionRiskClassifier); casehubio/clinical#76 (SUSAR gate listener); casehubio/clinical#77 (SUSAR oversight case hub); casehubio/clinical#7 (GDPR + EU AI Act)
+**Navigation:** `git log --grep="#47\|#76\|#77\|#7" --oneline`
+**Blog:** `blog/2026-06-13-mdp01-what-the-binding-schema-actually-is.md`
+**Improvement refs:** `SusarOversightApprovedLifecycleTest` (gate creation path requires Quartz scheduler indexed — see CLAUDE.md forage entry); Grade 3 SUSAR path (21 CFR 312.32(c)(1)(ii) — deferred)
+**Completed:** 2026-06-13 — clinical#47, #76, #77, #7
+
+#### What it adds
+
+**Before:** The engine receives `WorkerResult` with a `PlannedAction` but no clinical application has implemented `ActionRiskClassifier`. All actions are classified as `Autonomous` — agents proceed without oversight regardless of regulatory obligation. No GDPR consent withdrawal. No EU AI Act traceability supplement on AI-agent decisions.
+
+**After:** Five regulatory gate constants are encoded in `ClinicalActionType` enum (SUSAR_CRITERIA_DECISION, SUSAR_REGULATORY_FILING, PATIENT_WITHDRAWAL, DOSE_MODIFICATION, PROTOCOL_DEVIATION_RECORDING). Every SUSAR criteria decision (Grade 4/5, unexpected, suspected) triggers a `GateRequired` decision that creates a clinician sign-off WorkItem before the regulatory clock starts. Three gate outcome paths (approved, rejected, expired) each write a tamper-evident ledger entry. GDPR Art.17 consent withdrawal pseudonymizes patient identity atomically across domain entity, ledger audit trail, and case memory store. All six AI-agent decision ledger entries carry EU AI Act Art.12 compliance supplements.
+
+What this layer adds:
+- **`ClinicalActionType` enum** — 5 regulatory gate constants; pure Java; no framework deps; `@RiskClassifier`-discoverable
+- **`ClinicalActionRiskClassifier @RiskClassifier @ApplicationScoped`** — delegates to enum; `GateRequired` for all five types; `Autonomous` for unknown action types
+- **`SusarCriteriaEvaluator @DefaultBean @ApplicationScoped`** — `@Transactional apply()` loads `AdverseEvent` by `aeId` from DB; evaluates grade ∈ {GRADE_4, GRADE_5} AND unexpected AND suspected
+- **`ClinicalSusarOversightCaseHub`** — `YamlCaseHub` subclass extending `susar-oversight.yaml`; registers `SusarEvaluatorFunction` worker programmatically in `getDefinition()` override
+- **`SusarOversightCaseService`** — three-phase observer; idempotency guard on `susarOversightStatus`; idiomatic pattern for `startCase()` callers
+- **`SusarGateDecisionListener`** — `@ConsumeEvent` for all three gate outcomes; discriminates via DB lookup (`AdverseEvent.findBySusarOversightCaseId`) — race-free (cache-based discrimination clears before the listener fires)
+- **`SusarDecisionLedgerEntry`** + `SusarDecisionLedgerWriter` — tamper-evident gate outcome audit; writes with outcome, timestamp, and actor; V2021 migration
+- **`AdverseEvent.unexpected` + `AdverseEvent.suspected`** — V111 migration; propagated through `PatientResource.ReportAdverseEventRequest` and `AeEscalationCaseService`
+- **`ConsentWithdrawalService`** — GDPR Art.17; pseudonymizes `patientId`; calls `LedgerErasureService.erase()`; erases patient memories; XA across default + qhorus datasources
+- **`ConsentWithdrawalLedgerEntry`** + V2022 migration — tamper-evident erasure record; UUID-only `domainContentBytes()` survives erasure
+- **`ClinicalComplianceSupplement`** factory — EU AI Act Art.12 supplement attached to all six AI-agent decision ledger entries via `entry.attach()`
+- **W3C PROV-DM export + Merkle inclusion proof endpoints** on `PatientResource`
+
+Not closed here: Grade 3 SUSAR path (15-day expedited, 21 CFR 312.32(c)(1)(ii)); `SUSAR_REGULATORY_FILING`, `PATIENT_WITHDRAWAL`, `DOSE_MODIFICATION`, `PROTOCOL_DEVIATION_RECORDING` worker bindings (pending agents); Layer 7 trust routing.
+
+#### Accountability gaps closed
+
+| Gap | What breaks | Closed by |
+|---|---|---|
+| No agent action oversight gate | Safety agents proceed autonomously on Grade 4/5 AEs — regulatory clock starts without clinician sign-off | `ClinicalActionRiskClassifier` → `GateRequired` → clinician WorkItem via `ActionGateWorkItemHandler` |
+| SUSAR gate outcomes unrecorded | Approved / rejected / expired gate states invisible to FDA auditor | `SusarGateDecisionListener` writes `SusarDecisionLedgerEntry` for all three outcomes |
+| GDPR Art.17 consent withdrawal missing | Patient PII irretrievable from clinical system after withdrawal request | `ConsentWithdrawalService` pseudonymizes entity + erases ledger actorId tokenization + erases case memory |
+| EU AI Act Art.12 traceability missing | Six AI-agent decision ledger entries carry no compliance traceability supplement | `ClinicalComplianceSupplement.attach()` on all six ledger entry writers |
+| `AeEscalationCompletedEvent` lacks `unexpected` qualifier | Grade 5 regulatory-submission binding cannot discriminate expected vs unexpected fatal AEs (21 CFR 312.32(c)(1)(i)) | `AdverseEvent.unexpected` field added; propagated to case context; binding can now evaluate |
+
+#### Key files
+
+- `api/src/main/java/io/casehub/clinical/api/model/ClinicalActionType.java` — 5 regulatory gate constants; `@RiskClassifier`-discoverable via enum; pure Java
+- `runtime/src/main/java/io/casehub/clinical/routing/ClinicalActionRiskClassifier.java` — `@RiskClassifier @ApplicationScoped`; single `classify()` method; delegates to enum
+- `runtime/src/main/java/io/casehub/clinical/service/SusarCriteriaEvaluator.java` — `@DefaultBean @ApplicationScoped`; `@Transactional apply()` with entity DB load
+- `runtime/src/main/java/io/casehub/clinical/service/SusarEvaluatorFunction.java` — named CDI displacement interface; extends `Function<Map<String,Object>,WorkerResult>`
+- `runtime/src/main/java/io/casehub/clinical/service/ClinicalSusarOversightCaseHub.java` — `YamlCaseHub` subclass; programmatic worker registration in `getDefinition()`
+- `runtime/src/main/resources/clinical/susar-oversight.yaml` — case definition: `safety-monitoring` capability binding; `susar-complete` goal (`.susarAssessmentComplete != null`)
+- `runtime/src/main/java/io/casehub/clinical/service/SusarOversightCaseService.java` — three-phase `@ObservesAsync AdverseEventReportedEvent`; idempotency guard
+- `runtime/src/main/java/io/casehub/clinical/service/SusarGateDecisionListener.java` — `@ConsumeEvent` for `.approved/.rejected/.expired`; DB discriminator via `findBySusarOversightCaseId`
+- `runtime/src/main/java/io/casehub/clinical/service/SusarDecisionLedgerWriter.java` — writes `SusarDecisionLedgerEntry` for each outcome
+- `runtime/src/main/java/io/casehub/clinical/ledger/SusarDecisionLedgerEntry.java` — `@DiscriminatorValue("SusarDecision")`; `outcome`, `decidedAt`, `decidedBy`; V2021
+- `runtime/src/main/java/io/casehub/clinical/service/ConsentWithdrawalService.java` — GDPR Art.17; XA across two datasources; returns void; throws `ConsentAlreadyWithdrawnException` / `PatientEnrollmentNotFoundException`
+- `runtime/src/main/java/io/casehub/clinical/ledger/ConsentWithdrawalLedgerEntry.java` — `@DiscriminatorValue("ConsentWithdrawal")`; UUID-only `domainContentBytes()`; V2022
+- `runtime/src/main/java/io/casehub/clinical/service/ClinicalComplianceSupplement.java` — EU AI Act Art.12 factory; static methods per agent decision type
+- `runtime/src/main/resources/db/migration/default/V111__adverse_event_unexpectedness.sql` — `unexpected BOOLEAN NOT NULL DEFAULT FALSE`, `suspected BOOLEAN NOT NULL DEFAULT TRUE`
+- `runtime/src/main/resources/db/migration/qhorus/V2021__susar_decision_ledger_entry.sql` — join table for `SusarDecisionLedgerEntry`
+- `runtime/src/main/resources/db/migration/qhorus/V2022__consent_withdrawal_ledger_entry.sql` — join table for `ConsentWithdrawalLedgerEntry`
+
+#### Key wiring
+
+**`@RiskClassifier` CDI discovery — zero-registration plugin.** `ClinicalActionRiskClassifier @ApplicationScoped @RiskClassifier` is discovered by `ChainedReactiveActionRiskClassifier` (casehub-engine internal) via CDI `Instance<ActionRiskClassifier> @RiskClassifier`. No explicit registration needed. Zero `@RiskClassifier` beans → `Autonomous` (safe default); multiple beans → `mostRestrictive()`. The classifier chain runs on the worker pool thread — exceptions are caught and fall back to fail-safe `GateRequired`.
+
+**YAML binding `capability: name` directly — no `worker:` field.** `io.casehub.model.Binding` has `capability: String` as a direct schema field. `worker: { capability: ... }` is silently dropped by Jackson (`FAIL_ON_UNKNOWN_PROPERTIES=DISABLED`); `convertBinding()` then throws `IllegalArgumentException: must have capability, subCase, or humanTask`. A Java-function worker additionally requires programmatic registration in `getDefinition()` — the YAML alone cannot express it. See `ClinicalSusarOversightCaseHub`. Protocol: GE-20260613-25d1ce.
+
+**Gate discrimination via DB query — not `CaseInstanceCache`.** `ActionGateApprovedHandler` / `Rejected` / `Expired` handlers clear `pendingActionGate` from `CaseInstanceCache` synchronously before publishing downstream. By the time `SusarGateDecisionListener` fires, `pendingActionGate` is null. `AdverseEvent.findBySusarOversightCaseId(event.caseId())` is race-free, provides all needed fields (`aeId`, `enrollmentId`, `grade`), and survives JVM restart. Protocol: PP-20260614-09e213, GE-20260613-29d3b5.
+
+**`ClinicalComplianceSupplement` — `attach()` not `addSupplement()`.** Call `entry.attach(supplement)` before `ledgerEntryRepository.save()`. The attachment method is `attach()`. `ComplianceSupplement` must be the runtime type from `casehub-ledger` (`io.casehub.ledger.runtime.model.supplement.ComplianceSupplement`) — the API model POJO cannot be persisted via the `@OneToMany supplements` relationship. Protocol: PP-20260614-377e99.
+
+**`domainContentBytes()` required on all ledger subclasses with `@Column` fields.** `casehub-ledger` SNAPSHOT added a build-time `LedgerProcessor` validator that fails CDI deployment with a descriptive message if `domainContentBytes()` is missing on any subclass with persistent fields. Return `String.join("|", field1, field2, ...).getBytes(StandardCharsets.UTF_8)`. For `ConsentWithdrawalLedgerEntry`, only `enrollmentId` and `withdrawnAt` contribute — `ledgerEntriesAffected` and `memoriesErased` are post-erasure metadata, not identity-determining content.
+
+**XA required for `ConsentWithdrawalService`.** `withdraw()` writes to both the default datasource (`PatientEnrollment`) and the qhorus datasource (`ConsentWithdrawalLedgerEntry`) in one `@Transactional` call. Both `application.properties` files must declare `quarkus.datasource.jdbc.transactions=xa` and `quarkus.datasource.qhorus.jdbc.transactions=xa`. Symptom without XA: Agroal throws "Failed to enlist. Check if a connection from another datasource is already enlisted to the same transaction."
+
+**Three-phase pattern — `SusarOversightCaseService` is the third application of ADR-0004.** Phase 1: `@Transactional prepareAndMark()` — evaluate criteria SPI, set `REQUESTED`. Phase 2: `startCase().join()` outside any transaction. Phase 3: `@Transactional persistCaseId()`. Idempotency guard in Phase 1 (`if susarOversightStatus != NONE, return null`) prevents double-start on CDI at-least-once re-delivery.
+
+#### Architectural decisions
+
+**`ClinicalActionType` enum owns all gate fields.** Five regulatory gate constants include `reason`, `reversible`, `candidateGroups`, `expiresIn`, `scope`, and `actionType()` — computed from the enum name. The classifier is a trivial delegation to `ClinicalActionType.fromActionType(action.actionType())`. All gate parameters live in the enum, not scattered across service code. Extending with a sixth gate type requires only one enum constant addition.
+
+**Dedicated oversight case hub vs. inline worker binding.** The `ClinicalSusarOversightCaseHub` approach (separate case per SUSAR criteria evaluation) was chosen over a programmatic `ContextChangeTrigger` added to `ae-escalation.yaml`. The engine fires `CaseContextChangedEvent` before applying the initial context to the live `CaseInstance` — inline function workers would receive empty `inputData`. Dedicated case hub with `SusarOversightCaseService` (three-phase, idempotency guard) sidesteps the context-timing problem entirely. Pattern matches the AML Layer 9 oversight hub.
+
+**UUID-only `domainContentBytes()` for `ConsentWithdrawalLedgerEntry`.** After GDPR erasure, `actorId` is pseudonymized. If `actorId` contributed to the Merkle content bytes, erasure would break the chain (pre/post-erasure hashes differ). UUID-only content (`enrollmentId + withdrawnAt`) means erasure of `actorId` does not invalidate the chain integrity. The trade-off: the hash does not commit to who performed the withdrawal — only to when and for whom.
+
+#### Pattern introduced
+
+DB discriminator in `@ConsumeEvent` gate listeners — query domain entity by `susarOversightCaseId` to identify which gate fired. Race-free, cache-independent, JVM-restart-safe. Generalises to any application that uses multiple action gate types from the same `@ConsumeEvent` address.
+
+#### Pattern anchor
+
+`runtime/src/main/java/io/casehub/clinical/service/SusarGateDecisionListener.java` — `AdverseEvent.findBySusarOversightCaseId(event.caseId())` pattern for gate discrimination.
+
+#### Gotchas
+
+- **`worker: { capability: ... }` YAML binding is silently ignored**
+  - **Symptom:** `convertBinding()` throws `IllegalArgumentException: must have capability, subCase, or humanTask` at case startup. Jackson silently drops `worker:` because the field does not exist on `Binding`.
+  - **Fix:** Use `capability: name` directly on the binding. Register Java-function workers programmatically in `getDefinition()` override. GE-20260613-25d1ce.
+
+- **Gate discrimination via `CaseInstanceCache.getPendingActionGate()` always returns null**
+  - **Symptom:** `@ConsumeEvent("casehub.action.gate.approved")` handler sees null `pendingActionGate` for the case — impossible to determine which gate fired.
+  - **Cause:** `ActionGateApprovedHandler` (and Rejected/Expired) clears `pendingActionGate` synchronously before publishing downstream events to Vert.x event bus. Clinical listener fires after the clear.
+  - **Fix:** Query domain entity by caseId — `AdverseEvent.findBySusarOversightCaseId(event.caseId())`. Non-null means SUSAR oversight gate; null means another gate. PP-20260614-09e213, GE-20260613-29d3b5.
+
+- **`entry.attach(supplement)` — not `addSupplement()`; runtime model required**
+  - **Symptom:** Compilation error (`cannot find symbol: method addSupplement`) or `PersistenceException` at save time (API model `ComplianceSupplement` has no JPA mapping).
+  - **Fix:** Use `entry.attach(supplement)` and import `io.casehub.ledger.runtime.model.supplement.ComplianceSupplement` (not the API POJO). PP-20260614-377e99.
+
+- **`SusarOversightApprovedLifecycleTest` — Quartz-based gate creation unreliable in `@QuarkusTest`**
+  - **Symptom:** No SUSAR gate WorkItem appears after `SusarOversightCaseService.onAdverseEventReported()` because `QuartzWorkerExecutionManager` is not CDI-visible (scheduler jar not in `quarkus.index-dependency`) — `NoOpWorkerExecutionManager` silently drops all `submit()` calls with `ProvisioningException`.
+  - **Fix:** Test the two observable behaviors directly: call `SusarGateDecisionListener.onApproved()` for ledger write; call `SusarOversightListener.onCaseLifecycle(GoalReached)` for domain status update. Both are synchronous from the test thread. GE recorded: forage capture 2026-06-14.
+
+#### Pattern to replicate
+
+1. Implement `ActionRiskClassifier` in `runtime/` as `@ApplicationScoped @RiskClassifier` — one `classify()` method delegating to your domain action type enum
+2. Encode gate parameters in a pure-Java enum (`reason`, `reversible`, `candidateGroups`, `expiresIn`, `scope`, `actionType()`)
+3. Implement `SomethingEvaluatorFunction extends Function<Map<String,Object>,WorkerResult>` as a named CDI displacement interface in `runtime/service/`
+4. Create `@DefaultBean @ApplicationScoped SomethingEvaluator implements SomethingEvaluatorFunction` — `@Transactional apply()` loading entity from DB; return `WorkerResult.of(output, PlannedAction.of(reason, actionType, ctx))` when gate required
+5. Create `YamlCaseHub` subclass extending a dedicated YAML case definition; register evaluator as a Java-function worker in `getDefinition()` override
+6. Create `@ApplicationScoped SomethingOversightCaseService` — three-phase `@ObservesAsync` observer with idempotency guard; call criteria evaluator in Phase 1
+7. Write `@ConsumeEvent` listeners for `casehub.action.gate.approved/.rejected/.expired` — discriminate via DB query by `oversightCaseId`, not cache; write ledger entry for each outcome
+8. For consent/erasure: implement `@Transactional withdraw()` with `LedgerErasureService.erase()` and `CaseMemoryStore.eraseEntity()`; use XA for cross-datasource writes; return `void`; throw domain exceptions
+9. Attach `ComplianceSupplement` to all AI-agent decision ledger entries via `entry.attach(complement)` before `ledgerEntryRepository.save()`
+
+---
+
 ### Layer — Trust Routing (stub)
 
 **Participates in chapters:** *(pending — C6 when implemented)*
@@ -1511,7 +1640,7 @@ Per the Arc42Stories spec: layer-specific decisions live in §9.4; this section 
 - `SusarGateDecisionListener` — DB-discriminated @ConsumeEvent for all three gate outcomes (approved/rejected/expired); `SusarDecisionLedgerEntry` in Merkle chain
 - `ClinicalComplianceSupplement` — EU AI Act Art.12 supplements on all six AI decision writers
 - GDPR Art.17 consent withdrawal — `ConsentWithdrawalService`, pseudonymized patientId, `LedgerErasureService` tokenisation, W3C PROV-DM and Merkle proof endpoints
-- §9.4 Layer 8 full entry still needed (LAYER-LOG.md updated 2026-06-13; ARC42STORIES §9.4 to follow)
+- ✅ §9.4 Layer 8 full entry written (2026-06-14)
 
 **Gaps to fill now (small, non-blocking):**
 - ✅ YAML snippet in §9.4 Layer — casehub-engine: `contextChange.filter` conditions and parallel `humanTask` firing added to Key wiring. Layer 5 replication is now fully self-contained (clinical#57).
