@@ -583,46 +583,81 @@ evaluates `[.flagMap // {} | to_entries[] | select(.value == true)] | length >= 
 
 ## Layer 7 — Trust routing
 
-**Status:** Not yet built (planned, casehubio/clinical#10).
+**Completed:** 2026-06-15 (casehubio/clinical#8)
+**Issues:** casehubio/clinical#8
+**Navigation:** `git log --grep="#8" --oneline`
+**Spec:** workspace `specs/2026-06-14-layer7-trust-routing-design.md`
+**Key files:**
+- `runtime/src/main/java/io/casehub/clinical/routing/ClinicalTrustRoutingPolicyProvider.java` — `@ApplicationScoped`; per-capability trust policies; displaces `DefaultTrustRoutingPolicyProvider @DefaultBean`
+- `runtime/src/main/java/io/casehub/clinical/service/SusarAgentAttestationWriter.java` — `@ApplicationScoped`; 3 `@ConsumeEvent` gate handlers; writes `LedgerAttestation` anchored to `WorkerDecisionEntry`
+- `runtime/src/main/java/io/casehub/clinical/service/RegulatorySubmissionCaseService.java` — three-phase `@ObservesAsync`; Grade 5 + unexpected → IND expedited safety reporting case
+- `runtime/src/main/java/io/casehub/clinical/service/ClinicalRegulatorySubmissionCaseHub.java` — `YamlCaseHub` subclass; `regulatory-submission.yaml`
+- `runtime/src/main/java/io/casehub/clinical/ledger/RegulatorySubmissionLedgerEntry.java` — JOINED inheritance on qhorus datasource; V2023
+- `api/src/main/java/io/casehub/clinical/api/AeEscalationCompletedEvent.java` — added `boolean unexpected` (7th field)
+- `api/src/main/java/io/casehub/clinical/api/model/RegulatorySubmissionStatus.java` — enum: NONE, PENDING, FILED
 
 ### What it adds
 
-Trust-weighted agent routing by clinical capability. `ActorTrustScore` updated from WorkItem outcomes and commitment attestations (Bayesian Beta). Routing selects the agent with the highest domain-specific trust score — safety-accuracy for adverse event classification, eligibility-precision for screening, protocol-adherence for deviation review.
+**Trust-weighted agent routing.** `ClinicalTrustRoutingPolicyProvider @ApplicationScoped` displaces
+`DefaultTrustRoutingPolicyProvider @DefaultBean` (from `casehub-engine-ledger`) by CDI classpath
+priority. Defines per-capability trust policies:
+- `safety-monitoring`: threshold=0.75, 20 min observations, safety-accuracy quality floor 0.70
+- `eligibility-screening`: threshold=0.70, 15 min observations
+- `protocol-review`: threshold=0.65, 25 min observations
+- All other capabilities: `TrustRoutingPolicy.DEFAULT` (availability routing)
 
-### Regulatory gap — Grade 5 AE regulatory escalation
+Adding `casehub-engine-ledger` to the classpath activates `TrustWeightedAgentStrategy`,
+`WorkerDecisionEventCapture` (writes `WorkerDecisionEntry` on every agent worker decision),
+`TrustScoreCache @Startup`, and `CaseLedgerEntryRepository`.
 
-`DefaultAdverseEventEscalationPolicy` currently routes Grade 5 (death) identically to
-Grade 4 (life-threatening): senior monitor + DSMB escalation. This is a documented
-simplification — the showcase uses Grade 3/4 scenarios, and Grade 5 routing is correct
-for the clinical narrative being tested.
+**LedgerAttestation quality signals.** `SusarAgentAttestationWriter` observes the same three
+gate event addresses as `SusarGateDecisionListener`. On APPROVED → writes `AttestationVerdict.ENDORSED`;
+on REJECTED/EXPIRED → `CHALLENGED`. Anchors to the `WorkerDecisionEntry` written by
+`WorkerDecisionEventCapture` when the `safety-monitoring` agent ran in the SUSAR oversight case.
+`TrustScoreJob` (casehub-ledger, 24h schedule, gated by config) ingests these attestations into
+Bayesian Beta trust scores. `attestorType`: HUMAN when named actor approved/rejected, SYSTEM on expiry.
 
-**What Layer 7 must add for regulatory correctness (21 CFR Part 312.32):**
-Under 21 CFR 312.32(c)(1)(i), the expedited IND safety reporting obligation applies to
-*unexpected* fatal or immediately life-threatening adverse reactions. Grade 5 is always
-serious, but the `unexpected` qualifier still applies: a listed expected outcome in the IND
-protocol uses a different reporting window (7-day / 15-day) rather than the immediate IND
-safety report path. Grade alone is insufficient — the event's `unexpected` flag must also
-be evaluated.
+**IND expedited safety reporting obligation.** `RegulatorySubmissionCaseService` observes
+`AdverseEventReportedEvent` concurrently with `AeEscalationCaseService` and
+`SusarOversightCaseService`. Grade 5 + unexpected → marks `regulatorySubmissionStatus = PENDING`,
+writes `RegulatorySubmissionLedgerEntry` (same TX), starts `regulatory-submission` engine case.
+`RegulatorySubmissionLedgerWriter` uses `@Transactional(MANDATORY)` — always called within Phase 1.
 
-**Partial resolution in Layer 8 (clinical#47):** `AdverseEvent.unexpected` and
-`AdverseEvent.suspected` entity fields were added in Layer 8 (Flyway V111). The
-`AeEscalationCaseService` now propagates both to the engine case context. The
-`AeEscalationCompletedEvent` gap (carrying `unexpected` for downstream consumers) remains
-for Layer 7 to address — the entity is now the authoritative source, so Layer 7 can
-derive it at event fire time without an additional DB query.
+**`AeEscalationCompletedEvent.unexpected` API extension.** Added as 7th field (boolean primitive,
+default false if absent from case context). Derived from `AdverseEvent.unexpected` in
+`AeEscalationListener`. Breaking change — all test constructors updated.
 
-**API gap still open:** `AeEscalationCompletedEvent` currently carries `grade` but not `unexpected`.
-Layer 7 must add `unexpected` to the event (derived from `AdverseEvent.unexpected` at event
-fire time) before the regulatory-submission binding can correctly discriminate.
+**Batch trust model.** Attestations accumulate between `TrustScoreJob` cycles (24h default).
+Routing quality improves on the next cycle. Phase 0 (bootstrap, `decisionCount < minimumObservations`)
+falls back to availability routing. To activate: set `casehub.ledger.trust-score.enabled=true` and
+`casehub.ledger.trust-score.materialization.enabled=true` in production.
 
-Required wiring:
-- Add `boolean unexpected` to `AeEscalationCompletedEvent` — read from `AdverseEvent.unexpected`
-  at event fire time (entity already has the field from Layer 8).
-- Add a `regulatory-submission` capability binding (or CDI observer on
-  `AeEscalationCompletedEvent`) that fires when `grade == GRADE_5 && unexpected`.
-- The two escalation paths (DSMB + IND reporting) must be independent — not sequential.
+### Architecture note — attestation trigger
 
-Refs #30 (casehubio/clinical)
+`ae-escalation.yaml` has ONLY `humanTask` bindings. `WorkerDecisionEventCapture` fires only on
+agent worker completions, not human tasks — zero `WorkerDecisionEntry` records exist in the AE
+escalation case. The safety-monitoring agent runs in `susar-oversight.yaml` (capability binding).
+SUSAR gate outcomes (APPROVED/REJECTED/EXPIRED) are the correct quality signal. Do NOT use
+`AeEscalationCompletedEvent` as the attestation trigger.
+
+### Regulatory gap — closed
+
+- ~~Add `boolean unexpected` to `AeEscalationCompletedEvent`~~ — **closed 2026-06-15** (7th field, derived from case context)
+- ~~Grade 5 IND safety reporting path~~ — **closed 2026-06-15** by `RegulatorySubmissionCaseService` + `regulatory-submission.yaml`; concurrent with AE escalation, not sequential
+
+### Key wiring
+
+**`casehub-engine-ledger` Flyway migrations** (`V2000__case_ledger_entry.sql`, `V2001__worker_decision_entry.sql`)
+are at `classpath:db/engine-ledger/migration`. Both `application.properties` files must include this in
+`quarkus.flyway.qhorus.locations`. Without it, `WorkerDecisionEventCapture` fails at startup.
+
+**`CaseLedgerEntryRepository @Inject`** uses `@LedgerPersistenceUnit` EntityManager (qhorus datasource).
+The package `io.casehub.ledger.model` is already in `quarkus.hibernate-orm.qhorus.packages` — no change needed.
+Add `casehub-engine-ledger` to test `quarkus.index-dependency` for CDI bean discovery.
+
+**`DB-discriminated attestation`** — use `AdverseEvent.findBySusarOversightCaseId(event.caseId())` in
+gate event handlers to identify SUSAR oversight gates. The cache-based approach (`CaseInstanceCache.getPendingActionGate()`)
+is racy — the gate is cleared before the listener fires. See GE-20260613-29d3b5.
 
 ---
 

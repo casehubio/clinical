@@ -1451,16 +1451,47 @@ DB discriminator in `@ConsumeEvent` gate listeners — query domain entity by `s
 
 ---
 
-### Layer — Trust Routing (stub)
+### Layer — Trust Routing
 
-**Participates in chapters:** *(pending — C6 when implemented)*
-**Completed:** 🔲 Not yet built — casehubio/clinical#10
+**Participates in chapters:** C2 (regulatory-submission path extends AE compliance coverage), C4 (trust-weighted routing extends engine capability selection)
+**Architectural patterns:** Strategy (`ClinicalTrustRoutingPolicyProvider @ApplicationScoped` displaces `DefaultTrustRoutingPolicyProvider @DefaultBean`); Observer (`SusarAgentAttestationWriter @ConsumeEvent` gate handlers); Three-phase activation (ADR-0004)
+**Key protocols:** `casehub/gate-listener-db-discrimination.md` (PP-20260614-09e213); `casehub/trust-maturity-model.md`
+**Design refs:** workspace `specs/2026-06-14-layer7-trust-routing-design.md`
+**Issues:** casehubio/clinical#8
+**Navigation:** `git log --grep="#8" --oneline`
+**Completed:** 2026-06-15 — `ClinicalTrustRoutingPolicyProvider`, `SusarAgentAttestationWriter`, `RegulatorySubmissionCaseService`
 
-🔲 Full entry at Layer 7 close. Blocked on Layer 7 implementation.
+#### What it adds
 
-Known scope: `TrustWeightedSelectionStrategy` for clinical capability routing; `ActorTrustScore` updated from WorkItem outcomes and commitment attestations (Bayesian Beta); routing selects agent with highest domain-specific trust score — `safety-accuracy` for AE classification, `eligibility-precision` for screening, `protocol-adherence` for deviation review.
+**Before:** All clinical agents selected by availability only — no trust differentiation. Grade 5 unexpected AEs trigger no regulatory submission case. `AeEscalationCompletedEvent` carries no `unexpected` qualifier.
 
-**Regulatory gap (21 CFR Part 312.32):** `DefaultAdverseEventEscalationPolicy` currently routes Grade 5 identically to Grade 4 (senior monitor + DSMB). Under 21 CFR 312.32(c)(1)(i), the expedited IND safety reporting obligation applies to *unexpected* fatal events — a listed expected outcome uses a different reporting window. Layer 7 must add `boolean unexpected` to `AeEscalationCompletedEvent` and a `regulatory-submission` binding that fires when `grade == GRADE_5 && unexpected`. Tracked: casehubio/clinical#30.
+**After:** `ClinicalTrustRoutingPolicyProvider` provides per-capability trust policies (safety-monitoring: threshold=0.75, 20 min observations, safety-accuracy quality floor; eligibility-screening: threshold=0.70; protocol-review: threshold=0.65). `TrustWeightedAgentStrategy` (casehub-engine-ledger, activates by classpath) routes by trust score once threshold observations accumulate. Phase 0 (bootstrap) falls back to availability — no blocking on missing trust data.
+
+`SusarAgentAttestationWriter` observes SUSAR gate outcomes (APPROVED → ENDORSED, REJECTED/EXPIRED → CHALLENGED) and writes `LedgerAttestation` anchored to the `WorkerDecisionEntry` written by `WorkerDecisionEventCapture` when the safety-monitoring agent ran. `TrustScoreJob` (casehub-ledger, 24h schedule) ingests attestations into Bayesian Beta scores.
+
+`RegulatorySubmissionCaseService` observes `AdverseEventReportedEvent` concurrently. Grade 5 + unexpected → starts a `regulatory-submission` engine case (IND 7-day reporting obligation, 21 CFR 312.32(c)(1)(i)). Independent of the AE escalation and SUSAR oversight paths.
+
+`AeEscalationCompletedEvent` gains `boolean unexpected` (7th field) — derived from case context at fire time, makes the event complete for downstream consumers.
+
+#### Compliance gaps closed
+
+| Gap | Closed by |
+|---|---|
+| Agents selected by availability — no trust differentiation | `ClinicalTrustRoutingPolicyProvider` + `TrustWeightedAgentStrategy` (engine-ledger classpath) |
+| Trust scores never improve — no attestation | `SusarAgentAttestationWriter` writes `LedgerAttestation`; `TrustScoreJob` ingests |
+| Grade 5 unexpected AE — no IND regulatory submission | `RegulatorySubmissionCaseService` + `regulatory-submission.yaml` |
+| `AeEscalationCompletedEvent` missing `unexpected` | 7th field added; propagated from case context |
+
+#### Key files
+
+- `runtime/src/main/java/io/casehub/clinical/routing/ClinicalTrustRoutingPolicyProvider.java`
+- `runtime/src/main/java/io/casehub/clinical/service/SusarAgentAttestationWriter.java`
+- `runtime/src/main/java/io/casehub/clinical/service/RegulatorySubmissionCaseService.java`
+- `runtime/src/main/java/io/casehub/clinical/service/ClinicalRegulatorySubmissionCaseHub.java`
+- `runtime/src/main/resources/clinical/regulatory-submission.yaml`
+- `runtime/src/main/java/io/casehub/clinical/ledger/RegulatorySubmissionLedgerEntry.java`
+- `api/src/main/java/io/casehub/clinical/api/AeEscalationCompletedEvent.java`
+- `api/src/main/java/io/casehub/clinical/api/model/RegulatorySubmissionStatus.java`
 
 ---
 
@@ -1531,8 +1562,8 @@ Per the Arc42Stories spec: layer-specific decisions live in §9.4; this section 
 
 | Risk | Mitigation | Tracked |
 |---|---|---|
-| Grade 5 regulatory gap — `DefaultAdverseEventEscalationPolicy` does not evaluate `unexpected` qualifier (21 CFR 312.32) | Documented limitation; Layer 7 must add `boolean unexpected` to `AeEscalationCompletedEvent`; see Layer 7 stub in §9.4 | casehubio/clinical#10 (Layer 7 scope) |
-| Layer 7 trust routing absent — agents selected by availability | Bootstrap mode; routing quality improves as attestations accumulate | casehubio/clinical#10 |
+| ~~Grade 5 regulatory gap — `DefaultAdverseEventEscalationPolicy` does not evaluate `unexpected` qualifier (21 CFR 312.32)~~ | ~~Documented limitation; Layer 7 must add `boolean unexpected` to `AeEscalationCompletedEvent`~~ | **Closed 2026-06-15** — `AeEscalationCompletedEvent.unexpected` + `RegulatorySubmissionCaseService` (casehubio/clinical#8) |
+| ~~Layer 7 trust routing absent — agents selected by availability~~ | ~~Bootstrap mode; routing quality improves as attestations accumulate~~ | **Closed 2026-06-15** — `ClinicalTrustRoutingPolicyProvider` + `SusarAgentAttestationWriter` (casehubio/clinical#8) |
 
 ### Technical Debt
 

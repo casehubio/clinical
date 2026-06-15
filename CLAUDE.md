@@ -313,7 +313,7 @@ Layer 3: + casehub-qhorus — PI authorisation COMMAND for protocol deviations �
 Layer 4: + casehub-ledger — FDA Merkle tamper-evident audit trail ✅ (Epic 4)
 Layer 5: + casehub-engine — IRB gate as engine PlanItem; CRITICAL deviation path ✅ (Epic 6)
 Layer 6: trial-level blackboard aggregation — DSMB rollup via cross-site signal detection ✅ (Epic 3)
-Layer 7: trust routing (casehubio/clinical#10)
+Layer 7: trust routing — ClinicalTrustRoutingPolicyProvider, SusarAgentAttestationWriter (LedgerAttestation), RegulatorySubmissionCaseService (IND 21 CFR 312.32), AeEscalationCompletedEvent.unexpected ✅ (casehubio/clinical#8, 2026-06-15)
 ```
 
 **Note on reading order vs build order:** Layers 2 and 4 were built in the same epic (Epic 4) — reading order differs from build order. LAYER-LOG.md preserves reading order.
