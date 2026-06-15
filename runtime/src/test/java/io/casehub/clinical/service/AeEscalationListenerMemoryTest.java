@@ -111,6 +111,7 @@ class AeEscalationListenerMemoryTest {
         when(ctx.getPath("safetyReview")).thenReturn(safetyReview);
         when(ctx.getPath("dsmbEscalation")).thenReturn(dsmbEscalation);
         when(ctx.getPath("tenantId")).thenReturn(tenantId);
+        when(ctx.getPath("unexpected")).thenReturn(null);
         return ctx;
     }
 

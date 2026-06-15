@@ -52,6 +52,7 @@ class AeEscalationListenerTest {
         when(ctx.getPath("safetyReview")).thenReturn(Map.of(AeEscalationListener.OUTCOME_KEY, "REVIEWED"));
         when(ctx.getPath("dsmbEscalation")).thenReturn("completed");
         when(ctx.getPath("tenantId")).thenReturn("test-tenant");
+        when(ctx.getPath("unexpected")).thenReturn(null);
 
         CaseInstance instance = mock(CaseInstance.class);
         when(instance.getCaseContext()).thenReturn(ctx);
@@ -70,6 +71,39 @@ class AeEscalationListenerTest {
         assertThat(fired.aeId()).isEqualTo(aeId);
         assertThat(fired.grade()).isEqualTo(CtcaeGrade.GRADE_4);
         assertThat(fired.siteId()).isEqualTo(siteId);
+    }
+
+    @Test
+    void completed_event_carries_unexpected_from_case_context() {
+        UUID caseId = UUID.randomUUID();
+        UUID aeId = UUID.randomUUID();
+        UUID enrollmentId = UUID.randomUUID();
+        UUID siteId = UUID.randomUUID();
+
+        CaseContext ctx = mock(CaseContext.class);
+        when(ctx.getPath("aeId")).thenReturn(aeId.toString());
+        when(ctx.getPath("enrollmentId")).thenReturn(enrollmentId.toString());
+        when(ctx.getPath("grade")).thenReturn("GRADE_5");
+        when(ctx.getPath("siteId")).thenReturn(siteId.toString());
+        when(ctx.getPath("safetyReview")).thenReturn(Map.of(AeEscalationListener.OUTCOME_KEY, "REVIEWED"));
+        when(ctx.getPath("dsmbEscalation")).thenReturn("completed");
+        when(ctx.getPath("tenantId")).thenReturn("test-tenant");
+        when(ctx.getPath("unexpected")).thenReturn(true);
+
+        CaseInstance instance = mock(CaseInstance.class);
+        when(instance.getCaseContext()).thenReturn(ctx);
+        when(caseInstanceRepository.findByUuid(eq(caseId), any())).thenReturn(Uni.createFrom().item(instance));
+        when(statusUpdater.markCompleted(aeId)).thenReturn(true);
+        when(completedEvents.fireAsync(any())).thenReturn(CompletableFuture.completedFuture(null));
+
+        listener.onCaseLifecycle(new CaseLifecycleEvent(
+                caseId, null, "CompleteCase", "CaseCompleted", "COMPLETED", "system", "system", null));
+
+        ArgumentCaptor<AeEscalationCompletedEvent> captor =
+                ArgumentCaptor.forClass(AeEscalationCompletedEvent.class);
+        verify(completedEvents).fireAsync(captor.capture());
+
+        assertThat(captor.getValue().unexpected()).isTrue();
     }
 
     @Test
@@ -137,6 +171,7 @@ class AeEscalationListenerTest {
         when(ctx.getPath("siteId")).thenReturn(null);
         when(ctx.getPath("safetyReview")).thenReturn(null);
         when(ctx.getPath("dsmbEscalation")).thenReturn(null);
+        when(ctx.getPath("unexpected")).thenReturn(null);
         CaseInstance instance = mock(CaseInstance.class);
         when(instance.getCaseContext()).thenReturn(ctx);
         when(caseInstanceRepository.findByUuid(eq(caseId), any())).thenReturn(Uni.createFrom().item(instance));

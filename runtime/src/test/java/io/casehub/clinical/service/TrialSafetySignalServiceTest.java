@@ -87,6 +87,6 @@ class TrialSafetySignalServiceTest {
     // ── helper ───────────────────────────────────────────────────────────────
 
     private AeEscalationCompletedEvent completedEvent(UUID siteId, CtcaeGrade grade) {
-        return new AeEscalationCompletedEvent(UUID.randomUUID(), grade, siteId, "REVIEWED", true, Instant.now());
+        return new AeEscalationCompletedEvent(UUID.randomUUID(), grade, siteId, "REVIEWED", true, Instant.now(), false);
     }
 }

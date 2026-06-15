@@ -76,6 +76,7 @@ public class AeEscalationListener {
         CtcaeGrade grade = resolveGrade(instance.getCaseContext().getPath("grade"));
         String safetyReviewOutcome = resolveOutcome(instance.getCaseContext().getPath("safetyReview"));
         boolean dsmbEscalated = instance.getCaseContext().getPath("dsmbEscalation") != null;
+        boolean unexpected = Boolean.TRUE.equals(instance.getCaseContext().getPath("unexpected"));
         Instant completedAt = Instant.now();
 
         // Narrow try/catch: markCompleted committed (REQUIRES_NEW). Any exception here is an FDA gap.
@@ -89,7 +90,7 @@ public class AeEscalationListener {
                 memoryService.storeAeOutcome(aeId, enrollmentId, grade, safetyReviewOutcome, dsmbEscalated, tenantId);
             }
             completedEvents.fireAsync(new AeEscalationCompletedEvent(
-                    aeId, grade, siteId, safetyReviewOutcome, dsmbEscalated, completedAt));
+                    aeId, grade, siteId, safetyReviewOutcome, dsmbEscalated, completedAt, unexpected));
         } catch (Exception e) {
             if (!ledgerWritten) {
                 LOG.errorf(e, "AeEscalationListener: unexpected error for aeId=%s (enrollmentId=%s, grade=%s) — writing failure entry", aeId, enrollmentId, grade);
