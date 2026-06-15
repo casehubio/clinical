@@ -32,6 +32,13 @@
       <artifactId>casehub-ledger</artifactId>
     </dependency>
 
+    <!-- Layer 7: casehub-engine-ledger — activates TrustWeightedAgentStrategy,
+         WorkerDecisionEventCapture, TrustScoreCache, CaseLedgerEntryRepository by classpath presence -->
+    <dependency>
+      <groupId>io.casehub</groupId>
+      <artifactId>casehub-engine-ledger</artifactId>
+    </dependency>
+
     <!-- Layer 3: formal PI obligation tracking via COMMAND lifecycle -->
     <dependency>
       <groupId>io.casehub</groupId>
