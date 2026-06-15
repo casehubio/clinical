@@ -1,0 +1,23 @@
+dsl: "0.1"
+version: "1.0.0"
+name: regulatory-submission
+namespace: clinical
+title: IND Expedited Safety Report Filing
+
+spec:
+
+  capabilities:
+    - name: regulatory-submission
+      inputSchema: "{ grade: .grade, unexpected: .unexpected, aeId: .aeId }"
+
+  goals:
+    - name: submission-complete
+      kind: success
+      condition: ".submissionFiled != null"
+
+  bindings:
+    - name: file-ind-report
+      on:
+        contextChange:
+          filter: ".grade != null and .submissionFiled == null"
+      capability: regulatory-submission

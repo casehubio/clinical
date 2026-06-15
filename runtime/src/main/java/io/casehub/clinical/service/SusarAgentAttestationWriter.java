@@ -79,7 +79,7 @@ public class SusarAgentAttestationWriter {
                             attestation.subjectId = ae.susarOversightCaseId;
                             attestation.attestorId = attestorId != null ? attestorId : ClinicalActors.CLINICAL_SERVICE;
                             // Mirror SusarDecisionLedgerWriter line 44: HUMAN when named actor, SYSTEM otherwise
-                            attestation.attestorType = ClinicalActors.CLINICAL_SERVICE.equals(attestorId) || attestorId == null
+                            attestation.attestorType = ClinicalActors.CLINICAL_SERVICE.equals(attestation.attestorId)
                                     ? ActorType.SYSTEM : ActorType.HUMAN;
                             attestation.attestorRole = "safety-gate-outcome";
                             attestation.verdict = verdict;
@@ -87,7 +87,7 @@ public class SusarAgentAttestationWriter {
                             attestation.trustDimension = ClinicalTrustDimensions.SAFETY_ACCURACY;
                             attestation.confidence = 1.0;
                             attestation.occurredAt = now;
-                            ledgerEntryRepository.saveAttestation(attestation, ae.tenantId);
+                            ledgerEntryRepository.saveAttestation(attestation, "default");
                         },
                         () -> LOG.warnf("SusarAgentAttestationWriter: no WorkerDecisionEntry for " +
                                 "susarOversightCaseId=%s — attestation skipped", ae.susarOversightCaseId)

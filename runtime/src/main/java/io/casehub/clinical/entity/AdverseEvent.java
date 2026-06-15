@@ -4,6 +4,7 @@ import io.casehub.clinical.api.model.AeEscalationStatus;
 import io.casehub.clinical.api.model.AeOutcome;
 import io.casehub.clinical.api.model.CtcaeGrade;
 import io.casehub.clinical.api.model.EventActuality;
+import io.casehub.clinical.api.model.RegulatorySubmissionStatus;
 import io.casehub.clinical.api.model.SusarOversightStatus;
 import io.casehub.platform.api.identity.CurrentPrincipal;
 import io.quarkus.hibernate.orm.panache.PanacheEntityBase;
@@ -70,6 +71,13 @@ public class AdverseEvent extends PanacheEntityBase {
 
     @Column(name = "susar_oversight_case_id")
     public UUID susarOversightCaseId;
+
+    @Column(name = "regulatory_submission_status", nullable = false, length = 20)
+    @Enumerated(EnumType.STRING)
+    public RegulatorySubmissionStatus regulatorySubmissionStatus = RegulatorySubmissionStatus.NONE;
+
+    @Column(name = "regulatory_submission_case_id")
+    public UUID regulatorySubmissionCaseId;
 
     public static AdverseEvent findByIdForTenant(UUID id, CurrentPrincipal principal) {
         if (principal.isCrossTenantAdmin()) return findById(id);

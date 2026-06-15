@@ -70,7 +70,7 @@ class SusarAgentAttestationWriterTest {
                         && ClinicalCapabilities.SAFETY_MONITORING.equals(a.capabilityTag)
                         && ClinicalTrustDimensions.SAFETY_ACCURACY.equals(a.trustDimension)
                         && a.confidence == 1.0),
-                eq("test-tenant"));
+                eq("default"));
     }
 
     @Test
@@ -83,7 +83,7 @@ class SusarAgentAttestationWriterTest {
                         a.verdict == AttestationVerdict.CHALLENGED
                         && a.attestorType == ActorType.HUMAN
                         && "dr-jones".equals(a.attestorId)),
-                eq("test-tenant"));
+                eq("default"));
     }
 
     @Test
@@ -95,7 +95,7 @@ class SusarAgentAttestationWriterTest {
                 argThat(a ->
                         a.verdict == AttestationVerdict.CHALLENGED
                         && a.attestorType == ActorType.SYSTEM),
-                eq("test-tenant"));
+                eq("default"));
     }
 
     @Test

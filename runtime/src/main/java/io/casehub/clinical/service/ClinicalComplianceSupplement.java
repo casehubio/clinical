@@ -64,4 +64,12 @@ public final class ClinicalComplianceSupplement {
         s.humanOverrideAvailable = true;
         return s;
     }
+
+    public static ComplianceSupplement regulatorySubmission() {
+        ComplianceSupplement s = new ComplianceSupplement();
+        s.planRef = "21 CFR 312.32(c)(1)(i) — IND expedited safety reporting, unexpected fatal/life-threatening AE";
+        s.algorithmRef = "RegulatorySubmissionCaseService (rule-based Grade 5 + unexpected criteria)";
+        s.humanOverrideAvailable = true;
+        return s;
+    }
 }
