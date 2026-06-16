@@ -16,7 +16,7 @@ import io.quarkus.vertx.ConsumeEvent;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 import jakarta.transaction.Transactional;
-import java.time.Instant;
+import java.time.Clock;
 import java.util.UUID;
 import org.jboss.logging.Logger;
 
@@ -44,26 +44,27 @@ public class SusarAgentAttestationWriter {
 
     @Inject CaseLedgerEntryRepository caseLedgerEntryRepository;
     @Inject LedgerEntryRepository ledgerEntryRepository;
+    @Inject Clock clock;
 
     @ConsumeEvent(value = "casehub.action.gate.approved", blocking = true)
     @Transactional
     public void onApproved(ActionGateApprovedEvent event) {
-        writeAttestation(event.caseId(), AttestationVerdict.ENDORSED, event.approvedBy(), Instant.now());
+        writeAttestation(event.caseId(), AttestationVerdict.ENDORSED, event.approvedBy());
     }
 
     @ConsumeEvent(value = "casehub.action.gate.rejected", blocking = true)
     @Transactional
     public void onRejected(ActionGateRejectedEvent event) {
-        writeAttestation(event.caseId(), AttestationVerdict.CHALLENGED, event.rejectedBy(), Instant.now());
+        writeAttestation(event.caseId(), AttestationVerdict.CHALLENGED, event.rejectedBy());
     }
 
     @ConsumeEvent(value = "casehub.action.gate.expired", blocking = true)
     @Transactional
     public void onExpired(ActionGateExpiredEvent event) {
-        writeAttestation(event.caseId(), AttestationVerdict.CHALLENGED, ClinicalActors.CLINICAL_SERVICE, Instant.now());
+        writeAttestation(event.caseId(), AttestationVerdict.CHALLENGED, ClinicalActors.CLINICAL_SERVICE);
     }
 
-    private void writeAttestation(UUID caseId, AttestationVerdict verdict, String attestorId, Instant now) {
+    private void writeAttestation(UUID caseId, AttestationVerdict verdict, String attestorId) {
         AdverseEvent ae = AdverseEvent.findBySusarOversightCaseId(caseId);
         if (ae == null) return; // not a SUSAR oversight gate
 
@@ -86,7 +87,7 @@ public class SusarAgentAttestationWriter {
                             attestation.capabilityTag = ClinicalCapabilities.SAFETY_MONITORING;
                             attestation.trustDimension = ClinicalTrustDimensions.SAFETY_ACCURACY;
                             attestation.confidence = 1.0;
-                            attestation.occurredAt = now;
+                            attestation.occurredAt = clock.instant();
                             ledgerEntryRepository.saveAttestation(attestation, "default");
                         },
                         () -> LOG.warnf("SusarAgentAttestationWriter: no WorkerDecisionEntry for " +

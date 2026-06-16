@@ -27,6 +27,7 @@ import io.quarkus.test.InjectMock;
 import io.quarkus.test.junit.QuarkusTest;
 import jakarta.inject.Inject;
 import jakarta.transaction.Transactional;
+import java.time.Clock;
 import java.time.Instant;
 import java.util.List;
 import java.util.UUID;
@@ -39,13 +40,17 @@ class SusarAgentAttestationWriterTest {
     @Inject SusarAgentAttestationWriter writer;
     @InjectMock CaseLedgerEntryRepository caseLedgerEntryRepository;
     @InjectMock LedgerEntryRepository ledgerEntryRepository;
+    @InjectMock Clock clock;
+
+    private static final Instant FIXED = Instant.parse("2026-06-16T12:00:00Z");
 
     private UUID susarCaseId;
     private UUID workerEntryId;
 
     @BeforeEach
     void setUp() {
-        reset(caseLedgerEntryRepository, ledgerEntryRepository);
+        reset(caseLedgerEntryRepository, ledgerEntryRepository, clock);
+        when(clock.instant()).thenReturn(FIXED);
         susarCaseId = UUID.randomUUID();
         workerEntryId = UUID.randomUUID();
         WorkerDecisionEntry entry = new WorkerDecisionEntry();
@@ -69,7 +74,8 @@ class SusarAgentAttestationWriterTest {
                         && "dr-smith".equals(a.attestorId)
                         && ClinicalCapabilities.SAFETY_MONITORING.equals(a.capabilityTag)
                         && ClinicalTrustDimensions.SAFETY_ACCURACY.equals(a.trustDimension)
-                        && a.confidence == 1.0),
+                        && a.confidence == 1.0
+                        && FIXED.equals(a.occurredAt)),
                 eq("default"));
     }
 
