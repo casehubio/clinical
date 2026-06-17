@@ -590,7 +590,7 @@ evaluates `[.flagMap // {} | to_entries[] | select(.value == true)] | length >= 
 **Key files:**
 - `runtime/src/main/java/io/casehub/clinical/routing/ClinicalTrustRoutingPolicyProvider.java` — `@ApplicationScoped`; per-capability trust policies; displaces `DefaultTrustRoutingPolicyProvider @DefaultBean`
 - `runtime/src/main/java/io/casehub/clinical/service/SusarAgentAttestationWriter.java` — `@ApplicationScoped`; 3 `@ConsumeEvent` gate handlers; writes `LedgerAttestation` anchored to `WorkerDecisionEntry`
-- `runtime/src/main/java/io/casehub/clinical/service/RegulatorySubmissionCaseService.java` — three-phase `@ObservesAsync`; Grade 5 + unexpected → IND expedited safety reporting case
+- `runtime/src/main/java/io/casehub/clinical/service/RegulatorySubmissionCaseService.java` — three-phase `@ObservesAsync`; Grade 3/4/5 + unexpected → IND expedited safety reporting case (Grade 3: 15-day §(c)(1)(ii); Grade 4/5: 7-day §(c)(1)(i))
 - `runtime/src/main/java/io/casehub/clinical/service/ClinicalRegulatorySubmissionCaseHub.java` — `YamlCaseHub` subclass; `regulatory-submission.yaml`
 - `runtime/src/main/java/io/casehub/clinical/ledger/RegulatorySubmissionLedgerEntry.java` — JOINED inheritance on qhorus datasource; V2023
 - `api/src/main/java/io/casehub/clinical/api/AeEscalationCompletedEvent.java` — added `boolean unexpected` (7th field)
@@ -722,7 +722,8 @@ subclass with persistent `@Column` fields. All clinical subclasses were updated 
 
 - ~~Gate rejection / expiry path (clinical#76)~~ — **closed 2026-06-13** by `SusarGateDecisionListener` (DB-discriminated `@ConsumeEvent` consumers for `casehub.action.gate.*` addresses; writes `SusarDecisionLedgerEntry` for all three outcomes). FDA audit trail now distinguishes pending / approved / rejected / expired gate states.
 - ~~Worker binding to `ae-escalation.yaml` (clinical#77)~~ — **closed 2026-06-13** by `ClinicalSusarOversightCaseHub` + `susar-oversight.yaml` (dedicated oversight case hub, started only when criteria confirmed; three-phase `SusarOversightCaseService` with idempotency guard). The `worker: { capability: ... }` YAML structure in the Layer 8 plan was also incorrect (`Binding` schema has no `worker:` field); corrected to `capability: name` directly on the binding with a programmatic `.function()` registration in `getDefinition()`.
-- ~~Grade 3 unexpected AE — 15-day expedited path (21 CFR 312.32(c)(1)(ii))~~ — **closed 2026-06-16** by casehubio/clinical#81 (`isIndReportable()` + `indReportingWindow()` + `ClinicalComplianceSupplement.regulatorySubmission(CtcaeGrade)`; Grade 3 + unexpected → IND 15-day filing obligation placed in engine case context alongside existing Grade 5 7-day path). Grade 4 gap filed as casehubio/clinical#82.
+- ~~Grade 3 unexpected AE — 15-day expedited path (21 CFR 312.32(c)(1)(ii))~~ — **closed 2026-06-16** by casehubio/clinical#81 (`isIndReportable()` + `indReportingWindow()` + `ClinicalComplianceSupplement.regulatorySubmission(CtcaeGrade)`; Grade 3 + unexpected → IND 15-day filing obligation placed in engine case context alongside existing Grade 5 7-day path).
+- ~~Grade 4 unexpected AE — 7-day expedited path (21 CFR 312.32(c)(1)(i))~~ — **closed 2026-06-17** by casehubio/clinical#82 (same three-location update per PP-20260617-3167e3: `isIndReportable()` adds GRADE_4, `indReportingWindow()` maps GRADE_4 → 7 days same as GRADE_5, `ClinicalComplianceSupplement.regulatorySubmission()` adds GRADE_4 CFR citation "unexpected life-threatening AE").
 - `SUSAR_REGULATORY_FILING`, `PATIENT_WITHDRAWAL`, `DOSE_MODIFICATION`, `PROTOCOL_DEVIATION_RECORDING` — worker bindings absent pending agents.
 
 **Layer 8 addendum — GDPR compliance (clinical#7, 2026-06-13):**
