@@ -63,6 +63,37 @@ class RegulatorySubmissionLedgerWriterTest {
     }
 
     @Test
+    void grade4_writes_entry_with_c1i_planRef_and_life_threatening_label() {
+        final Instant now = Instant.parse("2026-06-17T12:00:00Z");
+        when(clock.instant()).thenReturn(now);
+        when(ledgerEntryRepository.findLatestBySubjectId(any(), any())).thenReturn(Optional.empty());
+
+        AdverseEvent ae = new AdverseEvent();
+        ae.id = UUID.randomUUID();
+        ae.enrollmentId = UUID.randomUUID();
+        ae.grade = CtcaeGrade.GRADE_4;
+        ae.tenantId = "test-tenant";
+
+        writer.writeEntry(ae);
+
+        verify(ledgerEntryRepository).save(
+                argThat(entry -> {
+                    RegulatorySubmissionLedgerEntry rsle = (RegulatorySubmissionLedgerEntry) entry;
+                    String planRef = rsle.compliance().map(c -> c.planRef).orElse("");
+                    return rsle.aeId.equals(ae.id)
+                            && "GRADE_4".equals(rsle.grade)
+                            && rsle.filedAt.equals(now)
+                            && rsle.subjectId.equals(ae.enrollmentId)
+                            && rsle.sequenceNumber == 1
+                            && rsle.id != null
+                            && planRef.contains("(c)(1)(i)")
+                            && planRef.contains("life-threatening")
+                            && !planRef.contains("(c)(1)(ii)");
+                }),
+                eq("default"));
+    }
+
+    @Test
     void grade3_writes_entry_with_c1ii_planRef() {
         final Instant now = Instant.parse("2026-06-16T12:00:00Z");
         when(clock.instant()).thenReturn(now);

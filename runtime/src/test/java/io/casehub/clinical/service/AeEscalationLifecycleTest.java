@@ -16,6 +16,7 @@ import io.casehub.clinical.api.model.EventActuality;
 import io.casehub.clinical.entity.AdverseEvent;
 import io.casehub.clinical.support.WorkItemCompletionCapture;
 import io.casehub.clinical.support.WorkItemQueries;
+import io.casehub.platform.testing.FixedCurrentPrincipal;
 import io.casehub.work.runtime.event.WorkItemLifecycleEvent;
 import io.casehub.work.runtime.model.WorkItem;
 import io.casehub.work.runtime.service.WorkItemService;
@@ -39,6 +40,7 @@ class AeEscalationLifecycleTest {
     @Inject WorkItemService workItemService;
     @Inject WorkItemCompletionCapture completionCapture;
     @Inject WorkItemLifecycleAdapter lifecycleAdapter;
+    @Inject FixedCurrentPrincipal principal;
 
     private UUID aeId;
     private UUID enrollmentId;
@@ -55,6 +57,7 @@ class AeEscalationLifecycleTest {
         AdverseEvent ae = new AdverseEvent();
         ae.id = aeId;
         ae.enrollmentId = enrollmentId;
+        ae.tenantId = principal.tenancyId();
         ae.grade = CtcaeGrade.GRADE_3;
         ae.actuality = EventActuality.ACTUAL;
         ae.outcome = AeOutcome.ONGOING;
@@ -154,7 +157,7 @@ class AeEscalationLifecycleTest {
     // ── helpers ───────────────────────────────────────────────────────────────
 
     private AdverseEventReportedEvent aeEvent(CtcaeGrade grade) {
-        return new AdverseEventReportedEvent(aeId, enrollmentId, siteId, grade, Instant.now(), "test-tenant");
+        return new AdverseEventReportedEvent(aeId, enrollmentId, siteId, grade, Instant.now(), principal.tenancyId());
     }
 
     private List<WorkItem> aeWorkItems() {

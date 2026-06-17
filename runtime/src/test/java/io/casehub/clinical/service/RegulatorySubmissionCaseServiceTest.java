@@ -55,8 +55,22 @@ class RegulatorySubmissionCaseServiceTest {
     }
 
     @Test
-    void grade4_unexpected_does_not_start_regulatory_case() {
+    void grade4_unexpected_starts_regulatory_case() {
         UUID aeId = persistAe(CtcaeGrade.GRADE_4, true);
+        AdverseEventReportedEvent event = buildEvent(aeId, CtcaeGrade.GRADE_4);
+
+        service.onAdverseEventReported(event);
+
+        await().atMost(10, SECONDS).pollInterval(100, MILLISECONDS).untilAsserted(() -> {
+            AdverseEvent ae = findAe(aeId);
+            assertThat(ae.regulatorySubmissionStatus).isEqualTo(RegulatorySubmissionStatus.PENDING);
+            assertThat(ae.regulatorySubmissionCaseId).isNotNull();
+        });
+    }
+
+    @Test
+    void grade4_expected_does_not_start_regulatory_case() {
+        UUID aeId = persistAe(CtcaeGrade.GRADE_4, false);
         AdverseEventReportedEvent event = buildEvent(aeId, CtcaeGrade.GRADE_4);
 
         service.onAdverseEventReported(event);
@@ -64,6 +78,25 @@ class RegulatorySubmissionCaseServiceTest {
         AdverseEvent ae = findAe(aeId);
         assertThat(ae.regulatorySubmissionStatus).isEqualTo(RegulatorySubmissionStatus.NONE);
         assertThat(ae.regulatorySubmissionCaseId).isNull();
+    }
+
+    @Test
+    @SuppressWarnings("unchecked")
+    void grade4_case_context_includes_7_day_ind_deadline() {
+        final Instant fixedReportedAt = Instant.parse("2026-06-16T09:00:00Z");
+        UUID aeId = persistAe(CtcaeGrade.GRADE_4, true, fixedReportedAt);
+        AdverseEventReportedEvent event = buildEvent(aeId, CtcaeGrade.GRADE_4);
+
+        service.onAdverseEventReported(event);
+
+        await().atMost(10, SECONDS).pollInterval(100, MILLISECONDS).untilAsserted(() -> {
+            ArgumentCaptor<Map> captor = ArgumentCaptor.forClass(Map.class);
+            verify(regulatorySubmissionCaseHub).startCase(captor.capture());
+            Map<String, Object> ctx = captor.getValue();
+            assertThat(ctx).containsKey("indReportingDeadline");
+            assertThat(Instant.parse((String) ctx.get("indReportingDeadline")))
+                    .isEqualTo(fixedReportedAt.plus(Duration.ofDays(7)));
+        });
     }
 
     @Test
@@ -75,6 +108,7 @@ class RegulatorySubmissionCaseServiceTest {
 
         AdverseEvent ae = findAe(aeId);
         assertThat(ae.regulatorySubmissionStatus).isEqualTo(RegulatorySubmissionStatus.NONE);
+        assertThat(ae.regulatorySubmissionCaseId).isNull();
     }
 
     @Test

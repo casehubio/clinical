@@ -17,7 +17,8 @@ import org.jboss.logging.Logger;
 /**
  * Observes AdverseEventReportedEvent concurrently with AeEscalationCaseService and
  * SusarOversightCaseService. Starts an IND expedited safety report filing case
- * when Grade 3 + unexpected (15-day, 21 CFR 312.32(c)(1)(ii)) or
+ * when Grade 3 + unexpected (15-day, 21 CFR 312.32(c)(1)(ii)),
+ * Grade 4 + unexpected (7-day, 21 CFR 312.32(c)(1)(i)), or
  * Grade 5 + unexpected (7-day, 21 CFR 312.32(c)(1)(i)) criteria are met.
  *
  * <p>Three-phase pattern (ADR-0004): startCase().join() outside any @Transactional
@@ -33,13 +34,12 @@ public class RegulatorySubmissionCaseService {
 
     private static boolean isIndReportable(final CtcaeGrade grade) {
         Objects.requireNonNull(grade, "grade");
-        return grade == CtcaeGrade.GRADE_3 || grade == CtcaeGrade.GRADE_5;
+        return grade == CtcaeGrade.GRADE_3 || grade == CtcaeGrade.GRADE_4 || grade == CtcaeGrade.GRADE_5;
     }
 
-    // When #82 adds GRADE_4: add case GRADE_4 -> Duration.ofDays(7)
     private static Duration indReportingWindow(final CtcaeGrade grade) {
         return switch (grade) {
-            case GRADE_5 -> Duration.ofDays(7);
+            case GRADE_4, GRADE_5 -> Duration.ofDays(7);
             case GRADE_3 -> Duration.ofDays(15);
             default -> throw new IllegalArgumentException("no IND reporting window for grade: " + grade);
         };
@@ -71,7 +71,7 @@ public class RegulatorySubmissionCaseService {
             LOG.warnf("RegulatorySubmissionCaseService: AE not found for aeId=%s — skipping", event.aeId());
             return null;
         }
-        // Grade 3 (15-day, §(c)(1)(ii)) and Grade 5 (7-day, §(c)(1)(i)) + unexpected trigger IND expedited safety reporting
+        // Grade 3 (15-day, §(c)(1)(ii)), Grade 4 (7-day, §(c)(1)(i)), and Grade 5 (7-day, §(c)(1)(i)) + unexpected trigger IND expedited safety reporting
         if (!isIndReportable(ae.grade) || !ae.unexpected) {
             return null;
         }

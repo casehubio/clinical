@@ -76,7 +76,7 @@ class SusarOversightLifecycleTest {
         ae.outcome = AeOutcome.ONGOING;
         ae.occurredAt = Instant.now();
         ae.reportedAt = Instant.now();
-        ae.tenantId = "test-tenant";
+        ae.tenantId = TEST_TENANCY_ID;
         ae.persist();
         return aeId;
     }
@@ -99,6 +99,6 @@ class SusarOversightLifecycleTest {
                 UUID.randomUUID(),
                 grade,
                 Instant.now(),
-                "test-tenant");
+                TEST_TENANCY_ID);
     }
 }

@@ -14,8 +14,9 @@ import java.time.Instant;
 import java.util.UUID;
 
 /**
- * Writes tamper-evident record when an unexpected Grade 3 (15-day, 21 CFR 312.32(c)(1)(ii))
- * or Grade 5 (7-day, 21 CFR 312.32(c)(1)(i)) AE triggers IND expedited safety reporting.
+ * Writes tamper-evident record when an unexpected Grade 3 (15-day, 21 CFR 312.32(c)(1)(ii)),
+ * Grade 4 (7-day, 21 CFR 312.32(c)(1)(i)), or Grade 5 (7-day, 21 CFR 312.32(c)(1)(i)) AE
+ * triggers IND expedited safety reporting.
  *
  * <p>Written in Phase 1 of RegulatorySubmissionCaseService in the same transaction
  * as the status update. {@code @Transactional(MANDATORY)} ensures this is always
