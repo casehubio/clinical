@@ -9,6 +9,8 @@ import io.casehub.clinical.api.model.CtcaeGrade;
 import io.casehub.clinical.api.model.EventActuality;
 import io.casehub.clinical.api.model.SusarOversightStatus;
 import io.casehub.clinical.entity.AdverseEvent;
+import io.casehub.engine.common.internal.event.ActionGateApprovedEvent;
+import io.casehub.engine.common.spi.event.CaseLifecycleEvent;
 import io.quarkus.test.junit.QuarkusTest;
 import jakarta.inject.Inject;
 import jakarta.transaction.Transactional;
@@ -19,11 +21,18 @@ import org.junit.jupiter.api.Test;
 
 /**
  * Integration tests for SusarOversightCaseService three-phase lifecycle.
+ *
+ * <p>Full oversight path uses direct listener invocation (GE-20260614-b97659 Option 1)
+ * — the Quartz-gated function worker is not reliable in @QuarkusTest.
  */
 @QuarkusTest
 class SusarOversightLifecycleTest {
 
+    private static final String TEST_TENANCY_ID = "278776f9-e1b0-46fb-9032-8bddebdcf9ce";
+
     @Inject SusarOversightCaseService service;
+    @Inject SusarGateDecisionListener gateDecisionListener;
+    @Inject SusarOversightListener oversightListener;
 
     @Test
     void grade4_unexpected_suspected_starts_oversight_case() {
@@ -32,12 +41,17 @@ class SusarOversightLifecycleTest {
 
         service.onAdverseEventReported(event);
 
-        await().atMost(Duration.ofSeconds(10)).untilAsserted(() -> {
-            AdverseEvent ae = findAe(aeId);
-            assertThat(ae.susarOversightStatus).isIn(
-                    SusarOversightStatus.REQUESTED, SusarOversightStatus.COMPLETED);
-            assertThat(ae.susarOversightCaseId).isNotNull();
-        });
+        await().atMost(Duration.ofSeconds(10))
+                .untilAsserted(() -> assertThat(findAe(aeId).susarOversightCaseId).isNotNull());
+        UUID caseId = findAe(aeId).susarOversightCaseId;
+
+        // Drive gate approval and case completion directly (GE-20260614-b97659 Option 1)
+        gateDecisionListener.onApproved(new ActionGateApprovedEvent(caseId, 1L, null, "dr-smith"));
+        oversightListener.onCaseLifecycle(new CaseLifecycleEvent(
+                caseId, TEST_TENANCY_ID, "GoalReached", "GoalReached",
+                "COMPLETED", "system", "SYSTEM", null));
+
+        assertThat(findAe(aeId).susarOversightStatus).isEqualTo(SusarOversightStatus.COMPLETED);
     }
 
     @Test
