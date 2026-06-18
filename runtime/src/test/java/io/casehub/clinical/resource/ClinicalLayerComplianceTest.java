@@ -14,12 +14,12 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.hamcrest.Matchers.*;
 
 /**
- * End-to-end happy-path test for the 3-site oncology showcase scenario.
- * Verifies the domain layer can support the full trial registration flow
- * that Epic 3 will wire to sub-case orchestration.
+ * Layer-by-layer compliance verification — confirms each integration layer's core compliance path.
+ *
+ * <p>Not the full showcase narrative — see {@link ThreeSiteShowcaseTest} for the §7.4 scenario.
  */
 @QuarkusTest
-class ShowcaseScenarioTest {
+class ClinicalLayerComplianceTest {
 
     @Inject PiResponseListener piResponseListener;
 
