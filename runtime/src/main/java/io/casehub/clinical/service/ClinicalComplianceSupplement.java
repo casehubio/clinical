@@ -67,6 +67,22 @@ public final class ClinicalComplianceSupplement {
         return s;
     }
 
+    public static ComplianceSupplement eligibilityScreening() {
+        ComplianceSupplement s = new ComplianceSupplement();
+        s.planRef = "ICH E6(R3) §4.2 — patient eligibility assessment and IRB consultation";
+        s.algorithmRef = "EligibilityScreeningService (rule-based FHIR criterion evaluation)";
+        s.humanOverrideAvailable = true;
+        return s;
+    }
+
+    public static ComplianceSupplement protocolAmendment() {
+        ComplianceSupplement s = new ComplianceSupplement();
+        s.planRef = "21 CFR Part 312 §312.30 — protocol amendment review";
+        s.algorithmRef = "ProtocolAmendmentAdvisor (DefaultProtocolAmendmentAdvisor stub; engine#101 pending)";
+        s.humanOverrideAvailable = true;
+        return s;
+    }
+
     public static ComplianceSupplement regulatorySubmission(CtcaeGrade grade) {
         Objects.requireNonNull(grade, "grade");
         ComplianceSupplement s = new ComplianceSupplement();
