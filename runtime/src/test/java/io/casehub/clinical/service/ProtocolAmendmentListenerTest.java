@@ -85,6 +85,7 @@ class ProtocolAmendmentListenerTest {
         ProtocolAmendment a = ProtocolAmendment.findById(amendmentId);
         assertThat(a.status).isEqualTo(ProtocolAmendmentStatus.HALTED);
         assertThat(a.amendmentCaseStatus).isEqualTo(AmendmentCaseStatus.COMPLETED);
+        assertThat(a.supervisorRecommendation).isEqualTo(io.casehub.clinical.api.spi.AmendmentRecommendation.HALT);
     }
 
     @Test
@@ -95,6 +96,7 @@ class ProtocolAmendmentListenerTest {
         ProtocolAmendment a = ProtocolAmendment.findById(amendmentId);
         assertThat(a.status).isEqualTo(ProtocolAmendmentStatus.SUPERVISED);
         assertThat(a.amendmentCaseStatus).isEqualTo(AmendmentCaseStatus.COMPLETED);
+        assertThat(a.supervisorRecommendation).isEqualTo(io.casehub.clinical.api.spi.AmendmentRecommendation.REFER_TO_DSMB);
     }
 
     @Test

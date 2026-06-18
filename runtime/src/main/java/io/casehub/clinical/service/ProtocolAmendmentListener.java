@@ -67,7 +67,8 @@ public class ProtocolAmendmentListener {
 
         Object recObj = instance.getCaseContext().getPath("advisorRecommendation");
         if (recObj == null) {
-            LOG.warnf("ProtocolAmendmentListener: advisorRecommendation missing for amendmentId=%s", amendmentId);
+            LOG.errorf("ProtocolAmendmentListener: advisorRecommendation absent from case context for amendmentId=%s " +
+                "— amendment stays at current status; audit gap", amendmentId);
             return;
         }
         String rec = recObj.toString();
