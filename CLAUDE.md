@@ -314,6 +314,8 @@ Layer 4: + casehub-ledger — FDA Merkle tamper-evident audit trail ✅ (Epic 4)
 Layer 5: + casehub-engine — IRB gate as engine PlanItem; CRITICAL deviation path ✅ (Epic 6)
 Layer 6: trial-level blackboard aggregation — DSMB rollup via cross-site signal detection ✅ (Epic 3)
 Layer 7: trust routing — ClinicalTrustRoutingPolicyProvider, SusarAgentAttestationWriter (LedgerAttestation), RegulatorySubmissionCaseService (IND 21 CFR 312.32), AeEscalationCompletedEvent.unexpected ✅ (casehubio/clinical#8, 2026-06-15)
+Layer 8: ActionRiskClassifier oversight gate + GDPR consent withdrawal — ClinicalActionRiskClassifier, SusarCriteriaEvaluator, SusarGateDecisionListener, ConsentWithdrawalService, ClinicalComplianceSupplement (EU AI Act Art.12) ✅ (casehubio/clinical#47, #76, #77, #7, 2026-06-13)
+Layer 9: Showcase — eligibility screening (EligibilityScreeningService, eligibility-screening.yaml, IRB gate), protocol amendment (ProtocolAmendmentAdvisor SPI, protocol-amendment.yaml, LLM supervisor slot clinical#86) ✅ (casehubio/clinical#10, 2026-06-18)
 ```
 
 **Note on reading order vs build order:** Layers 2 and 4 were built in the same epic (Epic 4) — reading order differs from build order. LAYER-LOG.md preserves reading order.
@@ -347,7 +349,7 @@ JAVA_HOME=/Library/Java/JavaVirtualMachines/graalvm-25.jdk/Contents/Home  # nati
 **Flyway migration structure (clinical-specific):**
 casehub-work (V1–V21+) and casehub-qhorus (V1–V9) both ship migrations at `classpath:db/migration`. When both are on the classpath, Flyway finds duplicate version numbers and fails at startup. Clinical avoids this by placing migrations in datasource-scoped subdirectories:
 
-- `db/migration/default/` — clinical domain migrations (V100–V110+). Default datasource Flyway configured as: `quarkus.flyway.locations=classpath:db/migration/default`
+- `db/migration/default/` — clinical domain migrations (V100–V123+). Default datasource Flyway configured as: `quarkus.flyway.locations=classpath:db/migration/default`
 - `db/migration/qhorus/` — clinical ledger subclass join tables (V2000+). qhorus datasource Flyway configured as: `quarkus.flyway.qhorus.locations=classpath:db/migration,classpath:db/migration/qhorus` (includes qhorus jar migrations)
 
 Version range conventions still apply within each directory:
@@ -399,6 +401,8 @@ H2 and production JDBC both require this. Without it, Agroal throws "Failed to e
 **qhorus#153 shipped — `@ObservesAsync MessageReceivedEvent` is active.** `PiResponseListener.onMessage()` now fires via the full CDI event chain. `PiResponseListenerIntegrationTest` is enabled and running. **pi-oversight channels must include `EVENT` in `allowedTypes`** — `receiveHumanMessage` dispatches an internal EVENT-type message as part of CDI delivery; omitting EVENT causes `MessageTypeViolationException`. See `ProtocolDeviationService.CHANNEL_ALLOWED_TYPES`.
 
 **`ChannelService.create()` — use `ChannelCreateRequest` for `allowedTypes`:** The 9-argument overload with a trailing `String allowedTypes` was removed in a qhorus SNAPSHOT. Use `ChannelCreateRequest` instead: `channelService.create(new ChannelCreateRequest(name, desc, semantic, null, null, null, null, null, ALLOWED_TYPES_SET, null, null, null, null, null))` where `ALLOWED_TYPES_SET` is `Set<MessageType>`. `ProtocolDeviationService.CHANNEL_ALLOWED_TYPES` is now `Set<MessageType>` (not `String`). The old form is a compile-time error on newer qhorus SNAPSHOTs.
+
+**`LedgerErasureService.erase()` requires `ErasureReason` second argument (SNAPSHOT update):** `ConsentWithdrawalService` calls `ledgerErasureService.erase(enrollmentId.toString(), ErasureReason.GDPR_ART_17_REQUEST)`. A ledger SNAPSHOT update added a mandatory `ErasureReason` second argument — calls without it will not compile. `ErasureReason` is an enum in the casehub-ledger API; available values include `GDPR_ART_17_REQUEST`, `RETENTION_EXPIRED`, `ACCOUNT_DELETION`.
 
 **`ClinicalComplianceSupplement` + `LedgerEntry.attach()` (EU AI Act Art.12):** All six AI-agent decision ledger entry writers call `ClinicalComplianceSupplement.<type>()` and attach via `entry.attach(supplement)` before `ledgerEntryRepository.save()`. The method is `attach()` — not `addSupplement()`. Use the runtime type `io.casehub.ledger.runtime.model.supplement.ComplianceSupplement` (from `casehub-ledger`) — the API model (`casehub-ledger-api`) is a plain POJO and cannot be persisted via the `@OneToMany supplements` relationship. `casehub.ledger.identity.tokenisation.enabled` must remain `false` in test `application.properties` — enabling it tokenizes `actorId` fields on save, breaking existing tests that assert raw actor ID strings (e.g., `PiResponseListenerTest`).
 

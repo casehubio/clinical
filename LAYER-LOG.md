@@ -730,3 +730,82 @@ subclass with persistent `@Column` fields. All clinical subclasses were updated 
 - `ConsentWithdrawalService` — GDPR Art.17 consent withdrawal: pseudonymizes `PatientEnrollment.patientId`, calls `LedgerErasureService.erase()` to tokenize ledger actorId, erases patient memories. XA required (crosses default + qhorus datasources). Writes `ConsentWithdrawalLedgerEntry` (V2022).
 - `ClinicalComplianceSupplement` factory — EU AI Act Art.12 compliance supplements attached to all six AI-agent decision ledger entries via `entry.attach()`.
 - W3C PROV-DM export and Merkle inclusion proof endpoints added to `PatientResource`.
+
+---
+
+## Layer 9 — Showcase (domain application features exercising existing foundation layers)
+
+**Completed:** 2026-06-18 (casehubio/clinical#10)
+**Issues:** casehubio/clinical#10
+**Navigation:** `git log --grep="#10" --oneline`
+**Spec:** workspace `specs/2026-06-18-showcase-clinicalagent-design.md`
+**Comparison doc:** `docs/comparison/clinicalagent.md`
+**Key files:**
+- `api/src/main/java/io/casehub/clinical/api/model/EligibilityScreeningResult.java` — CRITERIA_MET, MARGINAL, EXCLUDED
+- `api/src/main/java/io/casehub/clinical/api/model/EligibilityScreeningCaseStatus.java` — NONE, REQUESTED, COMPLETED, FAILED
+- `api/src/main/java/io/casehub/clinical/api/model/CriterionResult.java` — record: id, met, marginal
+- `api/src/main/java/io/casehub/clinical/api/spi/ProtocolAmendmentAdvisor.java` — LLM supervisor slot SPI (stub; engine#101 pending via clinical#86)
+- `runtime/src/main/java/io/casehub/clinical/entity/ProtocolAmendment.java` — amendment entity (V123)
+- `runtime/src/main/java/io/casehub/clinical/service/EligibilityScreeningService.java` — screen logic + ledger write + CDI event
+- `runtime/src/main/java/io/casehub/clinical/service/EligibilityScreeningLedgerWriter.java` — ADR-0002 writer
+- `runtime/src/main/resources/clinical/eligibility-screening.yaml` — IRB consultation binding (PT72H, irb-committee)
+- `runtime/src/main/java/io/casehub/clinical/service/EligibilityScreeningCaseService.java` — four-phase CDI observer
+- `runtime/src/main/java/io/casehub/clinical/service/DefaultProtocolAmendmentAdvisor.java` — @DefaultBean stub (always PROCEED)
+- `runtime/src/main/java/io/casehub/clinical/service/ProtocolAmendmentService.java` — propose() — persist + ledger + event
+- `runtime/src/main/java/io/casehub/clinical/service/ProtocolAmendmentLedgerWriter.java` — writeProposalEntry + writeResolutionEntry
+- `runtime/src/main/resources/clinical/protocol-amendment.yaml` — advisory-only case (advisor capability worker)
+- `runtime/src/main/java/io/casehub/clinical/service/ProtocolAmendmentCaseHub.java` — YamlCaseHub + Java-function worker (WorkerResult.of, outputSchema=".")
+- `runtime/src/main/java/io/casehub/clinical/service/ProtocolAmendmentListener.java` — GoalReached observer; supervisorRecommendation-based idempotency
+- `runtime/src/main/java/io/casehub/clinical/resource/ProtocolAmendmentResource.java` — POST + GET /amendments
+- `runtime/src/main/resources/db/migration/default/V122__patient_enrollment_screening_fields.sql`
+- `runtime/src/main/resources/db/migration/default/V123__protocol_amendment.sql`
+- `runtime/src/main/resources/db/migration/qhorus/V2024__eligibility_screening_ledger_entry.sql`
+- `runtime/src/main/resources/db/migration/qhorus/V2025__protocol_amendment_ledger_entry.sql`
+- `runtime/src/test/java/io/casehub/clinical/resource/ThreeSiteShowcaseTest.java` — §7.4 narrative @QuarkusTest
+- `runtime/src/test/java/io/casehub/clinical/resource/ClinicalLayerComplianceTest.java` — renamed from ShowcaseScenarioTest
+
+### What it adds
+
+Layer 9 is not a new foundation module integration — it is a **showcase layer**: new domain
+application features that exercise existing foundation layers (4+5) without adding a new
+foundation dependency. The value demonstrated is structural completeness of the compliance story.
+
+**Eligibility screening:** Adds `POST .../screen` endpoint with marginal-criteria → IRB gate path.
+`EligibilityScreeningCaseService` starts an engine case (eligibility-screening.yaml) when any
+criterion is MARGINAL; the case creates an IRB consultation WorkItem (72h SLA, irb-committee).
+`EligibilityScreeningLedgerEntry` records the screening decision for FDA audit. Eligibility agent
+decisions are now tamper-evident — ClinicalAgent has no equivalent.
+
+**Protocol amendment:** Adds `POST/GET /amendments` endpoints with an advisor SPI
+(`ProtocolAmendmentAdvisor`) providing the LLM supervisor slot for engine#101 (tracked:
+clinical#86). The `DefaultProtocolAmendmentAdvisor @DefaultBean` stub always returns PROCEED.
+`protocol-amendment.yaml` is an advisory-only case — the advisor's recommendation is the decision,
+no downstream humanTask. `ProtocolAmendmentLedgerWriter` writes proposal + resolution entries
+to the FDA audit chain.
+
+**ThreeSiteShowcaseTest:** A single narrative @QuarkusTest orchestrating all 3 sites (§7.4):
+Site A (eligibility screening → IRB consultation WorkItem), Site B (Grade 3 AE → 24h SLA + IND
+report + Merkle proof), Site C (protocol amendment → advisor stub → APPROVED + 2 ledger entries).
+
+### Key wiring
+
+**`private @Transactional` rejected by Quarkus ArC** — CDI interceptors cannot proxy private
+methods. Fixed in `ProtocolAmendmentCaseService` by making `prepareAndMark(event)` package-private
+instead of private. See garden entry GE-20260618-976009.
+
+**`outputSchema(".")` mandatory on `Capability.builder()`** — without it, Java-function worker
+output is silently discarded and the goal condition never fires. `ProtocolAmendmentCaseHub` uses
+`.outputSchema(".")` explicitly. See garden entry GE-20260618-b2e96b.
+
+**Supervisory recommendation guard:** `ProtocolAmendmentListener` idempotency uses
+`supervisorRecommendation != null` (not status-based) — `REFER_TO_DSMB` keeps status=SUPERVISED
+so a status-based guard would re-enter on GoalReached re-delivery.
+
+**`LedgerErasureService.erase()` now requires `ErasureReason` second argument** — breaking change
+in ledger SNAPSHOT; `ConsentWithdrawalService` passes `ErasureReason.GDPR_ART_17_REQUEST`.
+
+### Compliance demonstration
+
+`docs/comparison/clinicalagent.md` — 10-row table mapping each GCP/FDA requirement to the
+structural gap in ClinicalAgent (arXiv 2404.14777) and the specific casehub-clinical class that
+closes it. FDA Merkle verification endpoint: `GET /trials/{t}/sites/{s}/patients/{e}/ledger/verify`.

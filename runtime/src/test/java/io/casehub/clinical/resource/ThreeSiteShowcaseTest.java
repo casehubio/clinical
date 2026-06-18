@@ -1,9 +1,12 @@
 package io.casehub.clinical.resource;
 
+import io.casehub.api.model.CaseStatus;
 import io.casehub.clinical.entity.ClinicalTrial;
 import io.casehub.clinical.entity.TrialSite;
 import io.casehub.clinical.ledger.ProtocolAmendmentLedgerEntry;
+import io.casehub.clinical.support.EngineStateCleaner;
 import io.casehub.clinical.support.WorkItemQueries;
+import io.casehub.engine.common.spi.cache.CaseInstanceCache;
 import io.casehub.ledger.runtime.repository.LedgerEntryRepository;
 import io.casehub.platform.testing.FixedCurrentPrincipal;
 import io.quarkus.test.junit.QuarkusTest;
@@ -40,8 +43,29 @@ class ThreeSiteShowcaseTest {
     @Inject WorkItemQueries workItemQueries;
     @Inject LedgerEntryRepository ledgerRepo;
     @Inject FixedCurrentPrincipal principal;
+    @Inject CaseInstanceCache caseInstanceCache;
+    @Inject EngineStateCleaner engineStateCleaner;
 
     UUID trialId, siteAId, siteBId, siteCId;
+
+    /** Captured just before the first REST call — used to filter out WorkItems from prior tests. */
+    Instant testStartedAt;
+
+    /**
+     * Wait for prior test classes' engine cases to finish STARTING, then clear engine state.
+     * EngineStateCleaner clears the InMemoryCaseInstanceRepository store and CaseInstanceCache
+     * to prevent "CaseInstance not found or wrong tenant" races in CaseStartedEventHandler.update()
+     * when prior test classes' active cases share the same engine state.
+     * Non-@Transactional to avoid holding a JTA transaction during the Awaitility poll.
+     */
+    @BeforeEach
+    void waitForEngineQuiesceAndClear() {
+        await().atMost(15, SECONDS).until(() ->
+            caseInstanceCache.getAll().stream()
+                .noneMatch(ci -> ci.getState() == CaseStatus.STARTING));
+        engineStateCleaner.clearAll();
+        testStartedAt = Instant.now();
+    }
 
     @BeforeEach
     @Transactional
@@ -100,16 +124,21 @@ class ThreeSiteShowcaseTest {
             .body("enrollmentStatus", equalTo("SCREENING"))
             .body("screeningResult", equalTo("MARGINAL"));
 
-        // IRB consultation WorkItem created by engine case (async)
+        // IRB consultation WorkItem created by engine case (async).
+        // Filter by enrollment ID in payload to distinguish from deviation-review irb-committee
+        // WorkItems that may be created by ClinicalLayerComplianceTest running in the same JVM.
+        String enrollmentAStr = enrollmentA.toString();
         await().atMost(15, SECONDS).untilAsserted(() ->
             assertThat(workItemQueries.scanAll().stream()
                 .anyMatch(wi -> wi.candidateGroups != null
-                    && "irb-committee".equals(wi.candidateGroups.trim())))
+                    && "irb-committee".equals(wi.candidateGroups.trim())
+                    && wi.payload != null && wi.payload.contains(enrollmentAStr)))
             .isTrue()
         );
 
         workItemQueries.scanAll().stream()
-            .filter(wi -> wi.candidateGroups != null && "irb-committee".equals(wi.candidateGroups.trim()))
+            .filter(wi -> wi.candidateGroups != null && "irb-committee".equals(wi.candidateGroups.trim())
+                && wi.payload != null && wi.payload.contains(enrollmentAStr))
             .findFirst()
             .ifPresent(wi -> {
                 assertThat(wi.expiresAt).as("IRB consultation WorkItem must have an expiry (PT72H)").isNotNull();

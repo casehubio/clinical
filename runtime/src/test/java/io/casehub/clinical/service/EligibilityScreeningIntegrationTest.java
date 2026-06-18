@@ -1,7 +1,9 @@
 package io.casehub.clinical.service;
 
+import io.casehub.api.model.CaseStatus;
 import io.casehub.clinical.entity.PatientEnrollment;
 import io.casehub.clinical.entity.TrialSite;
+import io.casehub.engine.common.spi.cache.CaseInstanceCache;
 import io.casehub.platform.testing.FixedCurrentPrincipal;
 import io.quarkus.test.junit.QuarkusTest;
 import jakarta.inject.Inject;
@@ -13,17 +15,31 @@ import org.junit.jupiter.api.Test;
 import java.util.UUID;
 
 import static io.restassured.RestAssured.given;
+import static java.util.concurrent.TimeUnit.SECONDS;
+import static org.awaitility.Awaitility.await;
 import static org.hamcrest.Matchers.equalTo;
 
 @QuarkusTest
 class EligibilityScreeningIntegrationTest {
 
     @Inject FixedCurrentPrincipal principal;
+    @Inject CaseInstanceCache caseInstanceCache;
 
     UUID trialId, siteId, enrollmentId;
 
+    /**
+     * After each test, wait for any async engine cases started by the test to finish their
+     * STARTING phase. This prevents the @InjectMock CaseInstanceRepository in
+     * ProtocolAmendmentListenerTest (which runs after this class) from intercepting
+     * in-flight case start operations and causing "CaseInstance not found" errors.
+     */
     @AfterEach
-    void resetPrincipal() { principal.reset(); }
+    void waitForEngineQuiesceAndResetPrincipal() {
+        await().atMost(10, SECONDS).until(() ->
+            caseInstanceCache.getAll().stream()
+                .noneMatch(ci -> ci.getState() == CaseStatus.STARTING));
+        principal.reset();
+    }
 
     @BeforeEach
     @Transactional
