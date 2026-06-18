@@ -31,7 +31,6 @@ public class ProtocolAmendmentLedgerWriter {
         entry.actorRole = "amendment-proposer";
         entry.occurredAt = clock.instant();
         entry.status = amendment.status.name();
-        entry.supervisorRecommendation = null;
         entry.attach(ClinicalComplianceSupplement.protocolAmendment());
         ledgerEntryRepository.save(entry, "default");
     }

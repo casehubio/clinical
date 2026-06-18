@@ -26,7 +26,7 @@ import static org.mockito.Mockito.*;
 @ExtendWith(MockitoExtension.class)
 class ProtocolAmendmentLedgerWriterTest {
 
-    @Mock LedgerEntryRepository repo;
+    @Mock LedgerEntryRepository ledgerEntryRepository;
     @Mock Clock clock;
     @InjectMocks ProtocolAmendmentLedgerWriter writer;
 
@@ -45,12 +45,12 @@ class ProtocolAmendmentLedgerWriterTest {
     void writeProposalEntry_includes_proposedChange() {
         UUID id = UUID.randomUUID();
         when(clock.instant()).thenReturn(Instant.now());
-        when(repo.findLatestBySubjectId(id, "default")).thenReturn(Optional.empty());
+        when(ledgerEntryRepository.findLatestBySubjectId(id, "default")).thenReturn(Optional.empty());
 
         writer.writeProposalEntry(amendment(id));
 
         ArgumentCaptor<LedgerEntry> captor = ArgumentCaptor.forClass(LedgerEntry.class);
-        verify(repo).save(captor.capture(), eq("default"));
+        verify(ledgerEntryRepository).save(captor.capture(), eq("default"));
         assertThat(((ProtocolAmendmentLedgerEntry) captor.getValue()).proposedChange)
             .isEqualTo("Dose escalation");
     }
@@ -62,12 +62,12 @@ class ProtocolAmendmentLedgerWriterTest {
         a.supervisorRecommendation = AmendmentRecommendation.PROCEED;
         a.status = ProtocolAmendmentStatus.APPROVED;
         when(clock.instant()).thenReturn(Instant.now());
-        when(repo.findLatestBySubjectId(id, "default")).thenReturn(Optional.empty());
+        when(ledgerEntryRepository.findLatestBySubjectId(id, "default")).thenReturn(Optional.empty());
 
         writer.writeResolutionEntry(a);
 
         ArgumentCaptor<LedgerEntry> captor = ArgumentCaptor.forClass(LedgerEntry.class);
-        verify(repo).save(captor.capture(), eq("default"));
+        verify(ledgerEntryRepository).save(captor.capture(), eq("default"));
         ProtocolAmendmentLedgerEntry entry = (ProtocolAmendmentLedgerEntry) captor.getValue();
         assertThat(entry.supervisorRecommendation).isEqualTo("PROCEED");
         assertThat(entry.status).isEqualTo("APPROVED");
@@ -78,13 +78,13 @@ class ProtocolAmendmentLedgerWriterTest {
         UUID id = UUID.randomUUID();
         when(clock.instant()).thenReturn(Instant.now());
         // Proposal: no prior entry → sequenceNumber = 1
-        when(repo.findLatestBySubjectId(id, "default")).thenReturn(Optional.empty());
+        when(ledgerEntryRepository.findLatestBySubjectId(id, "default")).thenReturn(Optional.empty());
         writer.writeProposalEntry(amendment(id));
 
         // Resolution: prior entry has sequenceNumber=1 → resolution gets 2
         LedgerEntry prior = new ProtocolAmendmentLedgerEntry();
         prior.sequenceNumber = 1;
-        when(repo.findLatestBySubjectId(id, "default")).thenReturn(Optional.of(prior));
+        when(ledgerEntryRepository.findLatestBySubjectId(id, "default")).thenReturn(Optional.of(prior));
 
         ProtocolAmendment a = amendment(id);
         a.supervisorRecommendation = AmendmentRecommendation.PROCEED;
@@ -92,7 +92,7 @@ class ProtocolAmendmentLedgerWriterTest {
         writer.writeResolutionEntry(a);
 
         ArgumentCaptor<LedgerEntry> captor = ArgumentCaptor.forClass(LedgerEntry.class);
-        verify(repo, times(2)).save(captor.capture(), eq("default"));
+        verify(ledgerEntryRepository, times(2)).save(captor.capture(), eq("default"));
         assertThat(captor.getAllValues().get(0).sequenceNumber).isEqualTo(1);
         assertThat(captor.getAllValues().get(1).sequenceNumber).isEqualTo(2);
     }
