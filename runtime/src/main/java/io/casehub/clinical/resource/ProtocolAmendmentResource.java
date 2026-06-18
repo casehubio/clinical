@@ -25,6 +25,7 @@ public class ProtocolAmendmentResource {
         String trialId,
         String proposedChange,
         String status,
+        String amendmentCaseStatus,
         String proposedAt
     ) {}
 
@@ -43,7 +44,7 @@ public class ProtocolAmendmentResource {
     @Path("/{amendmentId}")
     public Response get(@PathParam("trialId") UUID trialId,
                         @PathParam("amendmentId") UUID amendmentId) {
-        ProtocolAmendment amendment = ProtocolAmendment.findById(amendmentId);
+        ProtocolAmendment amendment = ProtocolAmendment.findByIdForTenant(amendmentId, principal);
         if (amendment == null || !amendment.trialId.equals(trialId))
             return Response.status(Response.Status.NOT_FOUND).build();
         return Response.ok(toResponse(amendment)).build();
@@ -55,6 +56,7 @@ public class ProtocolAmendmentResource {
             a.trialId.toString(),
             a.proposedChange,
             a.status.name(),
+            a.amendmentCaseStatus.name(),
             a.proposedAt.toString()
         );
     }

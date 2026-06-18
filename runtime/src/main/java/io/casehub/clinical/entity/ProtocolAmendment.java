@@ -3,6 +3,7 @@ package io.casehub.clinical.entity;
 import io.casehub.clinical.api.model.AmendmentCaseStatus;
 import io.casehub.clinical.api.model.ProtocolAmendmentStatus;
 import io.casehub.clinical.api.spi.AmendmentRecommendation;
+import io.casehub.platform.api.identity.CurrentPrincipal;
 import io.quarkus.hibernate.orm.panache.PanacheEntityBase;
 import jakarta.persistence.*;
 import java.time.Instant;
@@ -45,5 +46,10 @@ public class ProtocolAmendment extends PanacheEntityBase {
 
     public static List<ProtocolAmendment> findByTrialId(UUID trialId) {
         return list("trialId", trialId);
+    }
+
+    public static ProtocolAmendment findByIdForTenant(UUID id, CurrentPrincipal principal) {
+        if (principal.isCrossTenantAdmin()) return findById(id);
+        return find("id = ?1 and tenantId = ?2", id, principal.tenancyId()).firstResult();
     }
 }
