@@ -4,6 +4,7 @@ import io.casehub.clinical.api.model.ConsentStatus;
 import io.casehub.clinical.api.model.EnrollmentStatus;
 import io.casehub.clinical.entity.PatientEnrollment;
 import io.casehub.clinical.ledger.ConsentWithdrawalLedgerEntry;
+import io.casehub.ledger.api.model.ErasureReason;
 import io.casehub.ledger.api.model.LedgerEntryType;
 import io.casehub.ledger.runtime.privacy.LedgerErasureService;
 import io.casehub.ledger.runtime.repository.LedgerEntryRepository;
@@ -88,7 +89,7 @@ public class ConsentWithdrawalService {
         // is enabled. Setting the field here is safe: the JPA entity is still in the
         // persistence context and will be flushed at transaction commit.
         LedgerErasureService.ErasureResult erasureResult =
-                ledgerErasureService.erase(enrollmentId.toString());
+                ledgerErasureService.erase(enrollmentId.toString(), ErasureReason.GDPR_ART_17_REQUEST);
         LOG.infof("ConsentWithdrawalService: erased enrollmentId=%s mappingFound=%s affected=%d",
                 enrollmentId, erasureResult.mappingFound(), erasureResult.affectedEntryCount());
         entry.ledgerEntriesAffected = erasureResult.affectedEntryCount();

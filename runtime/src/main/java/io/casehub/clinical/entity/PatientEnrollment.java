@@ -1,6 +1,8 @@
 package io.casehub.clinical.entity;
 
 import io.casehub.clinical.api.model.ConsentStatus;
+import io.casehub.clinical.api.model.EligibilityScreeningCaseStatus;
+import io.casehub.clinical.api.model.EligibilityScreeningResult;
 import io.casehub.clinical.api.model.EnrollmentStatus;
 import io.casehub.platform.api.identity.CurrentPrincipal;
 import io.quarkus.hibernate.orm.panache.PanacheEntityBase;
@@ -37,6 +39,20 @@ public class PatientEnrollment extends PanacheEntityBase {
 
     @Column(name = "withdrawn_at")
     public Instant withdrawnAt;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "screening_result")
+    public EligibilityScreeningResult screeningResult;
+
+    @Column(name = "screening_completed_at")
+    public Instant screeningCompletedAt;
+
+    @Column(name = "eligibility_engine_case_id")
+    public UUID eligibilityEngineCaseId;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "eligibility_screening_case_status", nullable = false)
+    public EligibilityScreeningCaseStatus eligibilityScreeningCaseStatus = EligibilityScreeningCaseStatus.NONE;
 
     public static PatientEnrollment findByIdForTenant(UUID id, CurrentPrincipal principal) {
         if (principal.isCrossTenantAdmin()) return findById(id);
