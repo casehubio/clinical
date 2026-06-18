@@ -104,18 +104,17 @@ class ThreeSiteShowcaseTest {
         await().atMost(15, SECONDS).untilAsserted(() ->
             assertThat(workItemQueries.scanAll().stream()
                 .anyMatch(wi -> wi.candidateGroups != null
-                    && wi.candidateGroups.contains("irb-committee")))
+                    && "irb-committee".equals(wi.candidateGroups.trim())))
             .isTrue()
         );
 
         workItemQueries.scanAll().stream()
-            .filter(wi -> wi.candidateGroups != null
-                && wi.candidateGroups.contains("irb-committee"))
-            .findFirst().ifPresent(wi -> {
-                if (wi.expiresAt != null) {
-                    assertThat(Duration.between(Instant.now(), wi.expiresAt).toHours())
-                        .isLessThanOrEqualTo(73L);
-                }
+            .filter(wi -> wi.candidateGroups != null && "irb-committee".equals(wi.candidateGroups.trim()))
+            .findFirst()
+            .ifPresent(wi -> {
+                assertThat(wi.expiresAt).as("IRB consultation WorkItem must have an expiry (PT72H)").isNotNull();
+                assertThat(Duration.between(Instant.now(), wi.expiresAt).toHours())
+                    .isLessThanOrEqualTo(73L);
             });
 
         // Site A ledger chain verifiable (Merkle proof)
