@@ -2,6 +2,7 @@ package io.casehub.clinical.resource;
 
 import io.casehub.clinical.api.model.AeOutcome;
 import io.casehub.clinical.api.model.ConsentStatus;
+import io.casehub.clinical.api.model.CriterionResult;
 import io.casehub.clinical.api.model.CtcaeGrade;
 import io.casehub.clinical.api.model.EnrollmentStatus;
 import io.casehub.clinical.api.model.EventActuality;
@@ -11,6 +12,7 @@ import io.casehub.clinical.entity.TrialSite;
 import io.casehub.clinical.service.AdverseEventService;
 import io.casehub.clinical.service.ConsentAlreadyWithdrawnException;
 import io.casehub.clinical.service.ConsentWithdrawalService;
+import io.casehub.clinical.service.EligibilityScreeningService;
 import io.casehub.clinical.service.PatientEnrollmentNotFoundException;
 import io.casehub.ledger.runtime.repository.LedgerEntryRepository;
 import io.casehub.ledger.runtime.service.LedgerProvExportService;
@@ -21,10 +23,12 @@ import jakarta.transaction.Transactional;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.Size;
 import jakarta.ws.rs.*;
 import jakarta.ws.rs.core.*;
 import java.net.URI;
 import java.time.Instant;
+import java.util.List;
 import java.util.UUID;
 
 @Path("/trials/{trialId}/sites/{siteId}/patients")
@@ -34,12 +38,19 @@ public class PatientResource {
 
     @Inject AdverseEventService adverseEventService;
     @Inject ConsentWithdrawalService consentWithdrawalService;
+    @Inject EligibilityScreeningService eligibilityScreeningService;
     @Inject LedgerProvExportService ledgerProvExportService;
     @Inject LedgerVerificationService ledgerVerificationService;
     @Inject LedgerEntryRepository ledgerEntryRepository;
     @Inject CurrentPrincipal principal;
 
     public record EnrollPatientRequest(@NotBlank String patientId) {}
+
+    public record ScreenPatientRequest(
+        @NotNull @Size(min = 1, message = "At least one criterion is required") List<CriterionResult> criteria
+    ) {}
+
+    public record ScreenResponse(String enrollmentStatus, String screeningResult) {}
 
     public record ReportAdverseEventRequest(
         @NotNull CtcaeGrade grade,
@@ -84,6 +95,27 @@ public class PatientResource {
         if (site == null || !site.trialId.equals(trialId))
             return Response.status(Response.Status.NOT_FOUND).build();
         return Response.ok(enrollment).build();
+    }
+
+    @POST
+    @Path("/{enrollmentId}/screen")
+    public Response screen(@PathParam("trialId") UUID trialId,
+                           @PathParam("siteId") UUID siteId,
+                           @PathParam("enrollmentId") UUID enrollmentId,
+                           @Valid ScreenPatientRequest req) {
+        TrialSite site = TrialSite.findByIdForTenant(siteId, principal);
+        if (site == null || !site.trialId.equals(trialId))
+            return Response.status(Response.Status.NOT_FOUND).build();
+        PatientEnrollment enrollment = PatientEnrollment.findByIdForTenant(enrollmentId, principal);
+        if (enrollment == null || !enrollment.siteId.equals(siteId))
+            return Response.status(Response.Status.NOT_FOUND).build();
+
+        eligibilityScreeningService.screen(enrollment, req.criteria());
+
+        return Response.ok(new ScreenResponse(
+            enrollment.enrollmentStatus.name(),
+            enrollment.screeningResult != null ? enrollment.screeningResult.name() : null
+        )).build();
     }
 
     @POST
