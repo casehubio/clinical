@@ -1,0 +1,25 @@
+dsl: "0.1"
+version: "1.0.0"
+name: protocol-amendment
+namespace: clinical
+
+spec:
+  capabilities:
+    - name: protocol-amendment-advisor
+      inputSchema: "{ amendmentId: .amendmentId, trialId: .trialId, proposedChange: .proposedChange }"
+
+  goals:
+    - name: amendment-resolved
+      kind: success
+      condition: ".advisorRecommendation != null"
+
+  completion:
+    success:
+      allOf: [amendment-resolved]
+
+  bindings:
+    - name: advisor-consultation
+      on:
+        contextChange:
+          filter: ".amendmentId != null and .advisorRecommendation == null"
+      capability: protocol-amendment-advisor
