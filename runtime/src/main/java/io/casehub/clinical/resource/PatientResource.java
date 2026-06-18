@@ -23,13 +23,12 @@ import jakarta.transaction.Transactional;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.Size;
 import jakarta.ws.rs.*;
 import jakarta.ws.rs.core.*;
 import java.net.URI;
 import java.time.Instant;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 import java.util.UUID;
 
 @Path("/trials/{trialId}/sites/{siteId}/patients")
@@ -48,8 +47,10 @@ public class PatientResource {
     public record EnrollPatientRequest(@NotBlank String patientId) {}
 
     public record ScreenPatientRequest(
-        @NotNull List<CriterionResult> criteria
+        @NotNull @Size(min = 1, message = "At least one criterion is required") List<CriterionResult> criteria
     ) {}
+
+    public record ScreenResponse(String enrollmentStatus, String screeningResult) {}
 
     public record ReportAdverseEventRequest(
         @NotNull CtcaeGrade grade,
@@ -98,7 +99,6 @@ public class PatientResource {
 
     @POST
     @Path("/{enrollmentId}/screen")
-    @Transactional
     public Response screen(@PathParam("trialId") UUID trialId,
                            @PathParam("siteId") UUID siteId,
                            @PathParam("enrollmentId") UUID enrollmentId,
@@ -112,10 +112,10 @@ public class PatientResource {
 
         eligibilityScreeningService.screen(enrollment, req.criteria());
 
-        Map<String, String> body = new HashMap<>();
-        body.put("enrollmentStatus", enrollment.enrollmentStatus.name());
-        body.put("screeningResult", enrollment.screeningResult != null ? enrollment.screeningResult.name() : null);
-        return Response.ok(body).build();
+        return Response.ok(new ScreenResponse(
+            enrollment.enrollmentStatus.name(),
+            enrollment.screeningResult != null ? enrollment.screeningResult.name() : null
+        )).build();
     }
 
     @POST

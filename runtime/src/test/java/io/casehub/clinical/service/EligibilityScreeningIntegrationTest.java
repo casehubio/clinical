@@ -96,4 +96,15 @@ class EligibilityScreeningIntegrationTest {
             .statusCode(200)
             .body("enrollmentStatus", equalTo("INELIGIBLE"));
     }
+
+    @Test
+    void screen_empty_criteria_returns_400() {
+        given()
+            .contentType("application/json")
+            .body("{ \"criteria\": [] }")
+        .when()
+            .post("/trials/{t}/sites/{s}/patients/{e}/screen", trialId, siteId, enrollmentId)
+        .then()
+            .statusCode(400);
+    }
 }
