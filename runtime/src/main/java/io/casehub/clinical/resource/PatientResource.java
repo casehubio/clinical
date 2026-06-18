@@ -149,6 +149,52 @@ public class PatientResource {
         return Response.created(location).entity(ae).build();
     }
 
+    @GET
+    @Path("/{enrollmentId}/adverse-events/{aeId}")
+    public Response getAdverseEvent(
+            @PathParam("trialId") UUID trialId,
+            @PathParam("siteId") UUID siteId,
+            @PathParam("enrollmentId") UUID enrollmentId,
+            @PathParam("aeId") UUID aeId) {
+        PatientEnrollment enrollment = PatientEnrollment.findByIdForTenant(enrollmentId, principal);
+        if (enrollment == null || !enrollment.siteId.equals(siteId))
+            return Response.status(Response.Status.NOT_FOUND).build();
+        TrialSite site = TrialSite.findByIdForTenant(siteId, principal);
+        if (site == null || !site.trialId.equals(trialId))
+            return Response.status(Response.Status.NOT_FOUND).build();
+        AdverseEvent ae = AdverseEvent.findByIdForTenant(aeId, principal);
+        if (ae == null || !ae.enrollmentId.equals(enrollmentId))
+            return Response.status(Response.Status.NOT_FOUND).build();
+        return Response.ok(ae).build();
+    }
+
+    @GET
+    @Path("/{enrollmentId}/ledger/verify")
+    public Response verifyLedger(
+            @PathParam("trialId") UUID trialId,
+            @PathParam("siteId") UUID siteId,
+            @PathParam("enrollmentId") UUID enrollmentId) {
+        PatientEnrollment enrollment = PatientEnrollment.findByIdForTenant(enrollmentId, principal);
+        if (enrollment == null || !enrollment.siteId.equals(siteId))
+            return Response.status(Response.Status.NOT_FOUND).build();
+        TrialSite site = TrialSite.findByIdForTenant(siteId, principal);
+        if (site == null || !site.trialId.equals(trialId))
+            return Response.status(Response.Status.NOT_FOUND).build();
+        // Ledger writers use "default" as tenantId placeholder (see CLAUDE.md ecosystem conventions).
+        // Verification uses the same tenantId to locate entries in the in-memory / JPA store.
+        String ledgerTenantId = "default";
+        boolean valid = ledgerVerificationService.verify(enrollmentId, ledgerTenantId);
+        String merkleRoot = null;
+        try {
+            merkleRoot = ledgerVerificationService.treeRoot(enrollmentId, ledgerTenantId);
+        } catch (IllegalStateException ignored) {
+            // no entries yet — merkleRoot stays null
+        }
+        return Response.ok(new LedgerVerifyResponse(valid, merkleRoot)).build();
+    }
+
+    public record LedgerVerifyResponse(boolean valid, String merkleRoot) {}
+
     @POST
     @Path("/{enrollmentId}/withdraw-consent")
     public Response withdrawConsent(
