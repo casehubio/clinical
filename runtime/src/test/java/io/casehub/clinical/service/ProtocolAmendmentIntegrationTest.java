@@ -32,7 +32,7 @@ class ProtocolAmendmentIntegrationTest {
             .body("status", equalTo("PROPOSED"))
             .extract().header("Location");
 
-        UUID amendmentId = UUID.fromString(loc.substring(loc.lastIndexOf('/') + 1));
+        UUID amendmentId = extractId(loc);
 
         // Proposal ledger entry written synchronously in same TX as persist
         long count = ledgerRepo.findBySubjectId(amendmentId, "default")
@@ -54,7 +54,7 @@ class ProtocolAmendmentIntegrationTest {
             .statusCode(201)
             .extract().header("Location");
 
-        UUID amendmentId = UUID.fromString(loc.substring(loc.lastIndexOf('/') + 1));
+        UUID amendmentId = extractId(loc);
 
         // DefaultProtocolAmendmentAdvisor → PROCEED; await engine case completion
         await().atMost(15, SECONDS).untilAsserted(() ->
@@ -65,11 +65,15 @@ class ProtocolAmendmentIntegrationTest {
                 .body("status", equalTo("APPROVED"))
         );
 
-        // Both proposal + resolution entries should be written
+        // status=APPROVED is confirmed above → writeResolutionEntry committed → at least 2 entries
         long count = ledgerRepo.findBySubjectId(amendmentId, "default")
             .stream()
             .filter(e -> e instanceof ProtocolAmendmentLedgerEntry)
             .count();
-        assertThat(count).isGreaterThanOrEqualTo(1); // at minimum proposal entry
+        assertThat(count).isGreaterThanOrEqualTo(2);
+    }
+
+    private UUID extractId(String location) {
+        return UUID.fromString(location.substring(location.lastIndexOf('/') + 1));
     }
 }
