@@ -76,7 +76,7 @@ public class ProtocolAmendmentCaseService {
 
     /** Called from onProposed — loads amendment inside @Transactional boundary. */
     @Transactional
-    private Map<String, Object> prepareAndMark(ProtocolAmendmentProposedEvent event) {
+    Map<String, Object> prepareAndMark(ProtocolAmendmentProposedEvent event) {
         ProtocolAmendment amendment = ProtocolAmendment.findById(event.amendmentId());
         if (amendment == null) {
             LOG.warnf("ProtocolAmendmentCaseService: amendment not found %s", event.amendmentId());
