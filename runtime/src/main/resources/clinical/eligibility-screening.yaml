@@ -1,0 +1,26 @@
+dsl: "0.1"
+version: "1.0.0"
+name: eligibility-screening
+namespace: clinical
+
+spec:
+  goals:
+    - name: irb-consultation-complete
+      kind: success
+      condition: ".irbConsultation != null"
+
+  completion:
+    success:
+      allOf: [irb-consultation-complete]
+
+  bindings:
+    - name: irb-consultation
+      on:
+        contextChange:
+          filter: ".enrollmentId != null and .screeningResult == \"MARGINAL\" and .irbConsultation == null"
+      humanTask:
+        title: "IRB eligibility consultation — marginal criteria"
+        expiresIn: PT72H
+        candidateGroups: [irb-committee]
+        inputMapping: "{ enrollmentId: .enrollmentId, criteriaResults: .criteriaResults }"
+        outputMapping: "{ irbConsultation: . }"
