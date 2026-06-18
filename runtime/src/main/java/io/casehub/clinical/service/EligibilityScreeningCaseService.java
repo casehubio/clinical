@@ -10,14 +10,12 @@ import jakarta.transaction.Transactional;
 import org.jboss.logging.Logger;
 
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 import java.util.UUID;
-import java.util.stream.Collectors;
 
 /**
  * Observes EligibilityScreeningEvent (MARGINAL results only) and starts an
- * eligibility screening engine case. Four-phase pattern per SusarOversightCaseService.
+ * eligibility screening engine case. Four-phase pattern per AeEscalationCaseService.
  */
 @ApplicationScoped
 public class EligibilityScreeningCaseService {
@@ -27,13 +25,8 @@ public class EligibilityScreeningCaseService {
     @Inject EligibilityScreeningCaseHub caseHub;
 
     public void onScreeningEvent(@ObservesAsync EligibilityScreeningEvent event) {
-        PatientEnrollment enrollment = PatientEnrollment.findById(event.enrollmentId());
-        if (enrollment == null) {
-            LOG.warnf("EligibilityScreeningCaseService: enrollment not found %s", event.enrollmentId());
-            return;
-        }
         try {
-            Map<String, Object> ctx = prepareAndMark(event, enrollment);
+            Map<String, Object> ctx = prepareAndMark(event);
             if (ctx == null) return;
             // Phase 2 — startCase outside any TX boundary
             UUID caseId = caseHub.startCase(ctx).toCompletableFuture().join();
@@ -47,9 +40,16 @@ public class EligibilityScreeningCaseService {
         }
     }
 
-    /** Package-private for unit testing — takes the already-loaded entity. */
     @Transactional
-    Map<String, Object> prepareAndMark(EligibilityScreeningEvent event, PatientEnrollment enrollment) {
+    Map<String, Object> prepareAndMark(EligibilityScreeningEvent event) {
+        // Phase 1 — load entity inside @Transactional so Hibernate manages the session
+        // Uses findById (base Panache), not findByIdForTenant — @ObservesAsync runs off-request
+        // with no @RequestScoped CurrentPrincipal active.
+        PatientEnrollment enrollment = PatientEnrollment.findById(event.enrollmentId());
+        if (enrollment == null) {
+            LOG.warnf("EligibilityScreeningCaseService: enrollment not found %s", event.enrollmentId());
+            return null;
+        }
         if (enrollment.eligibilityScreeningCaseStatus != EligibilityScreeningCaseStatus.NONE) {
             LOG.debugf("EligibilityScreeningCaseService: already processed %s — skipping", event.enrollmentId());
             return null;
@@ -63,7 +63,7 @@ public class EligibilityScreeningCaseService {
         // Serialize CriterionResult records to plain maps — JQ evaluator requires JSON-compatible types
         ctx.put("criteriaResults", event.criteriaResults().stream()
             .map(c -> Map.<String, Object>of("id", c.id(), "met", c.met(), "marginal", c.marginal()))
-            .collect(Collectors.toList()));
+            .toList());
         return ctx;
     }
 
