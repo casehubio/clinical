@@ -1,9 +1,13 @@
 package io.casehub.clinical.service;
 
+import io.casehub.api.model.CaseStatus;
 import io.casehub.clinical.ledger.ProtocolAmendmentLedgerEntry;
+import io.casehub.clinical.support.EngineStateCleaner;
+import io.casehub.engine.common.spi.cache.CaseInstanceCache;
 import io.casehub.ledger.runtime.repository.LedgerEntryRepository;
 import io.quarkus.test.junit.QuarkusTest;
 import jakarta.inject.Inject;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 import java.util.UUID;
@@ -18,6 +22,23 @@ import static org.hamcrest.Matchers.equalTo;
 class ProtocolAmendmentIntegrationTest {
 
     @Inject LedgerEntryRepository ledgerRepo;
+    @Inject CaseInstanceCache caseInstanceCache;
+    @Inject EngineStateCleaner engineStateCleaner;
+
+    /**
+     * Wait for in-flight engine cases from prior test classes to finish their STARTING phase,
+     * then clear all engine in-memory state. Prevents "CaseInstance not found or wrong tenant"
+     * races in InMemoryCaseInstanceRepository when prior test classes' cases (e.g.
+     * ClinicalLayerComplianceTest) remain active and interfere with new startCase() calls.
+     */
+    @BeforeEach
+    void waitForEngineQuiesceBefore() {
+        await().atMost(15, SECONDS).until(() ->
+            caseInstanceCache.getAll().stream()
+                .noneMatch(ci -> ci.getState() == CaseStatus.STARTING));
+        engineStateCleaner.clearAll();
+    }
+
 
     @Test
     void propose_creates_amendment_PROPOSED_and_writes_proposal_ledger_entry() {
