@@ -29,6 +29,9 @@ public class EligibilityScreeningService {
             case EXCLUDED     -> EnrollmentStatus.INELIGIBLE;
             case MARGINAL     -> EnrollmentStatus.SCREENING;
         };
+        // eligibilityScreeningCaseStatus stays NONE for CRITERIA_MET and EXCLUDED —
+        // no engine case is started for those paths. Only MARGINAL triggers a case
+        // (via EligibilityScreeningCaseService observing the CDI event below).
         ledgerWriter.writeScreeningEntry(enrollment, criteria, result);
         if (result == EligibilityScreeningResult.MARGINAL) {
             screeningEvents.fireAsync(new EligibilityScreeningEvent(
@@ -36,7 +39,13 @@ public class EligibilityScreeningService {
         }
     }
 
-    /** Package-private for unit testing. */
+    /**
+     * Determines the screening result from a list of criterion assessments.
+     *
+     * <p>Precedence: MARGINAL beats EXCLUDED (a marginal patient gets IRB review,
+     * not silent exclusion). An empty criteria list returns CRITERIA_MET — this
+     * assumes the REST layer validates that at least one criterion is present.
+     */
     EligibilityScreeningResult determineResult(List<CriterionResult> criteria) {
         boolean anyMarginal = criteria.stream().anyMatch(CriterionResult::marginal);
         if (anyMarginal) return EligibilityScreeningResult.MARGINAL;

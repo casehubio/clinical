@@ -1,7 +1,9 @@
 package io.casehub.clinical.service;
 
 import io.casehub.clinical.api.model.CriterionResult;
+import io.casehub.clinical.api.model.EligibilityScreeningCaseStatus;
 import io.casehub.clinical.api.model.EligibilityScreeningResult;
+import io.casehub.clinical.entity.PatientEnrollment;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
@@ -9,8 +11,11 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.util.List;
+import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.verify;
 
 @ExtendWith(MockitoExtension.class)
 class EligibilityScreeningServiceTest {
@@ -56,5 +61,21 @@ class EligibilityScreeningServiceTest {
             new CriterionResult("c2", false, false)  // excluded
         );
         assertThat(service.determineResult(criteria)).isEqualTo(EligibilityScreeningResult.MARGINAL);
+    }
+
+    @Test
+    void non_marginal_screening_leaves_case_status_NONE() {
+        var criteria = List.of(new CriterionResult("c1", true, false));
+
+        PatientEnrollment enrollment = new PatientEnrollment();
+        enrollment.id = UUID.randomUUID();
+        enrollment.tenantId = "default";
+        enrollment.eligibilityScreeningCaseStatus = EligibilityScreeningCaseStatus.NONE;
+
+        service.screen(enrollment, criteria);
+
+        assertThat(enrollment.eligibilityScreeningCaseStatus)
+            .isEqualTo(EligibilityScreeningCaseStatus.NONE);
+        verify(ledgerWriter).writeScreeningEntry(any(), any(), any());
     }
 }
