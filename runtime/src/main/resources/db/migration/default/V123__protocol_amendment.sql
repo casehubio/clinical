@@ -1,3 +1,6 @@
+-- trial_id is a soft reference (no FK constraint to clinical_trial) — deliberate.
+-- Cross-entity cascade deletes would incorrectly remove amendments when a trial
+-- is archived; the application layer enforces the trial relationship.
 CREATE TABLE protocol_amendment (
     id                      UUID            NOT NULL,
     tenant_id               VARCHAR(255)    NOT NULL,
