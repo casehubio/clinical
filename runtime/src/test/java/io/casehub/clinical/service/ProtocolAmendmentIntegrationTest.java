@@ -1,12 +1,16 @@
 package io.casehub.clinical.service;
 
 import io.casehub.api.model.CaseStatus;
+import io.casehub.clinical.entity.ClinicalTrial;
+import io.casehub.clinical.api.model.TrialPhase;
 import io.casehub.clinical.ledger.ProtocolAmendmentLedgerEntry;
 import io.casehub.clinical.support.EngineStateCleaner;
 import io.casehub.engine.common.spi.cache.CaseInstanceCache;
 import io.casehub.ledger.runtime.repository.LedgerEntryRepository;
+import io.casehub.platform.testing.FixedCurrentPrincipal;
 import io.quarkus.test.junit.QuarkusTest;
 import jakarta.inject.Inject;
+import jakarta.transaction.Transactional;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
@@ -24,6 +28,9 @@ class ProtocolAmendmentIntegrationTest {
     @Inject LedgerEntryRepository ledgerRepo;
     @Inject CaseInstanceCache caseInstanceCache;
     @Inject EngineStateCleaner engineStateCleaner;
+    @Inject FixedCurrentPrincipal principal;
+
+    UUID trialId;
 
     /**
      * Wait for in-flight engine cases from prior test classes to finish their STARTING phase,
@@ -37,12 +44,24 @@ class ProtocolAmendmentIntegrationTest {
             caseInstanceCache.getAll().stream()
                 .noneMatch(ci -> ci.getState() == CaseStatus.STARTING));
         engineStateCleaner.clearAll();
+        persistTestData();
     }
 
+    @Transactional
+    void persistTestData() {
+        trialId = UUID.randomUUID();
+        ClinicalTrial trial = new ClinicalTrial();
+        trial.id = trialId;
+        trial.protocolId = "PA-INT-TEST-" + UUID.randomUUID();
+        trial.phase = TrialPhase.PHASE_III;
+        trial.sponsor = "Test Sponsor";
+        trial.targetEnrollment = 100;
+        trial.tenantId = principal.tenancyId();
+        trial.persist();
+    }
 
     @Test
     void propose_creates_amendment_PROPOSED_and_writes_proposal_ledger_entry() {
-        UUID trialId = UUID.randomUUID();
         String loc = given()
             .contentType("application/json")
             .body("{\"proposedChange\": \"Dose escalation v2\"}")
@@ -65,7 +84,6 @@ class ProtocolAmendmentIntegrationTest {
 
     @Test
     void propose_then_await_APPROVED_and_writes_resolution_ledger_entry() {
-        UUID trialId = UUID.randomUUID();
         String loc = given()
             .contentType("application/json")
             .body("{\"proposedChange\": \"Endpoint amendment\"}")
