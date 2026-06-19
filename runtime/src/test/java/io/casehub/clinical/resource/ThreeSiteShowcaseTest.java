@@ -66,10 +66,27 @@ class ThreeSiteShowcaseTest {
     @BeforeEach
     void setup() {
         // ── 1. Engine quiesce — wait for no STARTING cases from prior test classes ──
-        await().atMost(15, SECONDS).until(() ->
-            caseInstanceCache.getAll().stream()
-                .noneMatch(ci -> ci.getState() == CaseStatus.STARTING));
-        engineStateCleaner.clearAll();
+        // Note: we do NOT call engineStateCleaner.clearAll() here. The showcase test uses
+        // completely fresh UUIDs for trial/site/patient on every run, so there is no state
+        // contamination between this test's cases and prior tests' cases. Calling clearAll()
+        // would race with in-flight async handlers from the previous run's retry — see
+        // casehubio/clinical#87 for the engine-side fix (TestCaseInstanceRepository.clear() API).
+        // Engine isolation: prior test classes (ClinicalLayerComplianceTest) fire @ObservesAsync
+        // CDI events (e.g. ProtocolDeviationResolvedEvent) that trigger IrbDeviationCaseService.
+        // That handler may not have started yet when this @BeforeEach runs — the AE cases move to
+        // WAITING quickly, making the cache appear stable before the IRB case is registered.
+        // If the showcase test starts a new case while IrbDeviationCaseService.startCase() is
+        // in-flight, concurrent Vert.x operations conflict → RECIPIENT_FAILURE on the new case.
+        //
+        // Fix: use an initial poll delay to give @ObservesAsync handlers time to start and
+        // register their cases in the cache before we begin checking.
+        // Tracking: casehubio/clinical#87 (engine TestCaseInstanceRepository.clear() API).
+        await().pollDelay(3, SECONDS)
+               .atMost(20, SECONDS)
+               .until(() ->
+                    caseInstanceCache.getAll().stream()
+                        .noneMatch(ci -> ci.getState() == CaseStatus.STARTING
+                            || ci.getState() == CaseStatus.RUNNING));
         testStartedAt = Instant.now();
 
         // ── 2. Assign IDs for this test ──
