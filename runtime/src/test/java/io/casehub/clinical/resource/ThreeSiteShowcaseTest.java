@@ -52,29 +52,38 @@ class ThreeSiteShowcaseTest {
     Instant testStartedAt;
 
     /**
-     * Wait for prior test classes' engine cases to finish STARTING, then clear engine state.
-     * EngineStateCleaner clears the InMemoryCaseInstanceRepository store and CaseInstanceCache
-     * to prevent "CaseInstance not found or wrong tenant" races in CaseStartedEventHandler.update()
-     * when prior test classes' active cases share the same engine state.
-     * Non-@Transactional to avoid holding a JTA transaction during the Awaitility poll.
+     * Single @BeforeEach — merged to guarantee ordering (JUnit 5 does not order multiple
+     * @BeforeEach methods). Must be non-@Transactional at the outer level to avoid holding
+     * a JTA connection during the Awaitility engine-quiesce poll; entity persistence is
+     * delegated to {@link #persistTestData()}, which opens its own @Transactional scope.
+     *
+     * <p>Order within this method is intentional:
+     * 1. Wait for prior test classes' engine cases to leave STARTING — prevents their
+     *    CaseStartedEventHandler.update() from racing with EngineStateCleaner.clearAll().
+     * 2. Clear engine in-memory state (store + cache).
+     * 3. Persist test entities inside a fresh @Transactional scope.
      */
     @BeforeEach
-    void waitForEngineQuiesceAndClear() {
+    void setup() {
+        // ── 1. Engine quiesce — wait for no STARTING cases from prior test classes ──
         await().atMost(15, SECONDS).until(() ->
             caseInstanceCache.getAll().stream()
                 .noneMatch(ci -> ci.getState() == CaseStatus.STARTING));
         engineStateCleaner.clearAll();
         testStartedAt = Instant.now();
-    }
 
-    @BeforeEach
-    @Transactional
-    void setup() {
+        // ── 2. Assign IDs for this test ──
         trialId = UUID.randomUUID();
         siteAId = UUID.randomUUID();
         siteBId = UUID.randomUUID();
         siteCId = UUID.randomUUID();
 
+        // ── 3. Persist test data in its own transaction ──
+        persistTestData();
+    }
+
+    @Transactional
+    void persistTestData() {
         ClinicalTrial trial = new ClinicalTrial();
         trial.id = trialId;
         trial.protocolId = "ONCOL-SHOWCASE-2026-" + UUID.randomUUID();

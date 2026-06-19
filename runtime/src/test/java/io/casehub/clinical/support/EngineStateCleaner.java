@@ -114,6 +114,11 @@ public class EngineStateCleaner {
      * the bean class and delegates method calls to the actual contextual singleton.
      * The proxy's OWN inherited fields contain default values, not the singleton's state.
      * arc$delegate() returns the actual singleton from the scope context.
+     *
+     * <p>ArC proxy naming convention (Quarkus 3.x): arc$delegate() or method containing "delegate".
+     * If ArC changes this convention in a future Quarkus version, this method will return null
+     * silently and clearAll() will log a WARN instead of clearing state.
+     * If cross-test engine state appears to leak after a Quarkus upgrade, check this first.
      */
     private Object getActualBeanInstance() {
         try {

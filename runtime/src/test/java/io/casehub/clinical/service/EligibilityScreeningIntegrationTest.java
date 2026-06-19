@@ -123,4 +123,22 @@ class EligibilityScreeningIntegrationTest {
         .then()
             .statusCode(400);
     }
+
+    @Test
+    void screen_already_screened_returns_409() {
+        // First screening succeeds
+        given()
+            .contentType("application/json")
+            .body("{ \"criteria\": [{ \"id\": \"c1\", \"met\": true, \"marginal\": false }] }")
+        .when()
+            .post("/trials/{t}/sites/{s}/patients/{e}/screen", trialId, siteId, enrollmentId)
+        .then().statusCode(200);
+        // Second screening returns 409 — ICH E6(R3) §4.2: eligibility assessment is a single recorded event
+        given()
+            .contentType("application/json")
+            .body("{ \"criteria\": [{ \"id\": \"c2\", \"met\": false, \"marginal\": true }] }")
+        .when()
+            .post("/trials/{t}/sites/{s}/patients/{e}/screen", trialId, siteId, enrollmentId)
+        .then().statusCode(409);
+    }
 }

@@ -1,5 +1,6 @@
 package io.casehub.clinical.resource;
 
+import io.casehub.clinical.entity.ClinicalTrial;
 import io.casehub.clinical.entity.ProtocolAmendment;
 import io.casehub.clinical.service.ProtocolAmendmentService;
 import io.casehub.platform.api.identity.CurrentPrincipal;
@@ -33,6 +34,11 @@ public class ProtocolAmendmentResource {
     public Response propose(@PathParam("trialId") UUID trialId,
                             @Valid ProposeAmendmentRequest req,
                             @Context UriInfo uriInfo) {
+        // Validate trial exists and belongs to the caller's tenant
+        ClinicalTrial trial = ClinicalTrial.findByIdForTenant(trialId, principal);
+        if (trial == null)
+            return Response.status(Response.Status.NOT_FOUND).build();
+
         ProtocolAmendment amendment = service.propose(trialId, req.proposedChange(),
             principal.tenancyId());
         return Response.created(

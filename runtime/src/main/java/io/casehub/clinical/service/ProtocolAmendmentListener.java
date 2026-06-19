@@ -73,14 +73,31 @@ public class ProtocolAmendmentListener {
         }
         String rec = recObj.toString();
 
-        amendment.supervisorRecommendation = AmendmentRecommendation.valueOf(rec);
-        amendment.status = switch (rec) {
-            case "PROCEED"       -> ProtocolAmendmentStatus.APPROVED;
-            case "HALT"          -> ProtocolAmendmentStatus.HALTED;
-            case "REFER_TO_DSMB" -> ProtocolAmendmentStatus.SUPERVISED;
-            default -> throw new IllegalStateException("Unknown recommendation: " + rec);
-        };
-        amendment.amendmentCaseStatus = AmendmentCaseStatus.COMPLETED;
-        ledgerWriter.writeResolutionEntry(amendment);
+        switch (rec) {
+            case "PROCEED" -> {
+                amendment.supervisorRecommendation = AmendmentRecommendation.PROCEED;
+                amendment.status = ProtocolAmendmentStatus.APPROVED;
+                amendment.amendmentCaseStatus = AmendmentCaseStatus.COMPLETED;
+                ledgerWriter.writeResolutionEntry(amendment);
+            }
+            case "HALT" -> {
+                amendment.supervisorRecommendation = AmendmentRecommendation.HALT;
+                amendment.status = ProtocolAmendmentStatus.HALTED;
+                amendment.amendmentCaseStatus = AmendmentCaseStatus.COMPLETED;
+                ledgerWriter.writeResolutionEntry(amendment);
+            }
+            case "REFER_TO_DSMB" -> {
+                amendment.supervisorRecommendation = AmendmentRecommendation.REFER_TO_DSMB;
+                amendment.status = ProtocolAmendmentStatus.SUPERVISED;
+                amendment.amendmentCaseStatus = AmendmentCaseStatus.COMPLETED;
+                ledgerWriter.writeResolutionEntry(amendment);
+            }
+            default -> {
+                LOG.errorf("ProtocolAmendmentListener: unknown recommendation '%s' for amendmentId=%s — marking FAILED", rec, amendmentId);
+                // status stays PROPOSED; idempotency guard (supervisorRecommendation != null) is NOT set,
+                // so a redelivery could re-enter — acceptable; the FAILED state is the signal to operators.
+                amendment.amendmentCaseStatus = AmendmentCaseStatus.FAILED;
+            }
+        }
     }
 }

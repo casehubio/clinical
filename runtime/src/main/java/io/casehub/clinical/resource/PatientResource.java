@@ -99,6 +99,7 @@ public class PatientResource {
 
     @POST
     @Path("/{enrollmentId}/screen")
+    @Transactional
     public Response screen(@PathParam("trialId") UUID trialId,
                            @PathParam("siteId") UUID siteId,
                            @PathParam("enrollmentId") UUID enrollmentId,
@@ -109,6 +110,11 @@ public class PatientResource {
         PatientEnrollment enrollment = PatientEnrollment.findByIdForTenant(enrollmentId, principal);
         if (enrollment == null || !enrollment.siteId.equals(siteId))
             return Response.status(Response.Status.NOT_FOUND).build();
+        // Guard: reject re-screening — eligibility assessment must be a single recorded event (ICH E6(R3) §4.2)
+        if (enrollment.screeningResult != null)
+            return Response.status(Response.Status.CONFLICT)
+                .entity("{\"error\":\"Patient already screened\"}")
+                .build();
 
         eligibilityScreeningService.screen(enrollment, req.criteria());
 

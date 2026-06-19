@@ -46,9 +46,14 @@ public class ProtocolAmendmentCaseHub extends YamlCaseHub {
                             .outputSchema(".")
                             .build()))
                         .function((Map<String, Object> ctx) -> {
+                            String amendmentIdStr = (String) ctx.get("amendmentId");
+                            String trialIdStr = (String) ctx.get("trialId");
+                            if (amendmentIdStr == null || trialIdStr == null) {
+                                return WorkerResult.failed("protocol-amendment-advisor: missing context keys (amendmentId, trialId)");
+                            }
                             ProtocolAmendmentContext pac = new ProtocolAmendmentContext(
-                                UUID.fromString((String) ctx.get("amendmentId")),
-                                UUID.fromString((String) ctx.get("trialId")),
+                                UUID.fromString(amendmentIdStr),
+                                UUID.fromString(trialIdStr),
                                 (String) ctx.get("proposedChange"),
                                 Map.of()
                             );
