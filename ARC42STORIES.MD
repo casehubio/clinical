@@ -4,7 +4,7 @@
 **Date:** 2026-06-02
 **Profile:** [Arc42Stories CaseHub Profile](../parent/docs/arc42stories-casehub-profile.md)
 **Spec:** [Arc42Stories Specification](../parent/docs/arc42stories-spec.md)
-**Status:** Layers 1–8 complete. All Chapters complete.
+**Status:** Layers 1–9 complete. All Chapters complete.
 
 ---
 
@@ -180,7 +180,7 @@ See `../parent/docs/PLATFORM.md` Capability Ownership table for the full boundar
 
 ### Layer Architecture View
 
-Current delivery state — Layers 1–8 complete (Layer 7 trust routing: 2026-06-15).
+Current delivery state — Layers 1–9 complete (Layer 9 showcase: 2026-06-18).
 
 ```mermaid
 C4Container
