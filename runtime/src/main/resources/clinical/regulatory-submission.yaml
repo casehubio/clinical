@@ -6,10 +6,6 @@ title: IND Expedited Safety Report Filing
 
 spec:
 
-  capabilities:
-    - name: regulatory-submission
-      inputSchema: "{ grade: .grade, unexpected: .unexpected, aeId: .aeId, indReportingDeadline: .indReportingDeadline }"
-
   goals:
     - name: submission-complete
       kind: success
@@ -20,4 +16,9 @@ spec:
       on:
         contextChange:
           filter: ".grade != null and .submissionFiled == null"
-      capability: regulatory-submission
+      humanTask:
+        title: "IND Expedited Safety Report — 21 CFR 312.32"
+        expiresAtExpression: ".indReportingDeadline"
+        candidateGroups: [regulatory-affairs]
+        inputMapping: "{ aeId: .aeId, grade: .grade, unexpected: .unexpected, indReportingDeadline: .indReportingDeadline }"
+        outputMapping: "{ submissionFiled: . }"

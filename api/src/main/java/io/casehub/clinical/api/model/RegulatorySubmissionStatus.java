@@ -6,5 +6,7 @@ public enum RegulatorySubmissionStatus {
     /** Grade 3/4/5 + unexpected confirmed; regulatory submission case started. */
     PENDING,
     /** IND expedited safety report filed. */
-    FILED
+    FILED,
+    /** IND reporting deadline exhausted without submission. */
+    DEADLINE_MISSED
 }
