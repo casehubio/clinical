@@ -67,7 +67,7 @@ public class RegulatorySubmissionLedgerWriter {
         entry.aeId = ae.id;
         entry.grade = ae.grade.name();
         entry.submittedAt = now;
-        entry.attach(ClinicalComplianceSupplement.regulatorySubmission(ae.grade));
+        entry.attach(ClinicalComplianceSupplement.regulatorySubmissionFiled(ae.grade));
         ledgerEntryRepository.save(entry, "default");
     }
 

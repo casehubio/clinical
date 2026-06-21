@@ -53,7 +53,7 @@ class RegulatorySubmissionDeadlineLifecycleTest {
     void grade3_workItem_expiresAt_equals_reportedAt_plus_15_days() {
         Instant reportedAt = Instant.parse("2026-07-01T10:00:00Z");
         UUID aeId = persistAe(CtcaeGrade.GRADE_3, reportedAt);
-        AdverseEventReportedEvent event = buildEvent(aeId, CtcaeGrade.GRADE_3);
+        AdverseEventReportedEvent event = buildEvent(aeId, CtcaeGrade.GRADE_3, reportedAt);
 
         service.onAdverseEventReported(event);
 
@@ -83,7 +83,7 @@ class RegulatorySubmissionDeadlineLifecycleTest {
     void grade4_workItem_expiresAt_equals_reportedAt_plus_7_days() {
         Instant reportedAt = Instant.parse("2026-07-02T10:00:00Z");
         UUID aeId = persistAe(CtcaeGrade.GRADE_4, reportedAt);
-        AdverseEventReportedEvent event = buildEvent(aeId, CtcaeGrade.GRADE_4);
+        AdverseEventReportedEvent event = buildEvent(aeId, CtcaeGrade.GRADE_4, reportedAt);
 
         service.onAdverseEventReported(event);
 
@@ -134,13 +134,13 @@ class RegulatorySubmissionDeadlineLifecycleTest {
         return AdverseEvent.findById(aeId);
     }
 
-    private AdverseEventReportedEvent buildEvent(UUID aeId, CtcaeGrade grade) {
+    private AdverseEventReportedEvent buildEvent(UUID aeId, CtcaeGrade grade, Instant reportedAt) {
         return new AdverseEventReportedEvent(
                 aeId,
                 UUID.randomUUID(),
                 UUID.randomUUID(),
                 grade,
-                Instant.now(),
+                reportedAt,
                 principal.tenancyId());
     }
 }

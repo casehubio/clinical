@@ -21,7 +21,6 @@ import jakarta.inject.Inject;
 import jakarta.transaction.Transactional;
 import java.time.Instant;
 import java.util.UUID;
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 @QuarkusTest
@@ -29,9 +28,6 @@ class RegulatorySubmissionBreachListenerTest {
 
     @Inject RegulatorySubmissionBreachListener listener;
     @InjectMock RegulatorySubmissionLedgerWriter ledgerWriter;
-
-    @BeforeEach
-    void reset() {}
 
     @Test
     void escalated_event_for_regulatory_submission_sets_deadline_missed() {

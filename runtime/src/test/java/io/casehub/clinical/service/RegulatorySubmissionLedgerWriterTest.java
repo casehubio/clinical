@@ -155,7 +155,11 @@ class RegulatorySubmissionLedgerWriterTest {
                             && e.compliance()
                                     .map(c -> c.planRef)
                                     .orElse("")
-                                    .contains("(c)(1)(ii)");
+                                    .contains("(c)(1)(ii)")
+                            && e.compliance()
+                                    .map(c -> c.algorithmRef)
+                                    .orElse("")
+                                    .contains("RegulatorySubmissionCompletedListener");
                 }), eq("default"));
     }
 

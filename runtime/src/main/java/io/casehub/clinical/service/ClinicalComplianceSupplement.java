@@ -97,6 +97,20 @@ public final class ClinicalComplianceSupplement {
         return s;
     }
 
+    public static ComplianceSupplement regulatorySubmissionFiled(CtcaeGrade grade) {
+        Objects.requireNonNull(grade, "grade");
+        ComplianceSupplement s = new ComplianceSupplement();
+        s.planRef = switch (grade) {
+            case GRADE_5 -> "21 CFR 312.32(c)(1)(i) — IND 7-day expedited safety report filed, unexpected fatal AE";
+            case GRADE_4 -> "21 CFR 312.32(c)(1)(i) — IND 7-day expedited safety report filed, unexpected life-threatening AE";
+            case GRADE_3 -> "21 CFR 312.32(c)(1)(ii) — IND 15-day expedited safety report filed, unexpected serious AE";
+            default -> throw new IllegalArgumentException("no IND planRef for grade: " + grade);
+        };
+        s.algorithmRef = "RegulatorySubmissionCompletedListener — WorkItem completed by regulatory-affairs";
+        s.humanOverrideAvailable = true;
+        return s;
+    }
+
     public static ComplianceSupplement regulatorySubmissionBreach(CtcaeGrade grade) {
         Objects.requireNonNull(grade, "grade");
         ComplianceSupplement s = new ComplianceSupplement();
