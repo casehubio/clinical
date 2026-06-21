@@ -809,3 +809,70 @@ in ledger SNAPSHOT; `ConsentWithdrawalService` passes `ErasureReason.GDPR_ART_17
 `docs/comparison/clinicalagent.md` — 10-row table mapping each GCP/FDA requirement to the
 structural gap in ClinicalAgent (arXiv 2404.14777) and the specific casehub-clinical class that
 closes it. FDA Merkle verification endpoint: `GET /trials/{t}/sites/{s}/patients/{e}/ledger/verify`.
+
+---
+
+## Layer 10 — IND Reporting Deadline Enforcement (absolute WorkItem deadline via engine SPI)
+
+**Completed:** 2026-06-22 (casehubio/clinical#83)
+**Issues:** casehubio/clinical#83, casehubio/engine#549
+**Navigation:** `git log --grep="#83" --oneline`
+**Spec:** workspace `specs/2026-06-21-ind-deadline-enforcement-design.md`
+**Key files:**
+
+Engine (casehub-engine#549):
+- `api/src/main/java/io/casehub/api/engine/ExpressionEngine.java` — `default extractString()` SPI method
+- `api/src/main/java/io/casehub/api/engine/ExpressionEngineRegistry.java` — `extractString()` dispatch
+- `runtime/src/main/java/io/casehub/engine/internal/engine/JQExpressionEngine.java` — override: WORKING panel, emptiness + isTextual guards
+- `runtime/src/main/java/io/casehub/engine/internal/engine/DefaultExpressionEngineRegistry.java` — dispatch with UnsupportedOperationException catch
+- `api/src/main/java/io/casehub/api/model/HumanTaskTarget.java` — `expiresAtExpression: ExpressionEvaluator` field + String/Evaluator builder
+- `schema/src/main/resources/schema/CaseDefinition.yaml` — `expiresAtExpression: string` in HumanTask schema
+- `api/src/main/java/io/casehub/api/model/converter/CaseDefinitionYamlMapper.java` — map + JQ load-time validation
+- `common/src/main/java/io/casehub/engine/common/internal/event/HumanTaskScheduleEvent.java` — `expiresAtDeadline: Instant` field (BREAKING: 8→9 args)
+- `runtime/src/main/java/io/casehub/engine/internal/engine/handler/CaseContextChangedEventHandler.java` — `resolveExpiresAtDeadline()`, pass in event
+- `work-adapter/src/main/java/io/casehub/workadapter/HumanTaskScheduleHandler.java` — createInline() + template mode apply `expiresAtDeadline` via earliestOf
+
+Clinical:
+- `runtime/src/main/resources/clinical/regulatory-submission.yaml` — capability → humanTask with `expiresAtExpression: ".indReportingDeadline"`, candidateGroups: [regulatory-affairs]
+- `api/src/main/java/io/casehub/clinical/api/model/RegulatorySubmissionStatus.java` — add `DEADLINE_MISSED` (FILED already existed)
+- `runtime/src/main/java/io/casehub/clinical/service/ClinicalIndReportingBreachPolicy.java` — `@ApplicationScoped SlaBreachPolicy`; stateless two-tier; 48h escalation to regulatory-leadership
+- `runtime/src/main/java/io/casehub/clinical/service/RegulatorySubmissionCompletedListener.java` — `@ObservesAsync CaseLifecycleEvent` GoalReached/CaseCompleted → `FILED`
+- `runtime/src/main/java/io/casehub/clinical/service/RegulatorySubmissionBreachListener.java` — `@ObservesAsync WorkItemLifecycleEvent(ESCALATED)` → `DEADLINE_MISSED`
+- `runtime/src/main/java/io/casehub/clinical/service/ClinicalComplianceSupplement.java` — `regulatorySubmissionFiled()` + `regulatorySubmissionBreach()` factory methods
+- `runtime/src/main/java/io/casehub/clinical/service/RegulatorySubmissionLedgerWriter.java` — `writeFiledEntry()` + `writeBreachEntry()`
+- `runtime/src/main/java/io/casehub/clinical/ledger/IndReportFiledLedgerEntry.java` — `@DiscriminatorValue("IndReportFiled")`: aeId, grade, submittedAt
+- `runtime/src/main/java/io/casehub/clinical/ledger/IndReportBreachLedgerEntry.java` — `@DiscriminatorValue("IndReportBreach")`: aeId, grade, breachedAt, breachReason
+- `runtime/src/main/resources/db/migration/qhorus/V2026__ind_report_filed_ledger_entry.sql`
+- `runtime/src/main/resources/db/migration/qhorus/V2027__ind_report_breach_ledger_entry.sql`
+- `runtime/src/test/java/io/casehub/clinical/service/RegulatorySubmissionDeadlineLifecycleTest.java` — end-to-end invariant (Grade 3: +15d, Grade 4: +7d)
+
+### What it adds
+
+Layer 10 closes the structural gap identified in Layer 7: `RegulatorySubmissionCaseService` computed `indReportingDeadline` and placed it in the engine case context, but nothing enforced it as a `WorkItem.expiresAt`. If the regulatory-affairs agent missed the window, no platform mechanism detected it.
+
+**Engine SPI extension:** `ExpressionEngine.extractString()` — a pluggable `default` method on the existing SPI. `ExpressionEngineRegistry.extractString()` dispatches to the engine's JQ implementation, catches `UnsupportedOperationException` from engines that don't override it (returns `Optional.empty()` + WARN), and throws `IllegalArgumentException` for unregistered types. `JQExpressionEngine.extractString()` evaluates against the WORKING panel with three guards: null/blank expr, empty output, non-textual node (`NullNode.asText()` returns the string `"null"`, not null reference). `HumanTaskTarget.expiresAtExpression: ExpressionEvaluator` is a new builder field evaluated at scheduling time; the resulting `Instant` travels as `expiresAtDeadline` in `HumanTaskScheduleEvent` and is folded into `earliestOf(taskDeadline, expiresAtDeadline, caseBudgetDeadline)`.
+
+**regulatory-submission.yaml:** Changed from `capability: regulatory-submission` to `humanTask` with `expiresAtExpression: ".indReportingDeadline"`. `indReportingDeadline` is in the WORKING panel (placed by `RegulatorySubmissionCaseService.prepareAndMark()`). JQ syntax is validated at YAML load time — invalid expression → `IllegalArgumentException` at startup, not silent null at runtime.
+
+**Compliance layer:** `ClinicalIndReportingBreachPolicy` displaces `NoOpSlaBreachPolicy @DefaultBean`. Stateless two-tier: candidateGroups containing `"regulatory-affairs"` → `EscalateTo("regulatory-leadership", 48h)`; after escalation, `ExpiryLifecycleService` replaces `candidateGroups` with the escalation group — the `isRegulatory` guard tests both groups. Both listeners guard on `!= PENDING` for symmetry: completed listener protects `DEADLINE_MISSED` from overwrite; breach listener protects `FILED`.
+
+**Ledger audit:** `IndReportFiledLedgerEntry` records actual filing time (`submittedAt`). `IndReportBreachLedgerEntry` records exhaustion time (`breachedAt`) with fixed breach reason (the `Exhausted(reason)` string from the policy goes to the work audit log, not the lifecycle event — `ExpiryLifecycleService.fireLifecycleEvent()` hardcodes null as the detail). `subjectId = ae.enrollmentId` on both — Merkle chain continuity. Both carry `ClinicalComplianceSupplement` with correct `algorithmRef` (filed: listener; breach: breach policy).
+
+### Key wiring
+
+**`ExpiryLifecycleService` replaces `candidateGroups` after escalation:** `executeEscalateTo()` does `item.candidateGroups = String.join(",", escalate.groups())`. On second breach, the policy receives `{"regulatory-leadership"}` only — `"regulatory-affairs"` is gone. `isRegulatory` must test both groups or the `Exhausted` branch is unreachable.
+
+**`WorkItemLifecycleEvent.detail()` is always null for ESCALATED:** `ExpiryLifecycleService.executeExhausted()` calls `fireLifecycleEvent("ESCALATED", item)` which calls `WorkItemLifecycleEvent.of(event, item, "system", null)` — hardcoded null. The `Exhausted(reason)` string goes to `writeAudit()` only. `IndReportBreachLedgerEntry.breachReason` is therefore a fixed string, not event-carried.
+
+**`CallerRef.parse()` for breach listener discrimination:** `CallerRef` is a sealed interface in `io.casehub.workadapter` with `PlanItemCallerRef` and `GateCallerRef` subtypes. `parse()` returns null for non-engine callerRefs (e.g., `"clinical:adverse-event/..."` format). This is the `IrbDecisionListener` pattern. `instanceof WorkItem workItem` guard handles wire-reconstructed events where `source()` returns null.
+
+**Engine reinstall required after expiresAtDeadline addition:** `HumanTaskScheduleEvent` is a BREAKING change (8→9 args). Clinical tests that rely on the engine SNAPSHOT must reinstall the engine locally (`mvn install -DskipTests -f engine/pom.xml`) before running the clinical test suite.
+
+### Accountability gaps closed
+
+| Gap | What breaks | Closed by |
+|-----|-------------|-----------|
+| No IND filing deadline enforcement | `regulatory-submission.yaml` capability binding routes to agent with no `expiresAt` — missed deadline undetected | `expiresAtExpression: ".indReportingDeadline"` → `WorkItem.expiresAt = ae.reportedAt + window` |
+| No SLA breach escalation | When deadline passes, nothing escalates to regulatory leadership | `ClinicalIndReportingBreachPolicy` → `EscalateTo("regulatory-leadership", 48h)` |
+| `RegulatorySubmissionStatus` has no terminal failure state | Can't distinguish deadline missed from pending | `DEADLINE_MISSED` enum value |
+| No tamper-evident audit for filed/breached IND reports | FDA auditors cannot verify filing or breach independently | `IndReportFiledLedgerEntry` + `IndReportBreachLedgerEntry` in Merkle chain |

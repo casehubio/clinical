@@ -316,6 +316,7 @@ Layer 6: trial-level blackboard aggregation — DSMB rollup via cross-site signa
 Layer 7: trust routing — ClinicalTrustRoutingPolicyProvider, SusarAgentAttestationWriter (LedgerAttestation), RegulatorySubmissionCaseService (IND 21 CFR 312.32), AeEscalationCompletedEvent.unexpected ✅ (casehubio/clinical#8, 2026-06-15)
 Layer 8: ActionRiskClassifier oversight gate + GDPR consent withdrawal — ClinicalActionRiskClassifier, SusarCriteriaEvaluator, SusarGateDecisionListener, ConsentWithdrawalService, ClinicalComplianceSupplement (EU AI Act Art.12) ✅ (casehubio/clinical#47, #76, #77, #7, 2026-06-13)
 Layer 9: Showcase — eligibility screening (EligibilityScreeningService, eligibility-screening.yaml, IRB gate), protocol amendment (ProtocolAmendmentAdvisor SPI, protocol-amendment.yaml, LLM supervisor slot clinical#86) ✅ (casehubio/clinical#10, 2026-06-18)
+Layer 10: IND deadline enforcement — regulatory-submission.yaml capability→humanTask with expiresAtExpression engine SPI (ExpressionEngine.extractString, HumanTaskTarget.expiresAtExpression, engine#549), ClinicalIndReportingBreachPolicy (stateless two-tier SlaBreachPolicy), RegulatorySubmissionCompleted/BreachListener, IndReportFiled/BreachLedgerEntry, V2026/V2027 ✅ (casehubio/clinical#83, 2026-06-22)
 ```
 
 **Note on reading order vs build order:** Layers 2 and 4 were built in the same epic (Epic 4) — reading order differs from build order. LAYER-LOG.md preserves reading order.
