@@ -96,4 +96,18 @@ public final class ClinicalComplianceSupplement {
         s.humanOverrideAvailable = true;
         return s;
     }
+
+    public static ComplianceSupplement regulatorySubmissionBreach(CtcaeGrade grade) {
+        Objects.requireNonNull(grade, "grade");
+        ComplianceSupplement s = new ComplianceSupplement();
+        s.planRef = switch (grade) {
+            case GRADE_5 -> "21 CFR 312.32(c)(1)(i) — IND 7-day expedited reporting deadline missed, unexpected fatal AE";
+            case GRADE_4 -> "21 CFR 312.32(c)(1)(i) — IND 7-day expedited reporting deadline missed, unexpected life-threatening AE";
+            case GRADE_3 -> "21 CFR 312.32(c)(1)(ii) — IND 15-day expedited reporting deadline missed, unexpected serious AE";
+            default -> throw new IllegalArgumentException("no IND planRef for grade: " + grade);
+        };
+        s.algorithmRef = "ClinicalIndReportingBreachPolicy — IND deadline exhausted";
+        s.humanOverrideAvailable = true;
+        return s;
+    }
 }

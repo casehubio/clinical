@@ -8,6 +8,8 @@ import static org.mockito.Mockito.when;
 
 import io.casehub.clinical.api.model.CtcaeGrade;
 import io.casehub.clinical.entity.AdverseEvent;
+import io.casehub.clinical.ledger.IndReportBreachLedgerEntry;
+import io.casehub.clinical.ledger.IndReportFiledLedgerEntry;
 import io.casehub.clinical.ledger.RegulatorySubmissionLedgerEntry;
 import io.casehub.ledger.runtime.repository.LedgerEntryRepository;
 import java.time.Clock;
@@ -126,5 +128,65 @@ class RegulatorySubmissionLedgerWriterTest {
                                     .contains("(c)(1)(i)");
                 }),
                 eq("default"));
+    }
+
+    @Test
+    void writeFiledEntry_writes_ind_report_filed_entry_with_correct_fields() {
+        final Instant now = Instant.parse("2026-07-16T10:00:00Z");
+        when(clock.instant()).thenReturn(now);
+        when(ledgerEntryRepository.findLatestBySubjectId(any(), any())).thenReturn(Optional.empty());
+
+        AdverseEvent ae = new AdverseEvent();
+        ae.id = UUID.randomUUID();
+        ae.enrollmentId = UUID.randomUUID();
+        ae.grade = CtcaeGrade.GRADE_3;
+        ae.tenantId = "test-tenant";
+
+        writer.writeFiledEntry(ae);
+
+        verify(ledgerEntryRepository).save(
+                argThat(entry -> {
+                    if (!(entry instanceof IndReportFiledLedgerEntry e)) return false;
+                    return e.aeId.equals(ae.id)
+                            && "GRADE_3".equals(e.grade)
+                            && e.submittedAt.equals(now)
+                            && e.subjectId.equals(ae.enrollmentId)
+                            && e.sequenceNumber == 1
+                            && e.compliance()
+                                    .map(c -> c.planRef)
+                                    .orElse("")
+                                    .contains("(c)(1)(ii)");
+                }), eq("default"));
+    }
+
+    @Test
+    void writeBreachEntry_writes_ind_report_breach_entry_with_fixed_reason() {
+        final Instant now = Instant.parse("2026-07-16T10:00:00Z");
+        when(clock.instant()).thenReturn(now);
+        when(ledgerEntryRepository.findLatestBySubjectId(any(), any())).thenReturn(Optional.empty());
+
+        AdverseEvent ae = new AdverseEvent();
+        ae.id = UUID.randomUUID();
+        ae.enrollmentId = UUID.randomUUID();
+        ae.grade = CtcaeGrade.GRADE_5;
+        ae.tenantId = "test-tenant";
+
+        writer.writeBreachEntry(ae);
+
+        verify(ledgerEntryRepository).save(
+                argThat(entry -> {
+                    if (!(entry instanceof IndReportBreachLedgerEntry e)) return false;
+                    return e.aeId.equals(ae.id)
+                            && "GRADE_5".equals(e.grade)
+                            && e.breachedAt.equals(now)
+                            && e.subjectId.equals(ae.enrollmentId)
+                            && e.sequenceNumber == 1
+                            && "IND reporting deadline exhausted without submission"
+                                    .equals(e.breachReason)
+                            && e.compliance()
+                                    .map(c -> c.algorithmRef)
+                                    .orElse("")
+                                    .contains("ClinicalIndReportingBreachPolicy");
+                }), eq("default"));
     }
 }

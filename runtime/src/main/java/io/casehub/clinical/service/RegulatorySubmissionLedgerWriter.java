@@ -2,6 +2,8 @@ package io.casehub.clinical.service;
 
 import io.casehub.clinical.api.ClinicalActors;
 import io.casehub.clinical.entity.AdverseEvent;
+import io.casehub.clinical.ledger.IndReportBreachLedgerEntry;
+import io.casehub.clinical.ledger.IndReportFiledLedgerEntry;
 import io.casehub.clinical.ledger.RegulatorySubmissionLedgerEntry;
 import io.casehub.ledger.api.model.LedgerEntryType;
 import io.casehub.ledger.runtime.repository.LedgerEntryRepository;
@@ -47,6 +49,45 @@ public class RegulatorySubmissionLedgerWriter {
         entry.grade = ae.grade.name();
         entry.filedAt = now;
         entry.attach(ClinicalComplianceSupplement.regulatorySubmission(ae.grade));
+        ledgerEntryRepository.save(entry, "default");
+    }
+
+    @Transactional(Transactional.TxType.MANDATORY)
+    public void writeFiledEntry(AdverseEvent ae) {
+        IndReportFiledLedgerEntry entry = new IndReportFiledLedgerEntry();
+        entry.id = UUID.randomUUID();
+        entry.subjectId = ae.enrollmentId;
+        entry.sequenceNumber = nextSequenceNumber(ae.enrollmentId, "default");
+        entry.entryType = LedgerEntryType.EVENT;
+        entry.actorId = ClinicalActors.CLINICAL_SERVICE;
+        entry.actorType = ActorType.SYSTEM;
+        entry.actorRole = "RegulatorySubmissionFiled";
+        Instant now = clock.instant();
+        entry.occurredAt = now;
+        entry.aeId = ae.id;
+        entry.grade = ae.grade.name();
+        entry.submittedAt = now;
+        entry.attach(ClinicalComplianceSupplement.regulatorySubmission(ae.grade));
+        ledgerEntryRepository.save(entry, "default");
+    }
+
+    @Transactional(Transactional.TxType.MANDATORY)
+    public void writeBreachEntry(AdverseEvent ae) {
+        IndReportBreachLedgerEntry entry = new IndReportBreachLedgerEntry();
+        entry.id = UUID.randomUUID();
+        entry.subjectId = ae.enrollmentId;
+        entry.sequenceNumber = nextSequenceNumber(ae.enrollmentId, "default");
+        entry.entryType = LedgerEntryType.EVENT;
+        entry.actorId = ClinicalActors.CLINICAL_SERVICE;
+        entry.actorType = ActorType.SYSTEM;
+        entry.actorRole = "RegulatorySubmissionBreach";
+        Instant now = clock.instant();
+        entry.occurredAt = now;
+        entry.aeId = ae.id;
+        entry.grade = ae.grade.name();
+        entry.breachedAt = now;
+        entry.breachReason = "IND reporting deadline exhausted without submission";
+        entry.attach(ClinicalComplianceSupplement.regulatorySubmissionBreach(ae.grade));
         ledgerEntryRepository.save(entry, "default");
     }
 
