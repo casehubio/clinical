@@ -8,3 +8,4 @@
 | 0004 | [Three-Phase Pattern for @Transactional + startCase().join()](0004-three-phase-activation-for-engine-case-start.md) | Accepted | 2026-05-25 |
 | 0005 | [SusarEvaluatorFunction Interface Placement in runtime/service/](0005-susar-evaluator-function-placement.md) | Accepted | 2026-06-12 |
 | 0006 | [Dedicated SUSAR Oversight Case Hub over Inline ae-escalation Binding](0006-dedicated-susar-oversight-case-hub.md) | Accepted | 2026-06-13 |
+| 0007 | [Absolute deadline expression for humanTask WorkItems](0007-expires-at-expression-for-absolute-humantask-deadlines.md) | Accepted | 2026-06-22 |
