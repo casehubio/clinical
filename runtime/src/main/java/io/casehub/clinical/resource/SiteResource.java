@@ -1,9 +1,11 @@
 package io.casehub.clinical.resource;
 
+import io.casehub.clinical.api.ClinicalGroups;
 import io.casehub.clinical.api.model.SiteStatus;
 import io.casehub.clinical.entity.ClinicalTrial;
 import io.casehub.clinical.entity.TrialSite;
 import io.casehub.platform.api.identity.CurrentPrincipal;
+import jakarta.annotation.security.RolesAllowed;
 import jakarta.inject.Inject;
 import jakarta.transaction.Transactional;
 import jakarta.validation.Valid;
@@ -24,6 +26,7 @@ public class SiteResource {
 
     @POST
     @Transactional
+    @RolesAllowed(ClinicalGroups.SPONSOR)
     public Response add(@PathParam("trialId") UUID trialId,
                         @Valid AddSiteRequest req,
                         @Context UriInfo uriInfo) {
@@ -45,6 +48,7 @@ public class SiteResource {
 
     @GET
     @Path("/{siteId}")
+    @RolesAllowed({ClinicalGroups.SPONSOR, ClinicalGroups.INVESTIGATOR, ClinicalGroups.COORDINATOR, ClinicalGroups.MONITOR})
     public Response get(@PathParam("trialId") UUID trialId,
                         @PathParam("siteId") UUID siteId) {
         TrialSite site = TrialSite.findByIdForTenant(siteId, principal);

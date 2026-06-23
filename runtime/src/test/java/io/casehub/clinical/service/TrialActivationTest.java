@@ -6,9 +6,11 @@ import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.awaitility.Awaitility.await;
 
+import io.casehub.clinical.api.ClinicalGroups;
 import io.casehub.clinical.entity.ClinicalTrial;
 import io.casehub.platform.testing.FixedCurrentPrincipal;
 import io.quarkus.test.junit.QuarkusTest;
+import io.quarkus.test.security.TestSecurity;
 import jakarta.inject.Inject;
 import jakarta.transaction.Transactional;
 import org.junit.jupiter.api.AfterEach;
@@ -17,6 +19,7 @@ import org.junit.jupiter.api.Test;
 import java.util.UUID;
 
 @QuarkusTest
+@TestSecurity(user = "test-actor", roles = {ClinicalGroups.SPONSOR, ClinicalGroups.INVESTIGATOR, ClinicalGroups.COORDINATOR})
 class TrialActivationTest {
 
     @Inject TrialActivationService trialActivationService;

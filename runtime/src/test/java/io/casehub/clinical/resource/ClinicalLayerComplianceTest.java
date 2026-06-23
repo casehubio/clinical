@@ -1,8 +1,10 @@
 package io.casehub.clinical.resource;
 
+import io.casehub.clinical.api.ClinicalGroups;
 import io.casehub.clinical.service.PiResponseListener;
 import io.casehub.qhorus.api.message.MessageType;
 import io.quarkus.test.junit.QuarkusTest;
+import io.quarkus.test.security.TestSecurity;
 import jakarta.inject.Inject;
 import org.junit.jupiter.api.Test;
 import java.time.Duration;
@@ -19,6 +21,7 @@ import static org.hamcrest.Matchers.*;
  * <p>Not the full showcase narrative — see {@link ThreeSiteShowcaseTest} for the §7.4 scenario.
  */
 @QuarkusTest
+@TestSecurity(user = "test-actor", roles = {ClinicalGroups.SPONSOR, ClinicalGroups.INVESTIGATOR, ClinicalGroups.COORDINATOR})
 class ClinicalLayerComplianceTest {
 
     @Inject PiResponseListener piResponseListener;

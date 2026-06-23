@@ -1,10 +1,12 @@
 package io.casehub.clinical.resource;
 
+import io.casehub.clinical.api.ClinicalGroups;
 import io.casehub.clinical.api.model.TrialStatus;
 import io.casehub.clinical.api.model.TrialPhase;
 import io.casehub.clinical.entity.ClinicalTrial;
 import io.casehub.clinical.service.TrialActivationService;
 import io.casehub.platform.api.identity.CurrentPrincipal;
+import jakarta.annotation.security.RolesAllowed;
 import jakarta.inject.Inject;
 import jakarta.transaction.Transactional;
 import jakarta.validation.Valid;
@@ -41,6 +43,7 @@ public class TrialResource {
 
     @POST
     @Transactional
+    @RolesAllowed(ClinicalGroups.SPONSOR)
     public Response register(@Valid RegisterTrialRequest req, @Context UriInfo uriInfo) {
         ClinicalTrial trial = new ClinicalTrial();
         trial.id = UUID.randomUUID();
@@ -60,6 +63,7 @@ public class TrialResource {
 
     @GET
     @Path("/{id}")
+    @RolesAllowed({ClinicalGroups.SPONSOR, ClinicalGroups.INVESTIGATOR, ClinicalGroups.COORDINATOR, ClinicalGroups.MONITOR})
     public Response get(@PathParam("id") UUID id) {
         ClinicalTrial trial = ClinicalTrial.findByIdForTenant(id, principal);
         if (trial == null) return Response.status(Response.Status.NOT_FOUND).build();
@@ -69,6 +73,7 @@ public class TrialResource {
     @PATCH
     @Path("/{id}/sponsor-config")
     @Transactional
+    @RolesAllowed(ClinicalGroups.SPONSOR)
     public Response updateSponsorConfig(@PathParam("id") UUID id, @NotNull @Valid SponsorConfigRequest req) {
         ClinicalTrial trial = ClinicalTrial.findByIdForTenant(id, principal);
         if (trial == null) return Response.status(Response.Status.NOT_FOUND).build();
@@ -81,6 +86,7 @@ public class TrialResource {
     @POST
     @Path("/{id}/activate")
     @Consumes(MediaType.WILDCARD)
+    @RolesAllowed(ClinicalGroups.SPONSOR)
     public Response activate(@PathParam("id") UUID id) {
         try {
             trialActivationService.activate(id);

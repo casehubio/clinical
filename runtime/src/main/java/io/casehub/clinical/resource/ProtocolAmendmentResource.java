@@ -1,9 +1,11 @@
 package io.casehub.clinical.resource;
 
+import io.casehub.clinical.api.ClinicalGroups;
 import io.casehub.clinical.entity.ClinicalTrial;
 import io.casehub.clinical.entity.ProtocolAmendment;
 import io.casehub.clinical.service.ProtocolAmendmentService;
 import io.casehub.platform.api.identity.CurrentPrincipal;
+import jakarta.annotation.security.RolesAllowed;
 import jakarta.inject.Inject;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
@@ -31,6 +33,7 @@ public class ProtocolAmendmentResource {
     ) {}
 
     @POST
+    @RolesAllowed({ClinicalGroups.SPONSOR, ClinicalGroups.INVESTIGATOR})
     public Response propose(@PathParam("trialId") UUID trialId,
                             @Valid ProposeAmendmentRequest req,
                             @Context UriInfo uriInfo) {
@@ -48,6 +51,7 @@ public class ProtocolAmendmentResource {
 
     @GET
     @Path("/{amendmentId}")
+    @RolesAllowed({ClinicalGroups.SPONSOR, ClinicalGroups.INVESTIGATOR, ClinicalGroups.COORDINATOR, ClinicalGroups.MONITOR})
     public Response get(@PathParam("trialId") UUID trialId,
                         @PathParam("amendmentId") UUID amendmentId) {
         ProtocolAmendment amendment = ProtocolAmendment.findByIdForTenant(amendmentId, principal);

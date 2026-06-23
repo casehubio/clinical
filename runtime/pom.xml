@@ -57,6 +57,13 @@
       <artifactId>casehub-platform-config</artifactId>
     </dependency>
 
+    <!-- OidcCurrentPrincipal @RequestScoped — becomes sole active CurrentPrincipal;
+         brings quarkus-oidc transitively. clinical#88. -->
+    <dependency>
+      <groupId>io.casehub</groupId>
+      <artifactId>casehub-platform-oidc</artifactId>
+    </dependency>
+
     <!-- Layer 7: CaseMemoryStore — JPA (prod) displaces NoOpCaseMemoryStore; in-memory (test) selected via selected-alternatives -->
     <dependency>
       <groupId>io.casehub</groupId>
@@ -162,6 +169,12 @@
     <dependency>
       <groupId>io.quarkus</groupId>
       <artifactId>quarkus-junit</artifactId>
+      <scope>test</scope>
+    </dependency>
+    <!-- @TestSecurity — controls SecurityIdentity in @QuarkusTest without a real OIDC server (clinical#88) -->
+    <dependency>
+      <groupId>io.quarkus</groupId>
+      <artifactId>quarkus-test-security</artifactId>
       <scope>test</scope>
     </dependency>
     <dependency>

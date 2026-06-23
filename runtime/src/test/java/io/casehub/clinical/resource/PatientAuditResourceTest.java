@@ -2,15 +2,18 @@ package io.casehub.clinical.resource;
 
 import static io.restassured.RestAssured.given;
 
+import io.casehub.clinical.api.ClinicalGroups;
 import io.casehub.clinical.api.model.ConsentStatus;
 import io.casehub.clinical.api.model.EnrollmentStatus;
 import io.casehub.clinical.entity.PatientEnrollment;
 import io.quarkus.test.junit.QuarkusTest;
+import io.quarkus.test.security.TestSecurity;
 import jakarta.transaction.Transactional;
 import java.util.UUID;
 import org.junit.jupiter.api.Test;
 
 @QuarkusTest
+@TestSecurity(user = "test-actor", roles = {ClinicalGroups.SPONSOR, ClinicalGroups.INVESTIGATOR, ClinicalGroups.COORDINATOR})
 class PatientAuditResourceTest {
 
     @Test

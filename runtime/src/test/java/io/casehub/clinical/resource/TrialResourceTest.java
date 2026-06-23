@@ -1,9 +1,11 @@
 package io.casehub.clinical.resource;
 
+import io.casehub.clinical.api.ClinicalGroups;
 import io.casehub.clinical.api.model.TrialPhase;
 import io.casehub.clinical.api.model.TrialStatus;
 import io.casehub.platform.testing.FixedCurrentPrincipal;
 import io.quarkus.test.junit.QuarkusTest;
+import io.quarkus.test.security.TestSecurity;
 import jakarta.inject.Inject;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
@@ -13,6 +15,7 @@ import static io.restassured.RestAssured.given;
 import static org.hamcrest.Matchers.*;
 
 @QuarkusTest
+@TestSecurity(user = "test-actor", roles = {ClinicalGroups.SPONSOR, ClinicalGroups.INVESTIGATOR, ClinicalGroups.COORDINATOR})
 class TrialResourceTest {
 
     @Inject FixedCurrentPrincipal principal;

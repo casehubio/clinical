@@ -1,11 +1,13 @@
 package io.casehub.clinical.service;
 
 import io.casehub.api.model.CaseStatus;
+import io.casehub.clinical.api.ClinicalGroups;
 import io.casehub.clinical.entity.PatientEnrollment;
 import io.casehub.clinical.entity.TrialSite;
 import io.casehub.engine.common.spi.cache.CaseInstanceCache;
 import io.casehub.platform.testing.FixedCurrentPrincipal;
 import io.quarkus.test.junit.QuarkusTest;
+import io.quarkus.test.security.TestSecurity;
 import jakarta.inject.Inject;
 import jakarta.transaction.Transactional;
 import org.junit.jupiter.api.AfterEach;
@@ -20,6 +22,7 @@ import static org.awaitility.Awaitility.await;
 import static org.hamcrest.Matchers.equalTo;
 
 @QuarkusTest
+@TestSecurity(user = "test-actor", roles = {ClinicalGroups.SPONSOR, ClinicalGroups.INVESTIGATOR, ClinicalGroups.COORDINATOR})
 class EligibilityScreeningIntegrationTest {
 
     @Inject FixedCurrentPrincipal principal;

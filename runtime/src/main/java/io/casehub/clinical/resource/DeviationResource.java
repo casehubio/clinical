@@ -1,11 +1,13 @@
 package io.casehub.clinical.resource;
 
+import io.casehub.clinical.api.ClinicalGroups;
 import io.casehub.clinical.api.model.DeviationSeverity;
 import io.casehub.clinical.api.model.PiApprovalStatus;
 import io.casehub.clinical.entity.ProtocolDeviation;
 import io.casehub.clinical.entity.TrialSite;
 import io.casehub.clinical.service.ProtocolDeviationService;
 import io.casehub.platform.api.identity.CurrentPrincipal;
+import jakarta.annotation.security.RolesAllowed;
 import jakarta.inject.Inject;
 import jakarta.transaction.Transactional;
 import jakarta.validation.Valid;
@@ -31,6 +33,7 @@ public class DeviationResource {
 
     @POST
     @Transactional
+    @RolesAllowed({ClinicalGroups.INVESTIGATOR, ClinicalGroups.COORDINATOR})
     public Response reportDeviation(
             @PathParam("trialId") UUID trialId,
             @PathParam("siteId") UUID siteId,
@@ -56,6 +59,7 @@ public class DeviationResource {
 
     @GET
     @Path("/{deviationId}")
+    @RolesAllowed({ClinicalGroups.SPONSOR, ClinicalGroups.INVESTIGATOR, ClinicalGroups.COORDINATOR, ClinicalGroups.MONITOR})
     public Response getDeviation(
             @PathParam("trialId") UUID trialId,
             @PathParam("siteId") UUID siteId,

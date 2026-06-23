@@ -1,5 +1,6 @@
 package io.casehub.clinical.resource;
 
+import io.casehub.clinical.api.ClinicalGroups;
 import io.casehub.clinical.api.model.AeOutcome;
 import io.casehub.clinical.api.model.ConsentStatus;
 import io.casehub.clinical.api.model.CriterionResult;
@@ -18,6 +19,7 @@ import io.casehub.ledger.runtime.repository.LedgerEntryRepository;
 import io.casehub.ledger.runtime.service.LedgerProvExportService;
 import io.casehub.ledger.runtime.service.LedgerVerificationService;
 import io.casehub.platform.api.identity.CurrentPrincipal;
+import jakarta.annotation.security.RolesAllowed;
 import jakarta.inject.Inject;
 import jakarta.transaction.Transactional;
 import jakarta.validation.Valid;
@@ -62,6 +64,7 @@ public class PatientResource {
 
     @POST
     @Transactional
+    @RolesAllowed({ClinicalGroups.INVESTIGATOR, ClinicalGroups.COORDINATOR})
     public Response enroll(@PathParam("trialId") UUID trialId,
                            @PathParam("siteId") UUID siteId,
                            @Valid EnrollPatientRequest req,
@@ -85,6 +88,7 @@ public class PatientResource {
 
     @GET
     @Path("/{enrollmentId}")
+    @RolesAllowed({ClinicalGroups.SPONSOR, ClinicalGroups.INVESTIGATOR, ClinicalGroups.COORDINATOR, ClinicalGroups.MONITOR})
     public Response get(@PathParam("trialId") UUID trialId,
                         @PathParam("siteId") UUID siteId,
                         @PathParam("enrollmentId") UUID enrollmentId) {
@@ -100,6 +104,7 @@ public class PatientResource {
     @POST
     @Path("/{enrollmentId}/screen")
     @Transactional
+    @RolesAllowed({ClinicalGroups.INVESTIGATOR, ClinicalGroups.COORDINATOR})
     public Response screen(@PathParam("trialId") UUID trialId,
                            @PathParam("siteId") UUID siteId,
                            @PathParam("enrollmentId") UUID enrollmentId,
@@ -126,6 +131,7 @@ public class PatientResource {
 
     @POST
     @Path("/{enrollmentId}/adverse-events")
+    @RolesAllowed({ClinicalGroups.INVESTIGATOR, ClinicalGroups.COORDINATOR})
     public Response reportAdverseEvent(
             @PathParam("trialId") UUID trialId,
             @PathParam("siteId") UUID siteId,
@@ -157,6 +163,7 @@ public class PatientResource {
 
     @GET
     @Path("/{enrollmentId}/adverse-events/{aeId}")
+    @RolesAllowed({ClinicalGroups.SPONSOR, ClinicalGroups.INVESTIGATOR, ClinicalGroups.COORDINATOR, ClinicalGroups.MONITOR})
     public Response getAdverseEvent(
             @PathParam("trialId") UUID trialId,
             @PathParam("siteId") UUID siteId,
@@ -176,6 +183,7 @@ public class PatientResource {
 
     @GET
     @Path("/{enrollmentId}/ledger/verify")
+    @RolesAllowed({ClinicalGroups.SPONSOR, ClinicalGroups.INVESTIGATOR, ClinicalGroups.COORDINATOR, ClinicalGroups.MONITOR})
     public Response verifyLedger(
             @PathParam("trialId") UUID trialId,
             @PathParam("siteId") UUID siteId,
@@ -203,6 +211,7 @@ public class PatientResource {
 
     @POST
     @Path("/{enrollmentId}/withdraw-consent")
+    @RolesAllowed(ClinicalGroups.INVESTIGATOR)
     public Response withdrawConsent(
             @PathParam("trialId") UUID trialId,
             @PathParam("siteId") UUID siteId,
@@ -226,6 +235,7 @@ public class PatientResource {
     @GET
     @Path("/{enrollmentId}/audit/prov")
     @Produces("application/ld+json")
+    @RolesAllowed({ClinicalGroups.SPONSOR, ClinicalGroups.INVESTIGATOR, ClinicalGroups.COORDINATOR, ClinicalGroups.MONITOR})
     public Response getAuditProv(
             @PathParam("trialId") UUID trialId,
             @PathParam("siteId") UUID siteId,
@@ -246,6 +256,7 @@ public class PatientResource {
 
     @GET
     @Path("/{enrollmentId}/audit/entries/{entryId}/proof")
+    @RolesAllowed({ClinicalGroups.SPONSOR, ClinicalGroups.INVESTIGATOR, ClinicalGroups.COORDINATOR, ClinicalGroups.MONITOR})
     public Response getMerkleProof(
             @PathParam("trialId") UUID trialId,
             @PathParam("siteId") UUID siteId,

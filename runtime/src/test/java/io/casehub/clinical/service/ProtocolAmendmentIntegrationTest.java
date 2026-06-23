@@ -1,6 +1,7 @@
 package io.casehub.clinical.service;
 
 import io.casehub.api.model.CaseStatus;
+import io.casehub.clinical.api.ClinicalGroups;
 import io.casehub.clinical.entity.ClinicalTrial;
 import io.casehub.clinical.api.model.TrialPhase;
 import io.casehub.clinical.ledger.ProtocolAmendmentLedgerEntry;
@@ -9,6 +10,7 @@ import io.casehub.engine.common.spi.cache.CaseInstanceCache;
 import io.casehub.ledger.runtime.repository.LedgerEntryRepository;
 import io.casehub.platform.testing.FixedCurrentPrincipal;
 import io.quarkus.test.junit.QuarkusTest;
+import io.quarkus.test.security.TestSecurity;
 import jakarta.inject.Inject;
 import jakarta.transaction.Transactional;
 import org.junit.jupiter.api.BeforeEach;
@@ -23,6 +25,7 @@ import static org.awaitility.Awaitility.await;
 import static org.hamcrest.Matchers.equalTo;
 
 @QuarkusTest
+@TestSecurity(user = "test-actor", roles = {ClinicalGroups.SPONSOR, ClinicalGroups.INVESTIGATOR, ClinicalGroups.COORDINATOR})
 class ProtocolAmendmentIntegrationTest {
 
     @Inject LedgerEntryRepository ledgerRepo;
