@@ -62,6 +62,7 @@
     <dependency>
       <groupId>io.casehub</groupId>
       <artifactId>casehub-platform-oidc</artifactId>
+      <version>${version.io.casehub}</version>
     </dependency>
 
     <!-- Layer 7: CaseMemoryStore — JPA (prod) displaces NoOpCaseMemoryStore; in-memory (test) selected via selected-alternatives -->
