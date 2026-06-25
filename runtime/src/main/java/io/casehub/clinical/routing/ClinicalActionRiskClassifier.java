@@ -1,7 +1,8 @@
 package io.casehub.clinical.routing;
 
 import io.casehub.api.spi.ActionRiskClassifier;
-import io.casehub.api.spi.PlannedAction;
+import io.casehub.api.spi.ClassificationContext;
+import io.casehub.worker.api.PlannedAction;
 import io.casehub.api.spi.RiskClassifier;
 import io.casehub.api.spi.RiskDecision;
 import io.casehub.clinical.api.model.ClinicalActionType;
@@ -24,7 +25,7 @@ import java.util.Optional;
 public class ClinicalActionRiskClassifier implements ActionRiskClassifier {
 
     @Override
-    public RiskDecision classify(final PlannedAction action) {
+    public RiskDecision classify(final PlannedAction action, final ClassificationContext context) {
         Optional<ClinicalActionType> typeOpt = ClinicalActionType.fromActionType(
                 action != null ? action.actionType() : null);
         if (typeOpt.isEmpty()) {

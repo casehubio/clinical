@@ -1,7 +1,7 @@
 package io.casehub.clinical.service;
 
-import io.casehub.api.model.WorkerResult;
-import io.casehub.api.spi.PlannedAction;
+import io.casehub.worker.api.PlannedAction;
+import io.casehub.worker.api.WorkerResult;
 import io.casehub.clinical.api.model.ClinicalActionType;
 import io.casehub.clinical.api.model.CtcaeGrade;
 import io.casehub.clinical.entity.AdverseEvent;

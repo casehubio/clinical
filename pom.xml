@@ -66,6 +66,11 @@
       </dependency>
       <dependency>
         <groupId>io.casehub</groupId>
+        <artifactId>casehub-worker-api</artifactId>
+        <version>${version.io.casehub}</version>
+      </dependency>
+      <dependency>
+        <groupId>io.casehub</groupId>
         <artifactId>casehub-engine</artifactId>
         <version>${version.io.casehub}</version>
       </dependency>

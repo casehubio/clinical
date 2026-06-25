@@ -1,6 +1,6 @@
 package io.casehub.clinical.service;
 
-import io.casehub.api.model.WorkerResult;
+import io.casehub.worker.api.WorkerResult;
 import java.util.Map;
 import java.util.function.Function;
 

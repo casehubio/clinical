@@ -5,7 +5,6 @@ import io.casehub.engine.common.spi.event.CaseLifecycleEvent;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.enterprise.event.ObservesAsync;
 import jakarta.inject.Inject;
-import jakarta.transaction.Transactional;
 import java.time.Duration;
 import java.util.UUID;
 import org.jboss.logging.Logger;
@@ -26,7 +25,6 @@ public class SusarOversightListener {
     @Inject CaseInstanceRepository caseInstanceRepository;
     @Inject SusarOversightStatusUpdater statusUpdater;
 
-    @Transactional
     public void onCaseLifecycle(@ObservesAsync CaseLifecycleEvent event) {
         if (!"GoalReached".equals(event.eventType()) && !"CaseCompleted".equals(event.eventType())) return;
 

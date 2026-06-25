@@ -100,6 +100,12 @@
       <scope>test</scope>
     </dependency>
 
+    <!-- Worker primitives — WorkerResult, PlannedAction, Worker (moved from engine-api in engine#543) -->
+    <dependency>
+      <groupId>io.casehub</groupId>
+      <artifactId>casehub-worker-api</artifactId>
+    </dependency>
+
     <!-- Layer 5: casehub-engine — adaptive protocol paths (IRB gate + AE escalation) -->
     <dependency>
       <groupId>io.casehub</groupId>

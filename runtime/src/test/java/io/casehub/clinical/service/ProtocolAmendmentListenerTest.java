@@ -21,14 +21,19 @@ import java.util.UUID;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
-import static org.mockito.Mockito.*;
+import static org.mockito.Mockito.doNothing;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoInteractions;
+import static org.mockito.Mockito.when;
 
 @QuarkusTest
 class ProtocolAmendmentListenerTest {
 
     @Inject ProtocolAmendmentListener listener;
     @InjectMock CaseInstanceRepository caseInstanceRepository;
-    @InjectMock ProtocolAmendmentLedgerWriter ledgerWriter;
+    @InjectMock ProtocolAmendmentStatusUpdater statusUpdater;
 
     UUID amendmentId;
     UUID caseId;
@@ -48,6 +53,9 @@ class ProtocolAmendmentListenerTest {
         a.tenantId = "default";
         a.proposedAt = Instant.now();
         a.persist();
+
+        // Stub statusUpdater as no-op — updater tests cover write logic
+        doNothing().when(statusUpdater).applyRecommendation(any(), any());
     }
 
     private CaseLifecycleEvent goalReached(UUID caseId, String tenancyId) {
@@ -66,49 +74,27 @@ class ProtocolAmendmentListenerTest {
     }
 
     @Test
-    void proceed_sets_APPROVED_and_COMPLETED_and_non_null_recommendation() {
+    void proceed_delegates_to_updater() {
         mockInstance(caseId, "PROCEED");
         listener.onCaseLifecycle(goalReached(caseId, "default"));
 
-        ProtocolAmendment a = ProtocolAmendment.findById(amendmentId);
-        assertThat(a.status).isEqualTo(ProtocolAmendmentStatus.APPROVED);
-        assertThat(a.amendmentCaseStatus).isEqualTo(AmendmentCaseStatus.COMPLETED);
-        assertThat(a.supervisorRecommendation).isNotNull();
-        verify(ledgerWriter).writeResolutionEntry(any());
+        verify(statusUpdater).applyRecommendation(eq(amendmentId), eq("PROCEED"));
     }
 
     @Test
-    void halt_sets_HALTED_and_COMPLETED() {
+    void halt_delegates_to_updater() {
         mockInstance(caseId, "HALT");
         listener.onCaseLifecycle(goalReached(caseId, "default"));
 
-        ProtocolAmendment a = ProtocolAmendment.findById(amendmentId);
-        assertThat(a.status).isEqualTo(ProtocolAmendmentStatus.HALTED);
-        assertThat(a.amendmentCaseStatus).isEqualTo(AmendmentCaseStatus.COMPLETED);
-        assertThat(a.supervisorRecommendation).isEqualTo(io.casehub.clinical.api.spi.AmendmentRecommendation.HALT);
+        verify(statusUpdater).applyRecommendation(eq(amendmentId), eq("HALT"));
     }
 
     @Test
-    void refer_to_dsmb_sets_SUPERVISED_and_COMPLETED() {
+    void refer_to_dsmb_delegates_to_updater() {
         mockInstance(caseId, "REFER_TO_DSMB");
         listener.onCaseLifecycle(goalReached(caseId, "default"));
 
-        ProtocolAmendment a = ProtocolAmendment.findById(amendmentId);
-        assertThat(a.status).isEqualTo(ProtocolAmendmentStatus.SUPERVISED);
-        assertThat(a.amendmentCaseStatus).isEqualTo(AmendmentCaseStatus.COMPLETED);
-        assertThat(a.supervisorRecommendation).isEqualTo(io.casehub.clinical.api.spi.AmendmentRecommendation.REFER_TO_DSMB);
-    }
-
-    @Test
-    void redelivery_skipped_when_supervisorRecommendation_already_set() {
-        // First delivery
-        mockInstance(caseId, "PROCEED");
-        listener.onCaseLifecycle(goalReached(caseId, "default"));
-
-        // Second delivery (re-delivery)
-        reset(ledgerWriter);
-        listener.onCaseLifecycle(goalReached(caseId, "default"));
-        verifyNoInteractions(ledgerWriter);
+        verify(statusUpdater).applyRecommendation(eq(amendmentId), eq("REFER_TO_DSMB"));
     }
 
     @Test
@@ -121,13 +107,13 @@ class ProtocolAmendmentListenerTest {
             .thenReturn(Uni.createFrom().item(instance));
 
         listener.onCaseLifecycle(goalReached(caseId, "default"));
-        verifyNoInteractions(ledgerWriter);
+        verifyNoInteractions(statusUpdater);
     }
 
     @Test
-    void writes_resolution_ledger_entry_exactly_once() {
+    void delegates_exactly_once_per_event() {
         mockInstance(caseId, "PROCEED");
         listener.onCaseLifecycle(goalReached(caseId, "default"));
-        verify(ledgerWriter, times(1)).writeResolutionEntry(any());
+        verify(statusUpdater, times(1)).applyRecommendation(eq(amendmentId), eq("PROCEED"));
     }
 }

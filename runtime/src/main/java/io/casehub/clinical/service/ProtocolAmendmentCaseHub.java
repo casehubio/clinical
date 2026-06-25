@@ -1,10 +1,10 @@
 package io.casehub.clinical.service;
 
 import io.casehub.api.engine.YamlCaseHub;
-import io.casehub.api.model.Capability;
 import io.casehub.api.model.CaseDefinition;
-import io.casehub.api.model.Worker;
-import io.casehub.api.model.WorkerResult;
+import io.casehub.worker.api.Capability;
+import io.casehub.worker.api.Worker;
+import io.casehub.worker.api.WorkerResult;
 import io.casehub.clinical.api.spi.AmendmentRecommendation;
 import io.casehub.clinical.api.spi.ProtocolAmendmentAdvisor;
 import io.casehub.clinical.api.spi.ProtocolAmendmentContext;

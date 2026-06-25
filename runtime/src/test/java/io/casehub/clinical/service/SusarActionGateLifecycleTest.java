@@ -2,7 +2,8 @@ package io.casehub.clinical.service;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-import io.casehub.api.model.WorkerResult;
+import io.casehub.worker.api.WorkerOutcome;
+import io.casehub.worker.api.WorkerResult;
 import io.casehub.clinical.api.model.AeOutcome;
 import io.casehub.clinical.api.model.ClinicalActionType;
 import io.casehub.clinical.api.model.CtcaeGrade;
@@ -33,8 +34,9 @@ class SusarActionGateLifecycleTest {
     void grade4_unexpected_suspected_returns_planned_action() {
         UUID aeId = persistAe(CtcaeGrade.GRADE_4, true, true);
         WorkerResult result = evaluator.apply(Map.of("aeId", aeId.toString()));
-        assertThat(result.plannedAction()).isNotNull();
-        assertThat(result.plannedAction().actionType())
+        var action = ((WorkerOutcome.Success) result.outcome()).plannedAction();
+        assertThat(action).isNotNull();
+        assertThat(action.actionType())
                 .isEqualTo(ClinicalActionType.SUSAR_CRITERIA_DECISION.actionType());
         assertThat(result.output()).containsEntry("susarRequired", true);
         assertThat(result.output()).containsEntry("susarAssessmentComplete", true);
@@ -45,7 +47,7 @@ class SusarActionGateLifecycleTest {
     void grade5_unexpected_suspected_returns_planned_action() {
         UUID aeId = persistAe(CtcaeGrade.GRADE_5, true, true);
         WorkerResult result = evaluator.apply(Map.of("aeId", aeId.toString()));
-        assertThat(result.plannedAction()).isNotNull();
+        assertThat(((WorkerOutcome.Success) result.outcome()).plannedAction()).isNotNull();
         assertThat(result.output()).containsEntry("susarRequired", true);
     }
 
@@ -54,7 +56,7 @@ class SusarActionGateLifecycleTest {
     void grade4_not_unexpected_returns_no_gate() {
         UUID aeId = persistAe(CtcaeGrade.GRADE_4, false, true);
         WorkerResult result = evaluator.apply(Map.of("aeId", aeId.toString()));
-        assertThat(result.plannedAction()).isNull();
+        assertThat(((WorkerOutcome.Success) result.outcome()).plannedAction()).isNull();
         assertThat(result.output()).containsEntry("susarRequired", false);
     }
 
@@ -63,7 +65,7 @@ class SusarActionGateLifecycleTest {
     void grade3_unexpected_returns_no_gate() {
         UUID aeId = persistAe(CtcaeGrade.GRADE_3, true, true);
         WorkerResult result = evaluator.apply(Map.of("aeId", aeId.toString()));
-        assertThat(result.plannedAction()).isNull();
+        assertThat(((WorkerOutcome.Success) result.outcome()).plannedAction()).isNull();
     }
 
     @Test
@@ -71,19 +73,19 @@ class SusarActionGateLifecycleTest {
     void grade4_suspected_false_returns_no_gate() {
         UUID aeId = persistAe(CtcaeGrade.GRADE_4, true, false);
         WorkerResult result = evaluator.apply(Map.of("aeId", aeId.toString()));
-        assertThat(result.plannedAction()).isNull();
+        assertThat(((WorkerOutcome.Success) result.outcome()).plannedAction()).isNull();
     }
 
     @Test
     void missing_aeId_returns_no_gate() {
         WorkerResult result = evaluator.apply(Map.of());
-        assertThat(result.plannedAction()).isNull();
+        assertThat(((WorkerOutcome.Success) result.outcome()).plannedAction()).isNull();
     }
 
     @Test
     void valid_uuid_not_in_db_returns_no_gate() {
         WorkerResult result = evaluator.apply(Map.of("aeId", UUID.randomUUID().toString()));
-        assertThat(result.plannedAction()).isNull();
+        assertThat(((WorkerOutcome.Success) result.outcome()).plannedAction()).isNull();
     }
 
     private UUID persistAe(CtcaeGrade grade, boolean unexpected, boolean suspected) {

@@ -20,6 +20,7 @@ public class AeEscalationLedgerWriter {
     @Inject LedgerEntryRepository ledgerEntryRepository;
     @Inject Clock clock;
 
+    @Transactional(Transactional.TxType.REQUIRES_NEW)
     public void writeCompletionEntry(
             UUID aeId,
             UUID enrollmentId,

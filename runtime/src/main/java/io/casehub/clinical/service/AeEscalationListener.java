@@ -8,7 +8,6 @@ import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.enterprise.event.Event;
 import jakarta.enterprise.event.ObservesAsync;
 import jakarta.inject.Inject;
-import jakarta.transaction.Transactional;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.Map;
@@ -39,7 +38,6 @@ public class AeEscalationListener {
     @Inject Event<AeEscalationCompletedEvent> completedEvents;
     @Inject io.casehub.clinical.memory.ClinicalMemoryService memoryService;
 
-    @Transactional
     public void onCaseLifecycle(@ObservesAsync CaseLifecycleEvent event) {
         LOG.debugf("AeEscalationListener: received eventType=%s caseStatus=%s caseId=%s", event.eventType(), event.caseStatus(), event.caseId());
         if (!"GoalReached".equals(event.eventType()) && !"CaseCompleted".equals(event.eventType())) return;
