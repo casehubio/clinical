@@ -51,14 +51,14 @@ public class ConsentWithdrawalService {
     @Inject Clock clock;
 
     @Transactional
-    public void withdraw(UUID enrollmentId, String tenantId) {
+    public WithdrawalResult withdraw(UUID enrollmentId, String tenantId) {
         PatientEnrollment enrollment = PatientEnrollment.find(
                 "id = ?1 AND tenantId = ?2", enrollmentId, tenantId).firstResult();
         if (enrollment == null) {
             throw new PatientEnrollmentNotFoundException(enrollmentId);
         }
         if (enrollment.consentStatus == ConsentStatus.WITHDRAWN) {
-            throw new ConsentAlreadyWithdrawnException(enrollmentId);
+            return WithdrawalResult.ALREADY_WITHDRAWN;
         }
 
         Instant now = clock.instant();
@@ -93,6 +93,7 @@ public class ConsentWithdrawalService {
         LOG.infof("ConsentWithdrawalService: erased enrollmentId=%s mappingFound=%s affected=%d",
                 enrollmentId, erasureResult.mappingFound(), erasureResult.affectedEntryCount());
         entry.ledgerEntriesAffected = erasureResult.affectedEntryCount();
+        entry.receiptEntryId = erasureResult.receiptEntryId().orElse(null);
 
         // Erase all patient memories (best-effort — memory store failure does not
         // roll back the GDPR erasure already committed in the ledger).
@@ -107,6 +108,7 @@ public class ConsentWithdrawalService {
                     enrollmentId);
         }
 
+        return WithdrawalResult.WITHDRAWN;
     }
 
     private int nextSequenceNumber(UUID enrollmentId) {

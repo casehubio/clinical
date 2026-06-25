@@ -11,10 +11,10 @@ import io.casehub.clinical.entity.AdverseEvent;
 import io.casehub.clinical.entity.PatientEnrollment;
 import io.casehub.clinical.entity.TrialSite;
 import io.casehub.clinical.service.AdverseEventService;
-import io.casehub.clinical.service.ConsentAlreadyWithdrawnException;
 import io.casehub.clinical.service.ConsentWithdrawalService;
 import io.casehub.clinical.service.EligibilityScreeningService;
 import io.casehub.clinical.service.PatientEnrollmentNotFoundException;
+import io.casehub.clinical.service.WithdrawalResult;
 import io.casehub.ledger.runtime.repository.LedgerEntryRepository;
 import io.casehub.ledger.runtime.service.LedgerProvExportService;
 import io.casehub.ledger.runtime.service.LedgerVerificationService;
@@ -223,10 +223,12 @@ public class PatientResource {
         if (site == null || !site.trialId.equals(trialId))
             return Response.status(Response.Status.NOT_FOUND).build();
         try {
-            consentWithdrawalService.withdraw(enrollmentId, principal.tenancyId());
+            WithdrawalResult result = consentWithdrawalService.withdraw(enrollmentId, principal.tenancyId());
+            if (result == WithdrawalResult.ALREADY_WITHDRAWN) {
+                return Response.status(Response.Status.CONFLICT)
+                        .entity("Consent already withdrawn for enrollment " + enrollmentId).build();
+            }
             return Response.noContent().build();
-        } catch (ConsentAlreadyWithdrawnException e) {
-            return Response.status(Response.Status.CONFLICT).entity(e.getMessage()).build();
         } catch (PatientEnrollmentNotFoundException e) {
             return Response.status(Response.Status.NOT_FOUND).build();
         }

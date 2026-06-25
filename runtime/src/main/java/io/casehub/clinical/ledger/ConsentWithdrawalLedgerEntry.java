@@ -33,6 +33,9 @@ public class ConsentWithdrawalLedgerEntry extends LedgerEntry {
     @Column(name = "memories_erased", nullable = false)
     public boolean memoriesErased = false;
 
+    @Column(name = "receipt_entry_id")
+    public UUID receiptEntryId;
+
     @Override
     protected byte[] domainContentBytes() {
         return String.join("|",

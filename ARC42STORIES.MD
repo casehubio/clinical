@@ -1379,7 +1379,7 @@ Not closed here: `SUSAR_REGULATORY_FILING`, `PATIENT_WITHDRAWAL`, `DOSE_MODIFICA
 - `runtime/src/main/java/io/casehub/clinical/service/SusarGateDecisionListener.java` — `@ConsumeEvent` for `.approved/.rejected/.expired`; DB discriminator via `findBySusarOversightCaseId`
 - `runtime/src/main/java/io/casehub/clinical/service/SusarDecisionLedgerWriter.java` — writes `SusarDecisionLedgerEntry` for each outcome
 - `runtime/src/main/java/io/casehub/clinical/ledger/SusarDecisionLedgerEntry.java` — `@DiscriminatorValue("SusarDecision")`; `outcome`, `decidedAt`, `decidedBy`; V2021
-- `runtime/src/main/java/io/casehub/clinical/service/ConsentWithdrawalService.java` — GDPR Art.17; XA across two datasources; returns void; throws `ConsentAlreadyWithdrawnException` / `PatientEnrollmentNotFoundException`
+- `runtime/src/main/java/io/casehub/clinical/service/ConsentWithdrawalService.java` — GDPR Art.17; XA across two datasources; returns `WithdrawalResult` (WITHDRAWN / ALREADY_WITHDRAWN); throws `PatientEnrollmentNotFoundException`
 - `runtime/src/main/java/io/casehub/clinical/ledger/ConsentWithdrawalLedgerEntry.java` — `@DiscriminatorValue("ConsentWithdrawal")`; UUID-only `domainContentBytes()`; V2022
 - `runtime/src/main/java/io/casehub/clinical/service/ClinicalComplianceSupplement.java` — EU AI Act Art.12 factory; static methods per agent decision type
 - `runtime/src/main/resources/db/migration/default/V111__adverse_event_unexpectedness.sql` — `unexpected BOOLEAN NOT NULL DEFAULT FALSE`, `suspected BOOLEAN NOT NULL DEFAULT TRUE`
