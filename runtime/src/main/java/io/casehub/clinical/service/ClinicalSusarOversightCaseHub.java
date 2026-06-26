@@ -14,7 +14,7 @@ import java.util.List;
  * <p>Augments the YAML definition with the {@link SusarCriteriaEvaluator} worker,
  * registered against the {@code safety-monitoring} capability. The worker fires once
  * per case on valid {@code aeId} in context, evaluates SUSAR criteria from the
- * persisted entity, and returns a {@link io.casehub.api.spi.PlannedAction} requiring
+ * persisted entity, and returns a {@link io.casehub.worker.api.PlannedAction} requiring
  * qualified-investigator sign-off.
  *
  * <p>CDI displacement: annotate a replacement evaluator with {@code @ApplicationScoped}
