@@ -12,7 +12,7 @@ import io.casehub.clinical.api.model.EventActuality;
 import io.casehub.clinical.entity.AdverseEvent;
 import io.casehub.clinical.support.WorkItemQueries;
 import io.casehub.platform.testing.FixedCurrentPrincipal;
-import io.casehub.work.runtime.model.WorkItemStatus;
+import io.casehub.work.api.WorkItemStatus;
 import io.quarkus.test.junit.QuarkusTest;
 import jakarta.inject.Inject;
 import jakarta.transaction.Transactional;

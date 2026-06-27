@@ -13,7 +13,7 @@ import io.casehub.clinical.api.model.RegulatorySubmissionStatus;
 import io.casehub.clinical.entity.AdverseEvent;
 import io.casehub.work.runtime.event.WorkItemLifecycleEvent;
 import io.casehub.work.runtime.model.WorkItem;
-import io.casehub.work.runtime.model.WorkItemStatus;
+import io.casehub.work.api.WorkItemStatus;
 import io.casehub.workadapter.PlanItemCallerRef;
 import io.quarkus.test.InjectMock;
 import io.quarkus.test.junit.QuarkusTest;
@@ -104,7 +104,7 @@ class RegulatorySubmissionBreachListenerTest {
                 "/workitems/" + UUID.randomUUID(),
                 UUID.randomUUID().toString(),
                 UUID.randomUUID(), WorkItemStatus.ESCALATED,
-                Instant.now(), "system", null, null, null, null, "test-tenant");
+                Instant.now(), "system", null, null, null, null, "test-tenant", null, null, null, null);
         listener.onWorkItemLifecycle(event);
         verify(ledgerWriter, never()).writeBreachEntry(any());
     }

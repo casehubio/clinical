@@ -8,7 +8,7 @@ import io.casehub.clinical.entity.IrbApproval;
 import io.casehub.clinical.memory.ClinicalMemoryService;
 import io.casehub.work.runtime.event.WorkItemLifecycleEvent;
 import io.casehub.work.runtime.model.WorkItem;
-import io.casehub.work.runtime.model.WorkItemStatus;
+import io.casehub.work.api.WorkItemStatus;
 import io.casehub.workadapter.CallerRef;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.enterprise.event.Event;

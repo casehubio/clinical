@@ -17,7 +17,7 @@ import io.casehub.clinical.support.WorkItemCompletionCapture;
 import io.casehub.clinical.support.WorkItemQueries;
 import io.casehub.work.runtime.event.WorkItemLifecycleEvent;
 import io.casehub.work.runtime.model.WorkItem;
-import io.casehub.work.runtime.model.WorkItemStatus;
+import io.casehub.work.api.WorkItemStatus;
 import io.casehub.work.runtime.service.WorkItemService;
 import io.casehub.workadapter.WorkItemLifecycleAdapter;
 import io.quarkus.test.junit.QuarkusTest;
