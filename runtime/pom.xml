@@ -149,10 +149,10 @@
       <groupId>io.quarkus</groupId>
       <artifactId>quarkus-rest-jackson</artifactId>
     </dependency>
-    <dependency>
-      <groupId>io.quarkiverse.quinoa</groupId>
-      <artifactId>quarkus-quinoa</artifactId>
-    </dependency>
+    <!-- Quinoa (quarkus-quinoa) — deferred to Plan 2 (TypeScript UI).
+         The deployment processor runs at build time regardless of config properties,
+         and npm install fails without @casehubio/pages-* packages linked locally.
+         Re-add when casehub-pages packages are resolvable. -->
     <dependency>
       <groupId>io.quarkus</groupId>
       <artifactId>quarkus-hibernate-validator</artifactId>
