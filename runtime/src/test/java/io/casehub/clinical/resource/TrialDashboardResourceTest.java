@@ -26,6 +26,7 @@ class TrialDashboardResourceTest {
     private UUID trialId;
     private UUID siteAId;
     private UUID siteBId;
+    private UUID aeId;
 
     @BeforeEach
     @Transactional
@@ -65,7 +66,8 @@ class TrialDashboardResourceTest {
         enrollment.persist();
 
         AdverseEvent ae = new AdverseEvent();
-        ae.id = UUID.randomUUID();
+        aeId = UUID.randomUUID();
+        ae.id = aeId;
         ae.tenantId = principal.tenancyId();
         ae.enrollmentId = enrollmentId;
         ae.grade = CtcaeGrade.GRADE_3;
@@ -124,5 +126,73 @@ class TrialDashboardResourceTest {
             .then()
             .statusCode(200)
             .body("size()", equalTo(0));
+    }
+
+    // --- Task 3: Cross-source endpoints ---
+
+    @Test
+    void agents_returns_capability_list_with_trust_data() {
+        // Agents endpoint aggregates static capabilities with trust scores.
+        // With no trust data seeded, it should still return the full capability list
+        // with null/zero trust fields.
+        given()
+            .when().get("/trials/{trialId}/agents", trialId)
+            .then()
+            .statusCode(200)
+            .body("size()", equalTo(8))
+            .body("[0].capability", notNullValue())
+            .body("[0].trustDimension", notNullValue());
+    }
+
+    @Test
+    void agents_returns_404_for_unknown_trial() {
+        given()
+            .when().get("/trials/{trialId}/agents", UUID.randomUUID())
+            .then()
+            .statusCode(404);
+    }
+
+    @Test
+    void governance_returns_none_status_for_ae_without_susar() {
+        // The seeded AE has no SUSAR oversight case — use field set in @BeforeEach
+        given()
+            .when().get("/trials/{trialId}/adverse-events/{aeId}/governance", trialId, aeId)
+            .then()
+            .statusCode(200)
+            .body("grade", equalTo("GRADE_3"))
+            .body("susarOversightStatus", equalTo("NONE"));
+    }
+
+    @Test
+    void governance_returns_404_for_unknown_ae() {
+        given()
+            .when().get("/trials/{trialId}/adverse-events/{aeId}/governance", trialId, UUID.randomUUID())
+            .then()
+            .statusCode(404);
+    }
+
+    @Test
+    void governance_returns_404_for_unknown_trial() {
+        given()
+            .when().get("/trials/{trialId}/adverse-events/{aeId}/governance", UUID.randomUUID(), aeId)
+            .then()
+            .statusCode(404);
+    }
+
+    @Test
+    void ledger_entries_returns_empty_when_no_entries() {
+        given()
+            .when().get("/trials/{trialId}/ledger-entries", trialId)
+            .then()
+            .statusCode(200)
+            .body("size()", equalTo(0));
+    }
+
+    @Test
+    void ledger_entries_returns_404_for_unknown_trial() {
+        given()
+            .when().get("/trials/{trialId}/ledger-entries", UUID.randomUUID())
+            .then()
+            .statusCode(404);
     }
 }

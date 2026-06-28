@@ -1,5 +1,6 @@
 package io.casehub.clinical.demo;
 
+import io.casehub.clinical.api.ClinicalGroups;
 import io.casehub.platform.api.identity.CurrentPrincipal;
 import io.quarkus.arc.profile.IfBuildProfile;
 import jakarta.annotation.Priority;
@@ -37,7 +38,8 @@ public class DemoCurrentPrincipal implements CurrentPrincipal {
     @Override
     public Set<String> groups() {
         // Demo user has all clinical roles for unrestricted dev-mode access
-        return Set.of("SPONSOR", "INVESTIGATOR", "COORDINATOR", "MONITOR");
+        return Set.of(ClinicalGroups.SPONSOR, ClinicalGroups.INVESTIGATOR,
+                      ClinicalGroups.COORDINATOR, ClinicalGroups.MONITOR);
     }
 
     @Override

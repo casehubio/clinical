@@ -1,7 +1,17 @@
 package io.casehub.clinical.resource;
 
+import io.casehub.api.spi.routing.TrustRoutingPolicy;
+import io.casehub.clinical.api.ClinicalCapabilities;
 import io.casehub.clinical.api.ClinicalGroups;
+import io.casehub.clinical.api.ClinicalTrustDimensions;
 import io.casehub.clinical.entity.*;
+import io.casehub.clinical.routing.ClinicalTrustRoutingPolicyProvider;
+import io.casehub.ledger.model.WorkerDecisionEntry;
+import io.casehub.ledger.repository.CaseLedgerEntryRepository;
+import io.casehub.ledger.runtime.model.ActorTrustScore;
+import io.casehub.ledger.runtime.model.LedgerEntry;
+import io.casehub.ledger.runtime.repository.ActorTrustScoreRepository;
+import io.casehub.ledger.runtime.repository.LedgerEntryRepository;
 import io.casehub.platform.api.identity.CurrentPrincipal;
 import jakarta.annotation.security.RolesAllowed;
 import jakarta.inject.Inject;
@@ -10,10 +20,9 @@ import jakarta.ws.rs.*;
 import jakarta.ws.rs.core.*;
 import java.time.Duration;
 import java.time.Instant;
-import java.util.List;
-import java.util.Map;
-import java.util.UUID;
+import java.util.*;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 @Path("/trials/{trialId}")
 @Produces(MediaType.APPLICATION_JSON)
@@ -22,6 +31,10 @@ import java.util.stream.Collectors;
 public class TrialDashboardResource {
 
     @Inject CurrentPrincipal principal;
+    @Inject ActorTrustScoreRepository trustScoreRepository;
+    @Inject ClinicalTrustRoutingPolicyProvider trustRoutingPolicyProvider;
+    @Inject CaseLedgerEntryRepository caseLedgerEntryRepository;
+    @Inject LedgerEntryRepository ledgerEntryRepository;
 
     // --- Response records (nested per clinical convention) ---
 
@@ -45,6 +58,39 @@ public class TrialDashboardResource {
         UUID id, UUID siteId, String deviationType, String severity,
         String piApprovalStatus, Instant commandedAt
     ) {}
+
+    public record AgentRow(
+        String capability, String trustDimension,
+        Double trustScore, Double threshold, int maturityPhase,
+        int decisionCount, int attestationPositive, int attestationNegative
+    ) {}
+
+    public record GovernanceContext(
+        String grade, boolean unexpected, boolean suspected,
+        String susarOversightStatus,
+        String workerId, String capabilityTag,
+        Double trustScoreAtRouting, Double thresholdApplied,
+        Double currentTrustScore,
+        String gateStatus
+    ) {}
+
+    public record LedgerEntryRow(
+        UUID id, UUID subjectId, int sequenceNumber,
+        String entryType, String actorId, String actorRole,
+        Instant occurredAt, String summary
+    ) {}
+
+    /** All 8 capabilities with their primary trust dimension. */
+    private static final List<String[]> CAPABILITY_DIMENSIONS = List.of(
+        new String[]{ClinicalCapabilities.ELIGIBILITY_SCREENING, ClinicalTrustDimensions.ELIGIBILITY_PRECISION},
+        new String[]{ClinicalCapabilities.SAFETY_MONITORING, ClinicalTrustDimensions.SAFETY_ACCURACY},
+        new String[]{ClinicalCapabilities.PROTOCOL_REVIEW, ClinicalTrustDimensions.PROTOCOL_ADHERENCE},
+        new String[]{ClinicalCapabilities.IRB_CONSULTATION, ClinicalTrustDimensions.PROTOCOL_ADHERENCE},
+        new String[]{ClinicalCapabilities.PI_AUTHORISATION, ClinicalTrustDimensions.PROTOCOL_ADHERENCE},
+        new String[]{ClinicalCapabilities.DATA_SAFETY_MONITORING, ClinicalTrustDimensions.SAFETY_ACCURACY},
+        new String[]{ClinicalCapabilities.REGULATORY_SUBMISSION, ClinicalTrustDimensions.SAFETY_ACCURACY},
+        new String[]{ClinicalCapabilities.TRIAL_SUPERVISOR, ClinicalTrustDimensions.PROTOCOL_ADHERENCE}
+    );
 
     // --- Endpoints ---
 
@@ -192,6 +238,174 @@ public class TrialDashboardResource {
         )).toList();
 
         return Response.ok(rows).build();
+    }
+
+    @GET
+    @Path("/agents")
+    @RolesAllowed({ClinicalGroups.SPONSOR, ClinicalGroups.INVESTIGATOR,
+                   ClinicalGroups.COORDINATOR, ClinicalGroups.MONITOR})
+    public Response agents(@PathParam("trialId") UUID trialId) {
+        ClinicalTrial trial = ClinicalTrial.findByIdForTenant(trialId, principal);
+        if (trial == null) return Response.status(404).build();
+
+        List<AgentRow> rows = CAPABILITY_DIMENSIONS.stream().map(cd -> {
+            String capability = cd[0];
+            String dimension = cd[1];
+            TrustRoutingPolicy policy = trustRoutingPolicyProvider.forCapability(capability);
+
+            // Look up capability-level trust score (any actorId — aggregate view)
+            List<ActorTrustScore> scores = trustScoreRepository.findAll().stream()
+                .filter(s -> capability.equals(s.capabilityKey))
+                .toList();
+
+            if (scores.isEmpty()) {
+                // Bootstrap phase — no trust data yet
+                return new AgentRow(capability, dimension, null,
+                    policy.threshold(), 0, 0, 0, 0);
+            }
+
+            // Aggregate across all actors for this capability
+            double avgScore = scores.stream().mapToDouble(s -> s.trustScore).average().orElse(0.0);
+            int totalDecisions = scores.stream().mapToInt(s -> s.decisionCount).sum();
+            int totalPositive = scores.stream().mapToInt(s -> s.attestationPositive).sum();
+            int totalNegative = scores.stream().mapToInt(s -> s.attestationNegative).sum();
+            int maturity = totalDecisions >= policy.minimumObservations() ? 2 : 0;
+
+            return new AgentRow(capability, dimension, avgScore,
+                policy.threshold(), maturity, totalDecisions, totalPositive, totalNegative);
+        }).toList();
+
+        return Response.ok(rows).build();
+    }
+
+    @GET
+    @Path("/adverse-events/{aeId}/governance")
+    @RolesAllowed({ClinicalGroups.SPONSOR, ClinicalGroups.INVESTIGATOR,
+                   ClinicalGroups.COORDINATOR, ClinicalGroups.MONITOR})
+    public Response governance(@PathParam("trialId") UUID trialId,
+                               @PathParam("aeId") UUID aeId) {
+        ClinicalTrial trial = ClinicalTrial.findByIdForTenant(trialId, principal);
+        if (trial == null) return Response.status(404).build();
+
+        AdverseEvent ae = AdverseEvent.findByIdForTenant(aeId, principal);
+        if (ae == null) return Response.status(404).build();
+
+        // Verify AE belongs to this trial (via enrollment → site → trial)
+        PatientEnrollment enrollment = PatientEnrollment.findByIdForTenant(ae.enrollmentId, principal);
+        if (enrollment == null) return Response.status(404).build();
+        TrialSite site = TrialSite.findByIdForTenant(enrollment.siteId, principal);
+        if (site == null || !site.trialId.equals(trialId)) return Response.status(404).build();
+
+        // Default values for when no SUSAR oversight case exists
+        String workerId = null;
+        String capabilityTag = null;
+        Double trustScoreAtRouting = null;
+        Double thresholdApplied = null;
+        Double currentTrustScore = null;
+        String gateStatus = ae.susarOversightStatus.name();
+
+        if (ae.susarOversightCaseId != null) {
+            // Query WorkerDecisionEntry for the safety-monitoring decision
+            List<WorkerDecisionEntry> decisions =
+                caseLedgerEntryRepository.findWorkerDecisionsByCaseId(ae.susarOversightCaseId);
+            Optional<WorkerDecisionEntry> safetyDecision = decisions.stream()
+                .filter(e -> ClinicalCapabilities.SAFETY_MONITORING.equals(e.capabilityTag))
+                .findFirst();
+
+            if (safetyDecision.isPresent()) {
+                WorkerDecisionEntry entry = safetyDecision.get();
+                workerId = entry.workerId;
+                capabilityTag = entry.capabilityTag;
+                trustScoreAtRouting = entry.trustScoreAtRouting;
+                thresholdApplied = entry.thresholdApplied;
+
+                // Look up current trust score for this worker
+                if (workerId != null) {
+                    currentTrustScore = trustScoreRepository
+                        .findCapabilityScore(workerId, ClinicalCapabilities.SAFETY_MONITORING)
+                        .map(s -> s.trustScore)
+                        .orElse(null);
+                }
+            }
+        }
+
+        return Response.ok(new GovernanceContext(
+            ae.grade != null ? ae.grade.name() : null,
+            ae.unexpected, ae.suspected,
+            ae.susarOversightStatus.name(),
+            workerId, capabilityTag,
+            trustScoreAtRouting, thresholdApplied,
+            currentTrustScore, gateStatus
+        )).build();
+    }
+
+    @GET
+    @Path("/ledger-entries")
+    @RolesAllowed({ClinicalGroups.SPONSOR, ClinicalGroups.INVESTIGATOR,
+                   ClinicalGroups.COORDINATOR, ClinicalGroups.MONITOR})
+    public Response ledgerEntries(@PathParam("trialId") UUID trialId,
+                                  @QueryParam("type") String typeFilter) {
+        ClinicalTrial trial = ClinicalTrial.findByIdForTenant(trialId, principal);
+        if (trial == null) return Response.status(404).build();
+
+        // Collect subject IDs from default datasource: enrollment IDs + deviation IDs
+        List<TrialSite> sites = TrialSite.find("trialId = ?1 and tenantId = ?2",
+            trialId, principal.tenancyId()).list();
+        List<UUID> siteIds = sites.stream().map(s -> s.id).toList();
+        if (siteIds.isEmpty()) return Response.ok(List.of()).build();
+
+        // Enrollment IDs
+        List<PatientEnrollment> enrollments = PatientEnrollment
+            .find("siteId in ?1 and tenantId = ?2", siteIds, principal.tenancyId())
+            .list();
+        List<UUID> enrollmentIds = enrollments.stream().map(e -> e.id).toList();
+
+        // Deviation IDs
+        List<ProtocolDeviation> deviations = ProtocolDeviation
+            .find("siteId in ?1 and tenantId = ?2", siteIds, principal.tenancyId())
+            .list();
+        List<UUID> deviationIds = deviations.stream().map(d -> d.id).toList();
+
+        // Also include AE IDs as subjects (AE-related ledger entries use AE ID as subjectId)
+        List<UUID> aeIds = List.of();
+        if (!enrollmentIds.isEmpty()) {
+            List<AdverseEvent> aes = AdverseEvent
+                .find("enrollmentId in ?1 and tenantId = ?2", enrollmentIds, principal.tenancyId())
+                .list();
+            aeIds = aes.stream().map(ae -> ae.id).toList();
+        }
+
+        // Combine all subject IDs
+        List<UUID> allSubjectIds = Stream.of(enrollmentIds.stream(), deviationIds.stream(), aeIds.stream())
+            .flatMap(s -> s)
+            .toList();
+
+        if (allSubjectIds.isEmpty()) return Response.ok(List.of()).build();
+
+        // Query ledger entries from qhorus datasource for each subject ID
+        List<LedgerEntryRow> rows = allSubjectIds.stream()
+            .flatMap(subjectId -> ledgerEntryRepository.findBySubjectId(subjectId, "default").stream())
+            .filter(entry -> typeFilter == null || typeFilter.isEmpty()
+                || entry.entryType.name().equalsIgnoreCase(typeFilter))
+            .sorted(Comparator.comparing(entry -> entry.occurredAt != null ? entry.occurredAt : Instant.EPOCH))
+            .map(entry -> new LedgerEntryRow(
+                entry.id, entry.subjectId, entry.sequenceNumber,
+                entry.entryType != null ? entry.entryType.name() : null,
+                entry.actorId, entry.actorRole,
+                entry.occurredAt,
+                buildLedgerSummary(entry)
+            ))
+            .toList();
+
+        return Response.ok(rows).build();
+    }
+
+    /** Build a human-readable summary from ledger entry fields. */
+    private static String buildLedgerSummary(LedgerEntry entry) {
+        if (entry.entryType == null) return null;
+        String actor = entry.actorId != null ? entry.actorId : "system";
+        return entry.entryType.name() + " by " + actor
+            + (entry.actorRole != null ? " (" + entry.actorRole + ")" : "");
     }
 
     private static String formatDuration(Duration d) {
