@@ -41,8 +41,6 @@ export const step3Deviation = page("3. Protocol Deviation",
       { id: "piApprovalStatus" as ColumnId, label: "PI Approval Status",
         expression: 'value === "COMMANDED" ? "⚠️ COMMANDED" : value === "APPROVED" ? "✅ APPROVED" : value === "ESCALATED" ? "🔼 ESCALATED" : value' },
       { id: "commandedAt" as ColumnId, label: "Commanded At",
-        expression: 'value != null ? new Date(value).toLocaleString() : "—"' },
-      { id: "respondedAt" as ColumnId, label: "Responded At",
         expression: 'value != null ? new Date(value).toLocaleString() : "—"' }
     ],
     lookup: lookup("deviations")
