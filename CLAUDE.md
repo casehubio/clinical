@@ -468,8 +468,8 @@ In test `application.properties`:
 - `page(name, ...components, pageOptions?)` — `{ datasets: [...] }` must be the LAST argument
 - `lookup(dataSetId: string, ...ops)` — first arg is string ID (not dataset object); operations are direct args (not wrapped in arrays)
 - `groupBy(source: null | string, ...resultColumns)` — source is `null` (no grouping) or string column name
-- `actionButton()` and `alert()` helpers in `webui/src/helpers.ts` create native `action-button` and `alert` web components — prefer over `html()` with inline scripts (browsers don't execute `<script>` tags added via innerHTML)
-- MutationObserver in `webui/src/index.ts` re-creates script elements for remaining `html()` scripts (steps 4, 7, 8, audit-trail)
+- `actionButton()` and `alert()` helpers in `webui/src/helpers.ts` create native `action-button` and `alert` web components — prefer over `html()` with inline scripts
+- Custom web components in `webui/src/components/` (`ClinicalPiApproval`, `ClinicalSusarGate`, `ClinicalMerkleVerify`) — light DOM, attribute-driven, registered in `index.ts` before `loadSite()`. Use for interactive elements that need pre-fetch, response display, or GET actions (capabilities `actionButton()` lacks)
 
 ## Build Commands
 

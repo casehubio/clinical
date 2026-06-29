@@ -86,10 +86,12 @@ export class ClinicalMerkleVerify extends HTMLElement {
             </p>
             <p style="margin: 10px 0 0 0; color: #555; font-family: monospace; font-size: 12px;">
               <strong>Merkle Root:</strong><br>
-              <code style="word-break: break-all;">${data.merkleRoot || "N/A"}</code>
+              <code id="merkle-root-value" style="word-break: break-all;"></code>
             </p>
           </div>
         `;
+        const codeEl = result.querySelector("#merkle-root-value");
+        if (codeEl) codeEl.textContent = data.merkleRoot || "N/A";
       } else {
         result.innerHTML = `
           <div style="padding: 15px; background: #ffebee; border-left: 4px solid #c62828; border-radius: 4px;">

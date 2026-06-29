@@ -98,14 +98,22 @@ export class ClinicalSusarGate extends HTMLElement {
 
       btn.textContent = "SUSAR Gate Approved ✓";
       btn.style.background = "#2e7d32";
-      status.innerHTML = `
-        <strong>Gate Decision:</strong> ${result.gateDecision || "APPROVED"}<br>
-        <strong>Investigator ID:</strong> ${result.investigatorId || "demo-investigator"}<br>
-        <strong>Attestation:</strong> ${result.attestation || "ENDORSED"} → safety-accuracy dimension<br>
-        <strong>Trust Score Before:</strong> ${result.trustScoreBefore !== null && result.trustScoreBefore !== undefined ? result.trustScoreBefore.toFixed(3) : "N/A"}<br>
-        <strong>Trust Score After:</strong> ${result.trustScoreAfter !== null && result.trustScoreAfter !== undefined ? result.trustScoreAfter.toFixed(3) : "N/A"}<br>
-        <strong>Regulatory Submission:</strong> IND report created
-      `;
+      status.innerHTML = "";
+      const lines = [
+        ["Gate Decision", result.gateDecision || "APPROVED"],
+        ["Investigator ID", result.investigatorId || "demo-investigator"],
+        ["Attestation", (result.attestation || "ENDORSED") + " → safety-accuracy dimension"],
+        ["Trust Score Before", result.trustScoreBefore !== null && result.trustScoreBefore !== undefined ? result.trustScoreBefore.toFixed(3) : "N/A"],
+        ["Trust Score After", result.trustScoreAfter !== null && result.trustScoreAfter !== undefined ? result.trustScoreAfter.toFixed(3) : "N/A"],
+        ["Regulatory Submission", "IND report created"],
+      ];
+      for (const [label, value] of lines) {
+        const strong = document.createElement("strong");
+        strong.textContent = label + ": ";
+        status.appendChild(strong);
+        status.appendChild(document.createTextNode(value));
+        status.appendChild(document.createElement("br"));
+      }
       status.style.color = "#2e7d32";
       setTimeout(() => window.location.reload(), 1000);
     } catch (err) {
