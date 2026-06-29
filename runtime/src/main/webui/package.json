@@ -6,8 +6,8 @@
     "dev": "node esbuild.config.mjs --watch"
   },
   "dependencies": {
-    "@casehubio/pages-runtime": "0.2.0",
-    "@casehubio/pages-ui": "0.2.0"
+    "@casehubio/pages-runtime": "file:../../../../../pages/packages/pages-runtime",
+    "@casehubio/pages-ui": "file:../../../../../pages/packages/pages-ui"
   },
   "devDependencies": {
     "esbuild": "^0.25.0",

@@ -176,6 +176,12 @@
       <optional>true</optional>
     </dependency>
 
+    <!-- UI hosting via Quinoa -->
+    <dependency>
+      <groupId>io.quarkiverse.quinoa</groupId>
+      <artifactId>quarkus-quinoa</artifactId>
+    </dependency>
+
     <!-- Test -->
     <dependency>
       <groupId>io.quarkus</groupId>
