@@ -1,4 +1,4 @@
-import { page, tree, markdown } from "@casehubio/pages-ui";
+import { page, tree } from "@casehubio/pages-ui";
 import { step1Overview } from "./guided/step1-overview";
 import { step2Agents } from "./guided/step2-agents";
 import { step3Deviation } from "./guided/step3-deviation";
@@ -7,8 +7,12 @@ import { step5AeEvent } from "./guided/step5-ae-event";
 import { step6Governance } from "./guided/step6-governance";
 import { step7Resolution } from "./guided/step7-resolution";
 import { step8Proof } from "./guided/step8-proof";
-
-const placeholder = (name: string) => page(name, markdown(`*${name} — coming soon*`));
+import { trialDashboard } from "./explore/trial-dashboard";
+import { adverseEvents } from "./explore/adverse-events";
+import { auditTrail } from "./explore/audit-trail";
+import { deviations } from "./explore/deviations";
+import { trustNetwork } from "./explore/trust-network";
+import { siteDetail } from "./explore/site-detail";
 
 export const dashboard = page("CaseHub Clinical",
   tree(
@@ -20,11 +24,11 @@ export const dashboard = page("CaseHub Clinical",
     ["Guided/6. AI Decision & Governance", step6Governance],
     ["Guided/7. Resolution & Trust", step7Resolution],
     ["Guided/8. The Proof", step8Proof],
-    ["Explore/Trial Dashboard", placeholder("Trial Dashboard")],
-    ["Explore/Adverse Events", placeholder("Adverse Events")],
-    ["Explore/Audit Trail", placeholder("Audit Trail")],
-    ["Explore/Protocol Deviations", placeholder("Deviations")],
-    ["Explore/Trust Network", placeholder("Trust Network")],
-    ["Explore/Site Detail", placeholder("Site Detail")]
+    ["Explore/Trial Dashboard", trialDashboard],
+    ["Explore/Adverse Events", adverseEvents],
+    ["Explore/Audit Trail", auditTrail],
+    ["Explore/Protocol Deviations", deviations],
+    ["Explore/Trust Network", trustNetwork],
+    ["Explore/Site Detail", siteDetail]
   )
 );
