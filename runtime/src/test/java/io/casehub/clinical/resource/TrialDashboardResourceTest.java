@@ -195,4 +195,28 @@ class TrialDashboardResourceTest {
             .then()
             .statusCode(404);
     }
+
+    // --- Task 1: Sites list endpoint ---
+
+    @Test
+    void sites_returns_enriched_site_list() {
+        given()
+            .when().get("/trials/{trialId}/sites", trialId)
+            .then()
+            .statusCode(200)
+            .body("size()", equalTo(2))
+            .body("find { it.investigatorId == 'dr-chen' }.enrolledCount", equalTo(1))
+            .body("find { it.investigatorId == 'dr-chen' }.adverseEventCount", equalTo(1))
+            .body("find { it.investigatorId == 'dr-chen' }.deviationCount", equalTo(0))
+            .body("find { it.investigatorId == 'dr-patel' }.enrolledCount", equalTo(0))
+            .body("find { it.investigatorId == 'dr-patel' }.status", notNullValue());
+    }
+
+    @Test
+    void sites_returns_404_for_unknown_trial() {
+        given()
+            .when().get("/trials/{trialId}/sites", UUID.randomUUID())
+            .then()
+            .statusCode(404);
+    }
 }

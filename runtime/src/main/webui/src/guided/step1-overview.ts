@@ -1,20 +1,11 @@
 import { page, columns, metric, barChart, table, markdown, lookup, groupBy, col, sum } from "@casehubio/pages-ui";
-import { TRIAL_ID, trialSummaryDs } from "../datasets";
+import type { ColumnId } from "@casehubio/data";
+import { TRIAL_ID, trialSummaryDs, sitesDs } from "../datasets";
 import { STEP1_NARRATIVE } from "../narrative";
 
-/**
- * Step 1: Trial Overview
- *
- * Components:
- * - Narrative markdown
- * - 4-column metric row: phase, enrolled, AEs, deviations
- * - Enrollment bar chart by site
- * - Sites table with status, investigator, enrolled count, AE count
- */
 export const step1Overview = page("1. Trial Overview",
   markdown(`## ONCO-2024-001 — Phase III Oncology Trial\n\n${STEP1_NARRATIVE}`),
 
-  // 4-column metrics row: trial phase, total enrolled, active AEs, protocol deviations
   columns(
     [3, 3, 3, 3],
     [metric({
@@ -35,22 +26,22 @@ export const step1Overview = page("1. Trial Overview",
     })]
   ),
 
-  // TODO: Add enrollment bar chart by site when sites dataset is available
-  // barChart({
-  //   title: "Enrollment by Site",
-  //   lookup: lookup("sites", groupBy("siteName", col("siteName"), sum("enrolled")))
-  // }),
+  barChart({
+    title: "Enrollment by Site",
+    lookup: lookup("sites", groupBy("investigatorId", col("investigatorId"), sum("enrolledCount")))
+  }),
 
-  // TODO: Add sites table when sites dataset is available
-  // table({
-  //   sortable: true,
-  //   columns: [
-  //     { id: "siteName" as ColumnId },
-  //     { id: "investigator" as ColumnId },
-  //     { id: "enrolled" as ColumnId },
-  //     { id: "status" as ColumnId, expression: 'value === "ACTIVE" ? "✅ ACTIVE" : value' }
-  //   ],
-  //   lookup: lookup("sites", [], [])
-  // })
-  { datasets: [trialSummaryDs] }
+  table({
+    sortable: true,
+    columns: [
+      { id: "investigatorId" as ColumnId, label: "Investigator" },
+      { id: "status" as ColumnId, label: "Status",
+        expression: 'value === "ACTIVE" ? "✅ ACTIVE" : value === "PENDING" ? "⏳ PENDING" : value' },
+      { id: "enrolledCount" as ColumnId, label: "Enrolled" },
+      { id: "adverseEventCount" as ColumnId, label: "Adverse Events" },
+      { id: "deviationCount" as ColumnId, label: "Deviations" }
+    ],
+    lookup: lookup("sites")
+  }),
+  { datasets: [trialSummaryDs, sitesDs] }
 );

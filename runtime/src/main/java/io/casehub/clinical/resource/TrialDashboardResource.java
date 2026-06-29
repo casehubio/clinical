@@ -23,6 +23,7 @@ import java.time.Instant;
 import java.util.*;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
+import java.util.HashMap;
 
 @Path("/trials/{trialId}")
 @Produces(MediaType.APPLICATION_JSON)
@@ -79,6 +80,10 @@ public class TrialDashboardResource {
         String entryType, String actorId, String actorRole,
         Instant occurredAt, String summary
     ) {}
+
+    public record SiteRow(UUID id, String investigatorId, String status,
+                          long enrolledCount, long adverseEventCount,
+                          long deviationCount) {}
 
     /** All 8 capabilities with their primary trust dimension. */
     private static final List<String[]> CAPABILITY_DIMENSIONS = List.of(
@@ -396,6 +401,60 @@ public class TrialDashboardResource {
                 buildLedgerSummary(entry)
             ))
             .toList();
+
+        return Response.ok(rows).build();
+    }
+
+    @GET
+    @Path("/sites")
+    @RolesAllowed({ClinicalGroups.SPONSOR, ClinicalGroups.INVESTIGATOR,
+                   ClinicalGroups.COORDINATOR, ClinicalGroups.MONITOR})
+    public Response sites(@PathParam("trialId") UUID trialId) {
+        ClinicalTrial trial = ClinicalTrial.findByIdForTenant(trialId, principal);
+        if (trial == null) return Response.status(404).build();
+
+        List<TrialSite> sites = TrialSite.find("trialId = ?1 and tenantId = ?2",
+            trialId, principal.tenancyId()).list();
+
+        if (sites.isEmpty()) return Response.ok(List.of()).build();
+
+        List<UUID> siteIds = sites.stream().map(s -> s.id).toList();
+
+        // Enrollments per site (single-hop)
+        List<PatientEnrollment> enrollments = PatientEnrollment
+            .find("siteId in ?1 and tenantId = ?2", siteIds, principal.tenancyId())
+            .list();
+        Map<UUID, Long> enrolledBySite = enrollments.stream()
+            .collect(Collectors.groupingBy(e -> e.siteId, Collectors.counting()));
+
+        // AEs per site (two-hop: enrollment → AE, grouped back to site)
+        Map<UUID, Long> aeBySite = new HashMap<>();
+        if (!enrollments.isEmpty()) {
+            List<UUID> enrollmentIds = enrollments.stream().map(e -> e.id).toList();
+            Map<UUID, UUID> enrollmentToSite = enrollments.stream()
+                .collect(Collectors.toMap(e -> e.id, e -> e.siteId));
+            List<AdverseEvent> aes = AdverseEvent
+                .find("enrollmentId in ?1 and tenantId = ?2", enrollmentIds, principal.tenancyId())
+                .list();
+            aeBySite = aes.stream()
+                .collect(Collectors.groupingBy(
+                    ae -> enrollmentToSite.get(ae.enrollmentId), Collectors.counting()));
+        }
+
+        // Deviations per site (single-hop)
+        Map<UUID, Long> devBySite = ProtocolDeviation
+            .find("siteId in ?1 and tenantId = ?2", siteIds, principal.tenancyId())
+            .<ProtocolDeviation>list().stream()
+            .collect(Collectors.groupingBy(d -> d.siteId, Collectors.counting()));
+
+        Map<UUID, Long> finalAeBySite = aeBySite;
+        List<SiteRow> rows = sites.stream().map(s -> new SiteRow(
+            s.id, s.investigatorId,
+            s.status != null ? s.status.name() : null,
+            enrolledBySite.getOrDefault(s.id, 0L),
+            finalAeBySite.getOrDefault(s.id, 0L),
+            devBySite.getOrDefault(s.id, 0L)
+        )).toList();
 
         return Response.ok(rows).build();
     }
