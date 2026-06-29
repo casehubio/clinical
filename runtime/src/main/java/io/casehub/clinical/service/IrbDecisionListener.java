@@ -44,7 +44,8 @@ public class IrbDecisionListener {
 
     @Transactional
     public void onWorkItemLifecycle(@ObservesAsync WorkItemLifecycleEvent event) {
-        if (!(event.source() instanceof WorkItem workItem)) return;
+        WorkItem workItem = event.workItem();
+        if (workItem == null) return;
 
         UUID deviationId = extractDeviationId(workItem);
         if (deviationId == null) {

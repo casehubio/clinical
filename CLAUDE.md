@@ -393,6 +393,8 @@ H2 and production JDBC both require this. Without it, Agroal throws "Failed to e
 
 **Ledger SNAPSHOT reactive services:** Fixed in ledger#92 — `LedgerVerificationService` and related services now use `Instance<ReactiveLedgerEntryRepository>` with `isResolvable()` guard. JDBC-only consumers start cleanly without `quarkus.arc.exclude-types`. No workaround needed.
 
+**Dev-mode CDI alternative selection:** `quarkus.arc.selected-alternatives` does NOT support `%dev.` profile overrides (GE-20260629-e6460e). The workaround: select ALL alternatives (both JPA and memory) in the non-profiled `selected-alternatives`. Use profile-specific `exclude-types` to control which survive: `%dev.quarkus.arc.exclude-types` removes reactive JPA stores (memory wins); `%prod.quarkus.arc.exclude-types` removes memory stores (JPA wins). `DevSchemaInitializer` (`@IfBuildProfile("dev")`, `@Priority(1)`) creates the `ledger_subject_sequence` table before `DemoDataSeeder` runs.
+
 **Connector CDI exclusions:** `TwilioSmsConnector` and `WhatsAppConnector` (from `casehub-connectors-core`) require external credentials (`casehub.connectors.twilio.*`, `casehub.connectors.whatsapp.*`) not present in the test environment. They are excluded via `quarkus.arc.exclude-types` in test `application.properties`. `SlackConnector` is replaced by `TestSlackConnector` via `@Mock`. When adding new connectors with required external config, add them to the exclude-types list.
 
 **`GroupMembershipProvider` CDI ambiguity:** `MockGroupMembershipProvider` (casehub-platform, `@DefaultBean`) and `NoOpGroupMembershipProvider` (casehub-work, `@DefaultBean`) both implement `GroupMembershipProvider`, causing `AmbiguousResolutionException`. `quarkus.arc.exclude-types` does NOT suppress beans from Jandex-indexed JARs (GE-20260601-848232). Fix: `ClinicalGroupMembershipProvider` in `runtime/src/test/java/.../support/` is a concrete `@ApplicationScoped` (non-`@DefaultBean`) bean that suppresses both. Do not remove it.
@@ -425,7 +427,7 @@ H2 and production JDBC both require this. Without it, Agroal throws "Failed to e
 <dependency><groupId>io.casehub</groupId><artifactId>casehub-platform-testing</artifactId><scope>test</scope></dependency>
 ```
 
-Add `casehub-engine-persistence-hibernate` as a production dependency — provides JPA implementations for `CaseInstanceRepository`, `EventLogRepository`, `SubCaseGroupRepository`, `CaseMetaModelRepository`. `casehub-engine-persistence-memory` is test-scope only; without hibernate, production build fails with 30+ CDI unsatisfied errors.
+Add `casehub-engine-persistence-hibernate` as a production dependency — provides JPA implementations for `CaseInstanceRepository`, `EventLogRepository`, `SubCaseGroupRepository`, `CaseMetaModelRepository`. `casehub-engine-persistence-memory` is compile-scope (explicit `<scope>compile</scope>` overrides parent POM's `dependencyManagement` test scope). All its beans are `@Alternative` — inactive unless selected via `quarkus.arc.selected-alternatives`. Dev mode selects memory stores; production excludes them via `%prod.quarkus.arc.exclude-types`.
 
 In production `application.properties`, add:
 ```properties
@@ -460,6 +462,14 @@ In test `application.properties`:
 - **`@Transactional` lifecycle tests and entity creation:** `@ObservesAsync` service methods that call `AdverseEvent.findById()` or similar Panache lookups in Phase 1 require the entity to exist before the observer fires. Add entity creation to `@BeforeEach @Transactional setup()` in `@QuarkusTest` lifecycle tests — not just random UUIDs. See `AeEscalationLifecycleTest` and `IrbGateLifecycleTest` for the pattern.
 - **Integration tests for `@ObservesAsync @Transactional` listeners:** call the listener method directly (e.g., `listener.onAeReported(event)`) rather than through `Event.fireAsync()`. `REQUIRES_NEW` methods called from within the listener complete synchronously from the test thread — no Awaitility needed. Entity setup requires only what the listener actually loads from the DB (e.g., `ClinicalTrial` + `TrialSite` for notification listeners, not `AdverseEvent`). `@Mock @Singleton` test connector beans (e.g., `TestSlackConnector`) persist across tests — call `reset()` in `@BeforeEach`. See `SafetyOfficerNotificationIntegrationTest` for the reference pattern.
 - **`CaseInstanceRepository.findByUuid` takes `(UUID caseId, String tenancyId)` (June 1 engine snapshot).** Production callers pass `event.tenancyId()`. Passing `null` for tenancyId causes `NullPointerException` inside `InMemoryCaseInstanceRepository` when the case is found (calls `tenancyId.equals(...)` on the parameter). In lifecycle tests, prefer asserting domain state (`escalationStatus`, `approvalDecision()`) over calling `findByUuid` — domain assertions are sufficient and avoid the tenancyId resolution problem entirely.
+
+**casehub-pages DSL conventions (webui TypeScript):**
+- `columns(distribution: number[], ...slotContents: Component[][])` — first arg is distribution array `[3,3,3,3]`, each slot is a Component array
+- `page(name, ...components, pageOptions?)` — `{ datasets: [...] }` must be the LAST argument
+- `lookup(dataSetId: string, ...ops)` — first arg is string ID (not dataset object); operations are direct args (not wrapped in arrays)
+- `groupBy(source: null | string, ...resultColumns)` — source is `null` (no grouping) or string column name
+- `actionButton()` and `alert()` helpers in `webui/src/helpers.ts` create native `action-button` and `alert` web components — prefer over `html()` with inline scripts (browsers don't execute `<script>` tags added via innerHTML)
+- MutationObserver in `webui/src/index.ts` re-creates script elements for remaining `html()` scripts (steps 4, 7, 8, audit-trail)
 
 ## Build Commands
 

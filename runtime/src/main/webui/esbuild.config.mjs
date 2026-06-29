@@ -1,6 +1,10 @@
 import esbuild from "esbuild";
+import { copyFileSync, mkdirSync } from "fs";
 
 const watch = process.argv.includes("--watch");
+
+mkdirSync("dist", { recursive: true });
+copyFileSync("index.html", "dist/index.html");
 
 const config = {
   entryPoints: ["src/index.ts"],

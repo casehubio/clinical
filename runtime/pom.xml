@@ -128,10 +128,13 @@
       <artifactId>casehub-engine-testing</artifactId>
       <scope>test</scope>
     </dependency>
+    <!-- compile scope: needed for dev mode (memory engine stores when reactive PU is unavailable).
+         All beans are @Alternative — inactive unless selected via quarkus.arc.selected-alternatives.
+         Parent POM dependencyManagement forces scope=test; explicit scope=compile overrides it. -->
     <dependency>
       <groupId>io.casehub</groupId>
       <artifactId>casehub-engine-persistence-memory</artifactId>
-      <scope>test</scope>
+      <scope>compile</scope>
     </dependency>
     <dependency>
       <groupId>io.quarkus</groupId>

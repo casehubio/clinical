@@ -2,7 +2,7 @@ package io.casehub.clinical.service;
 
 import io.casehub.work.api.BreachDecision;
 import io.casehub.work.api.SlaBreachContext;
-import io.casehub.work.api.SlaBreachPolicy;
+import io.casehub.work.api.spi.SlaBreachPolicy;
 import jakarta.enterprise.context.ApplicationScoped;
 import java.time.Duration;
 

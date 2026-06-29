@@ -33,6 +33,7 @@ export const step7Resolution = page("7. Resolution & Trust Update",
     </div>
     <script>
       (function() {
+        var TRIAL_ID = "${TRIAL_ID}";
         const btn = document.getElementById('approve-gate-btn');
         const status = document.getElementById('resolution-status');
 
@@ -49,18 +50,18 @@ export const step7Resolution = page("7. Resolution & Trust Update",
         }
 
         // Check if gate is already approved
-        fetch('/api/trials/${TRIAL_ID}/adverse-events')
+        fetch('/trials/' + TRIAL_ID + '/adverse-events')
           .then(r => r.json())
           .then(data => {
             const ae = data.find(ae => ae.id === aeId);
-            if (ae && ae.susarOversightStatus === 'COMPLETED') {
+            if (ae && ae.escalationStatus === 'COMPLETED') {
               btn.disabled = true;
               btn.textContent = 'SUSAR Gate Already Approved ✓';
               btn.style.background = '#757575';
               btn.style.cursor = 'not-allowed';
               status.textContent = 'Gate approval complete.';
               status.style.color = '#2e7d32';
-            } else if (ae && ae.susarOversightStatus !== 'REQUESTED') {
+            } else if (ae && ae.escalationStatus !== 'REQUESTED') {
               btn.disabled = true;
               btn.textContent = 'Gate Not Ready';
               btn.style.background = '#757575';
@@ -79,7 +80,7 @@ export const step7Resolution = page("7. Resolution & Trust Update",
           status.textContent = 'Completing gate WorkItem...';
           status.style.color = '#f57c00';
 
-          fetch('/api/demo/adverse-events/' + aeId + '/approve-susar-gate', {
+          fetch('/demo/adverse-events/' + aeId + '/approve-susar-gate', {
             method: 'POST',
             headers: {'Content-Type': 'application/json'}
           })
@@ -119,27 +120,23 @@ export const step7Resolution = page("7. Resolution & Trust Update",
 
   // Metrics: trust score before/after, gate status, attestation
   columns(
-    { span: 3 },
-    metric({
+    [3, 3, 3, 3],
+    [metric({
       title: "SUSAR Gates Completed",
       lookup: lookup(
-        adverseEventsDs,
-        [],
-        [groupBy([], [col("susarOversightStatus")])]
+        "adverse-events",
+        groupBy(null, col("escalationStatus"))
       )
-    }),
-    { span: 3 },
-    markdown(`### Attestation Recorded
+    })],
+    [markdown(`### Attestation Recorded
 
-When the investigator approves the SUSAR determination, CaseHub writes a **LedgerAttestation** entry with verdict ENDORSED. This feeds into the agent's Bayesian trust score computation.`),
-    { span: 3 },
-    markdown(`### Trust Score Recomputation
+When the investigator approves the SUSAR determination, CaseHub writes a **LedgerAttestation** entry with verdict ENDORSED. This feeds into the agent's Bayesian trust score computation.`)],
+    [markdown(`### Trust Score Recomputation
 
-The demo endpoint triggers \`TrustScoreJob.runComputation()\` immediately after the attestation is written. The trust score delta is computed from the new attestation — good decisions build trust.`),
-    { span: 3 },
-    markdown(`### Regulatory Submission
+The demo endpoint triggers \`TrustScoreJob.runComputation()\` immediately after the attestation is written. The trust score delta is computed from the new attestation — good decisions build trust.`)],
+    [markdown(`### Regulatory Submission
 
-The IND report work item is created automatically with a 7-day deadline (21 CFR 312.32). The regulatory team receives the work item via routing policy.`)
+The IND report work item is created automatically with a 7-day deadline (21 CFR 312.32). The regulatory team receives the work item via routing policy.`)]
   ),
 
   // Explanation
@@ -147,5 +144,6 @@ The IND report work item is created automatically with a 7-day deadline (21 CFR 
 
 This is Layer 7 in action: trust-weighted routing with attestation feedback. The agent was selected by trust score, its decision was gated, and the investigator's approval became an attestation that updated the trust score.
 
-**Key insight:** Trust scores are not static agent metadata — they are continuously refined by human attestations. The platform learns which agents make reliable decisions over time.`)
+**Key insight:** Trust scores are not static agent metadata — they are continuously refined by human attestations. The platform learns which agents make reliable decisions over time.`),
+  { datasets: [adverseEventsDs] }
 );

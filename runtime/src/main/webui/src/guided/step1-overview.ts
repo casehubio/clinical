@@ -16,32 +16,29 @@ export const step1Overview = page("1. Trial Overview",
 
   // 4-column metrics row: trial phase, total enrolled, active AEs, protocol deviations
   columns(
-    { span: 3 },
-    metric({
+    [3, 3, 3, 3],
+    [metric({
       title: "Trial Phase",
-      lookup: lookup(trialSummaryDs, [], [groupBy([], [col("phase")])])
-    }),
-    { span: 3 },
-    metric({
+      lookup: lookup("trial-summary", groupBy(null, col("phase")))
+    })],
+    [metric({
       title: "Total Enrolled",
-      lookup: lookup(trialSummaryDs, [], [groupBy([], [col("totalEnrolled")])])
-    }),
-    { span: 3 },
-    metric({
+      lookup: lookup("trial-summary", groupBy(null, col("totalEnrolled")))
+    })],
+    [metric({
       title: "Adverse Events",
-      lookup: lookup(trialSummaryDs, [], [groupBy([], [col("totalAdverseEvents")])])
-    }),
-    { span: 3 },
-    metric({
+      lookup: lookup("trial-summary", groupBy(null, col("totalAdverseEvents")))
+    })],
+    [metric({
       title: "Protocol Deviations",
-      lookup: lookup(trialSummaryDs, [], [groupBy([], [col("totalDeviations")])])
-    })
+      lookup: lookup("trial-summary", groupBy(null, col("totalDeviations")))
+    })]
   ),
 
   // TODO: Add enrollment bar chart by site when sites dataset is available
   // barChart({
   //   title: "Enrollment by Site",
-  //   lookup: lookup("sites", [], [groupBy(["siteName"], [col("siteName"), sum("enrolled")])])
+  //   lookup: lookup("sites", groupBy("siteName", col("siteName"), sum("enrolled")))
   // }),
 
   // TODO: Add sites table when sites dataset is available
@@ -55,4 +52,5 @@ export const step1Overview = page("1. Trial Overview",
   //   ],
   //   lookup: lookup("sites", [], [])
   // })
+  { datasets: [trialSummaryDs] }
 );

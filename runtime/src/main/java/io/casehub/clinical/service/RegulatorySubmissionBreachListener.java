@@ -36,7 +36,8 @@ public class RegulatorySubmissionBreachListener {
         if (event.status() != WorkItemStatus.ESCALATED) {
             return;
         }
-        if (!(event.source() instanceof WorkItem workItem)) {
+        WorkItem workItem = event.workItem();
+        if (workItem == null) {
             return;
         }
         CallerRef ref = CallerRef.parse(workItem.callerRef);

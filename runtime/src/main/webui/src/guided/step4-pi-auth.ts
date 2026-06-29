@@ -38,7 +38,7 @@ export const step4PiAuth = page("4. PI Authorisation",
         let commandedDeviationId = null;
 
         // Find COMMANDED deviation
-        fetch('/api/trials/316e3846-4ea7-3b18-a6f7-e01ce6582a69/deviations')
+        fetch('/trials/316e3846-4ea7-3b18-a6f7-e01ce6582a69/deviations')
           .then(r => r.json())
           .then(data => {
             const commanded = data.find(d => d.piApprovalStatus === 'COMMANDED');
@@ -71,7 +71,7 @@ export const step4PiAuth = page("4. PI Authorisation",
           status.textContent = 'Sending PI approval...';
           status.style.color = '#f57c00';
 
-          fetch('/api/demo/deviations/' + commandedDeviationId + '/approve-pi', {
+          fetch('/demo/deviations/' + commandedDeviationId + '/approve-pi', {
             method: 'POST',
             headers: {'Content-Type': 'application/json'}
           })
@@ -116,7 +116,7 @@ export const step4PiAuth = page("4. PI Authorisation",
       { id: "escalatedAt" as ColumnId, label: "Escalated At",
         expression: 'value != null ? new Date(value).toLocaleString() : "—"' }
     ],
-    lookup: lookup(deviationsDs, [], [])
+    lookup: lookup("deviations")
   }),
 
   // Merkle chain: deviation-related ledger entries
@@ -128,32 +128,31 @@ Every step is recorded in the Merkle ledger — COMMAND sent, PI response receiv
     sortable: true,
     pageSize: 10,
     columns: [
-      { id: "timestamp" as ColumnId, label: "Timestamp",
+      { id: "occurredAt" as ColumnId, label: "Timestamp",
         expression: 'new Date(value).toLocaleString()' },
-      { id: "eventType" as ColumnId, label: "Event Type" },
+      { id: "entryType" as ColumnId, label: "Event Type" },
       { id: "actorId" as ColumnId, label: "Actor" },
       { id: "sequenceNumber" as ColumnId, label: "Seq #" }
     ],
     lookup: lookup(
-      ledgerEntriesDs,
-      [filterBy("eventType", "CONTAINS", "DEVIATION")],
-      []
+      "ledger-entries",
+      filterBy("entryType", "CONTAINS", "DEVIATION")
     )
   }),
 
   // Commitment lifecycle explanation
   columns(
-    { span: 6 },
-    markdown(`### Commitment Lifecycle Stages
+    [6, 6],
+    [markdown(`### Commitment Lifecycle Stages
 
 1️⃣ **COMMANDED** — Platform sends formal COMMAND to PI with 24h deadline
 2️⃣ **APPROVED** — PI responds, Commitment closed
-3️⃣ **ESCALATED** — CRITICAL deviations trigger IRB review (72h deadline)`),
-    { span: 6 },
-    markdown(`### Why This Matters
+3️⃣ **ESCALATED** — CRITICAL deviations trigger IRB review (72h deadline)`)],
+    [markdown(`### Why This Matters
 
 **No LLM pipeline can provide this:** Every obligation is tracked with a named actor, a deadline, and a tamper-evident record. If the PI doesn't respond, the platform escalates automatically — no human in the loop needed for SLA enforcement.
 
-This is **qhorus** — formal accountability for agentic systems.`)
-  )
+This is **qhorus** — formal accountability for agentic systems.`)]
+  ),
+  { datasets: [deviationsDs, ledgerEntriesDs] }
 );

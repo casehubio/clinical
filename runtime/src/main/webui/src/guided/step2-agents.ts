@@ -27,7 +27,7 @@ export const step2Agents = page("2. Meet the AI Agents",
       { id: "attestationPositive" as ColumnId, label: "Endorsed" },
       { id: "attestationNegative" as ColumnId, label: "Challenged" }
     ],
-    lookup: lookup(agentsDs, [], [])
+    lookup: lookup("agents")
   }),
 
   // Trust routing policy summary (static markdown table from ClinicalTrustRoutingPolicyProvider)
@@ -46,14 +46,13 @@ export const step2Agents = page("2. Meet the AI Agents",
 
   // 3 metric cards: gated types, trust dimensions, oversight policy
   columns(
-    { span: 4 },
-    metric({
+    [4, 4, 4],
+    [metric({
       title: "Gated Capabilities",
-      lookup: lookup(agentsDs, [], [groupBy([], [count("capability", "capability", "#")])])
-    }),
-    { span: 4 },
-    markdown(`**Trust Dimensions Tracked**\n\n3 dimensions: safety-accuracy, eligibility-precision, protocol-adherence`),
-    { span: 4 },
-    markdown(`**Oversight Policy**\n\nNo autonomous safety decisions — all high-stakes actions gated`)
-  )
+      lookup: lookup("agents", groupBy(null, count("capability")))
+    })],
+    [markdown(`**Trust Dimensions Tracked**\n\n3 dimensions: safety-accuracy, eligibility-precision, protocol-adherence`)],
+    [markdown(`**Oversight Policy**\n\nNo autonomous safety decisions — all high-stakes actions gated`)]
+  ),
+  { datasets: [agentsDs] }
 );

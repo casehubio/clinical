@@ -25,64 +25,51 @@ Drill down into enrollment and patient status at each trial site. Select a site 
     subtype: "dropdown",
     selfApply: true,
     notification: true,
-    lookup: lookup(patientsDs, [], [groupBy(["siteName"], [col("siteName")])])
+    lookup: lookup("patients", groupBy("siteId", col("siteId")))
   }),
 
   // Site-level metrics
   columns(
-    { span: 4 },
-    metric({
-      title: "Patients Enrolled",
-      lookup: lookup(patientsDs, [], [groupBy([], [count("enrollmentId")])])
-    }),
-    { span: 4 },
-    metric({
+    [4, 4, 4],
+    [metric({
+      title: "Total Patients",
+      lookup: lookup("patients", groupBy(null, count("id")))
+    })],
+    [metric({
       title: "Active Patients",
       lookup: lookup(
-        patientsDs,
-        [filterBy("consentStatus", "EQUALS_TO", "CONSENTED")],
-        [groupBy([], [count("enrollmentId")])]
+        "patients",
+        filterBy("enrollmentStatus", "EQUALS_TO", "ELIGIBLE"),
+        groupBy(null, count("id"))
       )
-    }),
-    { span: 4 },
-    metric({
-      title: "Withdrawn",
+    })],
+    [metric({
+      title: "Candidates",
       lookup: lookup(
-        patientsDs,
-        [filterBy("consentStatus", "EQUALS_TO", "WITHDRAWN")],
-        [groupBy([], [count("enrollmentId")])]
+        "patients",
+        filterBy("enrollmentStatus", "EQUALS_TO", "CANDIDATE"),
+        groupBy(null, count("id"))
       )
-    })
+    })]
   ),
 
-  // Patients table with listening enabled for cross-filtering
+  // Patients table
   table({
     sortable: true,
     pageSize: 25,
     listening: true,
     columns: [
-      { id: "siteName" as ColumnId, label: "Site" },
-      { id: "patientId" as ColumnId, label: "Patient ID",
+      { id: "siteId" as ColumnId, label: "Site",
         expression: 'value.substring(0, 8) + "..."' },
-      { id: "enrollmentDate" as ColumnId, label: "Enrolled",
-        expression: 'new Date(value).toLocaleDateString()' },
-      { id: "consentStatus" as ColumnId, label: "Consent Status",
-        expression: `
-          if (value === "CONSENTED") return "✅ CONSENTED";
-          if (value === "WITHDRAWN") return "❌ WITHDRAWN";
-          if (value === "PENDING") return "⏳ PENDING";
-          return value || "—";
-        ` },
-      { id: "screeningStatus" as ColumnId, label: "Screening",
-        expression: `
-          if (value === "CRITERIA_MET") return "✅ CRITERIA MET";
-          if (value === "EXCLUDED") return "❌ EXCLUDED";
-          if (value === "PENDING") return "⏳ PENDING";
-          return value || "—";
-        ` },
-      { id: "activeAeCount" as ColumnId, label: "Active AEs" },
-      { id: "totalDeviationCount" as ColumnId, label: "Deviations" }
+      { id: "patientId" as ColumnId, label: "Patient ID",
+        expression: 'value.substring(0, 12) + "..."' },
+      { id: "enrollmentStatus" as ColumnId, label: "Status" },
+      { id: "screeningResult" as ColumnId, label: "Screening",
+        expression: 'value === "CRITERIA_MET" ? "✅ CRITERIA MET" : value || "—"' },
+      { id: "consentStatus" as ColumnId, label: "Consent",
+        expression: 'value === "CRITERIA_MET" ? "✅" : value || "—"' }
     ],
-    lookup: lookup(patientsDs, [], [])
-  })
+    lookup: lookup("patients")
+  }),
+  { datasets: [patientsDs] }
 );

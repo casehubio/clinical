@@ -52,6 +52,7 @@ Complete list of all adverse events across all trial sites. The SLA Time Remaini
       { id: "regulatorySubmissionStatus" as ColumnId, label: "IND Status",
         expression: 'value || "—"' }
     ],
-    lookup: lookup(adverseEventsDs, [], [sortBy("slaDeadline", "ASC")])
-  })
+    lookup: lookup("adverse-events", sortBy("slaDeadline", "ASC"))
+  }),
+  { datasets: [adverseEventsDs] }
 );

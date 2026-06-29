@@ -127,10 +127,10 @@ public class TrialDashboardResource {
             ProtocolDeviation.count("siteId in ?1 and tenantId = ?2",
                 siteIds, principal.tenancyId());
 
-        return Response.ok(new TrialSummary(
+        return Response.ok(List.of(new TrialSummary(
             trial.protocolId, trial.phase.name(), trial.sponsor,
             trial.targetEnrollment, enrolled, aeCount, devCount
-        )).build();
+        ))).build();
     }
 
     @GET

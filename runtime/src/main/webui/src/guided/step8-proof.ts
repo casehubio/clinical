@@ -18,7 +18,7 @@ const PATIENT_B1_ID = "4bb87f70-ca9e-3ded-9bbc-df9bf6fbb38d";
  * - Merkle verification button via html() fetch
  * - Displays VERIFIED ✓ or FAILED ✗ with Merkle root hash
  *
- * The verification endpoint is GET /api/trials/{trialId}/sites/{siteId}/patients/{enrollmentId}/ledger/verify.
+ * The verification endpoint is GET /trials/{trialId}/sites/{siteId}/patients/{enrollmentId}/ledger/verify.
  * Returns: { valid: boolean, merkleRoot: string | null }
  *
  * This endpoint exists in PatientResource and works for both pre-seeded and live-action entries because
@@ -31,7 +31,7 @@ export const step8Proof = page("8. The Proof",
   table({
     sortable: true,
     columns: [
-      { id: "timestamp" as ColumnId, label: "Timestamp",
+      { id: "occurredAt" as ColumnId, label: "Timestamp",
         expression: 'new Date(value).toLocaleString()' },
       { id: "entryType" as ColumnId, label: "Entry Type",
         expression: 'value.replace("LedgerEntry", "")' },
@@ -42,7 +42,7 @@ export const step8Proof = page("8. The Proof",
       { id: "digest" as ColumnId, label: "Digest (SHA-256)",
         expression: 'value.substring(0, 16) + "..."' }
     ],
-    lookup: lookup(ledgerEntriesDs, [], [])
+    lookup: lookup("ledger-entries")
   }),
 
   // Merkle verification button and result display
@@ -62,6 +62,9 @@ export const step8Proof = page("8. The Proof",
     </div>
     <script>
       (function() {
+        var TRIAL_ID = "${TRIAL_ID}";
+        var SITE_B_ID = "${SITE_B_ID}";
+        var PATIENT_B1_ID = "${PATIENT_B1_ID}";
         const btn = document.getElementById('verify-btn');
         const result = document.getElementById('verify-result');
 
@@ -71,7 +74,7 @@ export const step8Proof = page("8. The Proof",
           result.style.display = 'block';
           result.innerHTML = '<p style="color: #666;">Running Merkle verification...</p>';
 
-          fetch('/api/trials/${TRIAL_ID}/sites/${SITE_B_ID}/patients/${PATIENT_B1_ID}/ledger/verify')
+          fetch('/trials/' + TRIAL_ID + '/sites/' + SITE_B_ID + '/patients/' + PATIENT_B1_ID + '/ledger/verify')
             .then(r => {
               if (!r.ok) throw new Error('HTTP ' + r.status);
               return r.json();
@@ -158,5 +161,6 @@ You've seen:
 
 CaseHub provides what no LLM pipeline can: **structurally guaranteed compliance** through formal commitments, trust-weighted routing, unconditional oversight gates, and cryptographic audit trails.
 
-This is the AI Fusion demo — accountability meets AI governance.`)
+This is the AI Fusion demo — accountability meets AI governance.`),
+  { datasets: [ledgerEntriesDs] }
 );

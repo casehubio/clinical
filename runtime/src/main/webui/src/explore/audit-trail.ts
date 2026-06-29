@@ -24,7 +24,7 @@ Every action — AE reports, SUSAR decisions, attestations, protocol deviations,
     subtype: "dropdown",
     selfApply: true,
     notification: true,
-    lookup: lookup(ledgerEntriesDs, [], [groupBy(["entryType"], [col("entryType")])])
+    lookup: lookup("ledger-entries", groupBy("entryType", col("entryType")))
   }),
 
   // Ledger entries table
@@ -33,7 +33,7 @@ Every action — AE reports, SUSAR decisions, attestations, protocol deviations,
     pageSize: 50,
     listening: true,
     columns: [
-      { id: "timestamp" as ColumnId, label: "Timestamp",
+      { id: "occurredAt" as ColumnId, label: "Timestamp",
         expression: 'new Date(value).toLocaleString()' },
       { id: "entryType" as ColumnId, label: "Entry Type",
         expression: 'value.replace("LedgerEntry", "").replace(/([A-Z])/g, " $1").trim()' },
@@ -44,7 +44,7 @@ Every action — AE reports, SUSAR decisions, attestations, protocol deviations,
       { id: "digest" as ColumnId, label: "Digest (SHA-256)",
         expression: 'value.substring(0, 16) + "..."' }
     ],
-    lookup: lookup(ledgerEntriesDs, [], [])
+    lookup: lookup("ledger-entries")
   }),
 
   // Merkle verification button (trial-level verification)
@@ -63,6 +63,7 @@ Every action — AE reports, SUSAR decisions, attestations, protocol deviations,
     </div>
     <script>
       (function() {
+        var TRIAL_ID = "${TRIAL_ID}";
         const btn = document.getElementById('verify-btn-explore');
         const result = document.getElementById('verify-result-explore');
 
@@ -74,11 +75,11 @@ Every action — AE reports, SUSAR decisions, attestations, protocol deviations,
 
           // Note: For trial-level verification, we need a trial-wide verify endpoint.
           // For now, use the same patient-based endpoint as Step 8 (Patient B1 at Site B).
-          // TODO: Add GET /api/trials/{trialId}/ledger/verify for full trial verification.
+          // TODO: Add GET /trials/{trialId}/ledger/verify for full trial verification.
           const SITE_B_ID = "28d71146-f562-3352-a521-2ede60adba82";
           const PATIENT_B1_ID = "4bb87f70-ca9e-3ded-9bbc-df9bf6fbb38d";
 
-          fetch('/api/trials/${TRIAL_ID}/sites/' + SITE_B_ID + '/patients/' + PATIENT_B1_ID + '/ledger/verify')
+          fetch('/trials/' + TRIAL_ID + '/sites/' + SITE_B_ID + '/patients/' + PATIENT_B1_ID + '/ledger/verify')
             .then(r => {
               if (!r.ok) throw new Error('HTTP ' + r.status);
               return r.json();
@@ -131,5 +132,6 @@ Every action — AE reports, SUSAR decisions, attestations, protocol deviations,
         });
       })();
     </script>
-  `)
+  `),
+  { datasets: [ledgerEntriesDs] }
 );

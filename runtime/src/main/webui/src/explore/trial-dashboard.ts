@@ -1,4 +1,4 @@
-import { page, columns, metric, barChart, table, markdown, lookup, groupBy, col, sum, count, sortBy } from "@casehubio/pages-ui";
+import { page, columns, metric, table, markdown, lookup, groupBy, col, sortBy } from "@casehubio/pages-ui";
 import type { ColumnId } from "@casehubio/data";
 import { trialSummaryDs, ledgerEntriesDs } from "../datasets";
 
@@ -19,40 +19,31 @@ Real-time overview of trial status across all sites. This page aggregates enroll
 
   // 4-column metrics row
   columns(
-    { span: 3 },
-    metric({
+    [3, 3, 3, 3],
+    [metric({
       title: "Trial Phase",
-      lookup: lookup(trialSummaryDs, [], [groupBy([], [col("phase")])])
-    }),
-    { span: 3 },
-    metric({
+      lookup: lookup("trial-summary", groupBy(null, col("phase")))
+    })],
+    [metric({
       title: "Total Enrolled",
-      lookup: lookup(trialSummaryDs, [], [groupBy([], [col("totalEnrolled")])])
-    }),
-    { span: 3 },
-    metric({
+      lookup: lookup("trial-summary", groupBy(null, col("totalEnrolled")))
+    })],
+    [metric({
       title: "Adverse Events",
-      lookup: lookup(trialSummaryDs, [], [groupBy([], [col("totalAdverseEvents")])])
-    }),
-    { span: 3 },
-    metric({
+      lookup: lookup("trial-summary", groupBy(null, col("totalAdverseEvents")))
+    })],
+    [metric({
       title: "Protocol Deviations",
-      lookup: lookup(trialSummaryDs, [], [groupBy([], [col("totalDeviations")])])
-    })
+      lookup: lookup("trial-summary", groupBy(null, col("totalDeviations")))
+    })]
   ),
-
-  // Enrollment bar chart by site
-  barChart({
-    title: "Enrollment by Site",
-    lookup: lookup(trialSummaryDs, [], [groupBy(["siteName"], [col("siteName"), sum("enrolled")])])
-  }),
 
   // Recent activity table (last 10 ledger entries)
   table({
     sortable: true,
     pageSize: 10,
     columns: [
-      { id: "timestamp" as ColumnId, label: "Timestamp",
+      { id: "occurredAt" as ColumnId, label: "Timestamp",
         expression: 'new Date(value).toLocaleString()' },
       { id: "entryType" as ColumnId, label: "Event Type",
         expression: 'value.replace("LedgerEntry", "").replace(/([A-Z])/g, " $1").trim()' },
@@ -61,6 +52,7 @@ Real-time overview of trial status across all sites. This page aggregates enroll
       { id: "subjectId" as ColumnId, label: "Subject",
         expression: 'value.substring(0, 8) + "..."' }
     ],
-    lookup: lookup(ledgerEntriesDs, [], [sortBy("timestamp", "DESC")])
-  })
+    lookup: lookup("ledger-entries", sortBy("occurredAt", "DESC"))
+  }),
+  { datasets: [trialSummaryDs, ledgerEntriesDs] }
 );

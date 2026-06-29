@@ -1,4 +1,4 @@
-import { page, columns, metric, table, markdown, lookup, groupBy, col, avg, count } from "@casehubio/pages-ui";
+import { page, columns, metric, table, markdown, lookup, groupBy, col, count } from "@casehubio/pages-ui";
 import type { ColumnId } from "@casehubio/data";
 import { agentsDs } from "../datasets";
 
@@ -28,21 +28,19 @@ CaseHub routes high-stakes decisions to trusted agents based on Bayesian Beta tr
 
   // 3-column aggregate trust metrics
   columns(
-    { span: 4 },
-    metric({
-      title: "Avg Trust Score",
-      lookup: lookup(agentsDs, [], [groupBy([], [avg("trustScore")])])
-    }),
-    { span: 4 },
-    metric({
+    [4, 4, 4],
+    [metric({
+      title: "Trust Dimensions",
+      lookup: lookup("agents", groupBy(null, count("trustDimension")))
+    })],
+    [metric({
       title: "Total Decisions",
-      lookup: lookup(agentsDs, [], [groupBy([], [count("capability")])])
-    }),
-    { span: 4 },
-    metric({
+      lookup: lookup("agents", groupBy(null, count("capability")))
+    })],
+    [metric({
       title: "Active Agents",
-      lookup: lookup(agentsDs, [], [groupBy([], [count("capability")])])
-    })
+      lookup: lookup("agents", groupBy(null, count("capability")))
+    })]
   ),
 
   // Agent table
@@ -77,6 +75,7 @@ CaseHub routes high-stakes decisions to trusted agents based on Bayesian Beta tr
           return (ratio * 100).toFixed(1) + "%";
         ` }
     ],
-    lookup: lookup(agentsDs, [], [])
-  })
+    lookup: lookup("agents")
+  }),
+  { datasets: [agentsDs] }
 );

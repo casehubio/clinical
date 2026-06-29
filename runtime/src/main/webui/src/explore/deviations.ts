@@ -59,6 +59,7 @@ All protocol deviations require Principal Investigator approval via formal COMMA
       { id: "irbDecision" as ColumnId, label: "IRB Decision",
         expression: 'value || "—"' }
     ],
-    lookup: lookup(deviationsDs, [], [sortBy("reportedAt", "DESC")])
-  })
+    lookup: lookup("deviations", sortBy("reportedAt", "DESC"))
+  }),
+  { datasets: [deviationsDs] }
 );

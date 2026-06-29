@@ -1,6 +1,6 @@
 package io.casehub.clinical.support;
 
-import io.casehub.work.api.WorkloadProvider;
+import io.casehub.work.api.spi.WorkloadProvider;
 import io.quarkus.arc.DefaultBean;
 import jakarta.enterprise.context.ApplicationScoped;
 
