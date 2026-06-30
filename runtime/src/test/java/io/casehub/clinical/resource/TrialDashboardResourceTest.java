@@ -209,7 +209,7 @@ class TrialDashboardResourceTest {
             .body("find { it.investigatorId == 'dr-chen' }.adverseEventCount", equalTo(1))
             .body("find { it.investigatorId == 'dr-chen' }.deviationCount", equalTo(0))
             .body("find { it.investigatorId == 'dr-patel' }.enrolledCount", equalTo(0))
-            .body("find { it.investigatorId == 'dr-patel' }.status", notNullValue());
+            .body("find { it.investigatorId == 'dr-patel' }.status", equalTo("PENDING"));
     }
 
     @Test

@@ -23,7 +23,6 @@ import java.time.Instant;
 import java.util.*;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
-import java.util.HashMap;
 
 @Path("/trials/{trialId}")
 @Produces(MediaType.APPLICATION_JSON)
@@ -132,10 +131,10 @@ public class TrialDashboardResource {
             ProtocolDeviation.count("siteId in ?1 and tenantId = ?2",
                 siteIds, principal.tenancyId());
 
-        return Response.ok(List.of(new TrialSummary(
+        return Response.ok(new TrialSummary(
             trial.protocolId, trial.phase.name(), trial.sponsor,
             trial.targetEnrollment, enrolled, aeCount, devCount
-        ))).build();
+        )).build();
     }
 
     @GET
