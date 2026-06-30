@@ -62,7 +62,8 @@ public class TrialDashboardResource {
     public record AgentRow(
         String capability, String trustDimension,
         Double trustScore, Double threshold, int maturityPhase,
-        int decisionCount, int attestationPositive, int attestationNegative
+        int decisionCount, int attestationPositive, int attestationNegative,
+        String endorsementRatio, String distinctTrustDimensions
     ) {}
 
     public record GovernanceContext(
@@ -82,7 +83,7 @@ public class TrialDashboardResource {
 
     public record SiteRow(UUID id, String investigatorId, String status,
                           long enrolledCount, long adverseEventCount,
-                          long deviationCount) {}
+                          long deviationCount, int targetEnrollment) {}
 
     /** All 8 capabilities with their primary trust dimension. */
     private static final List<String[]> CAPABILITY_DIMENSIONS = List.of(
@@ -252,31 +253,39 @@ public class TrialDashboardResource {
         ClinicalTrial trial = ClinicalTrial.findByIdForTenant(trialId, principal);
         if (trial == null) return Response.status(404).build();
 
+        String distinctDimensions = CAPABILITY_DIMENSIONS.stream()
+            .map(pair -> pair[1])
+            .distinct()
+            .sorted()
+            .collect(Collectors.joining(", "));
+
         List<AgentRow> rows = CAPABILITY_DIMENSIONS.stream().map(cd -> {
             String capability = cd[0];
             String dimension = cd[1];
             TrustRoutingPolicy policy = trustRoutingPolicyProvider.forCapability(capability);
 
-            // Look up capability-level trust score (any actorId — aggregate view)
             List<ActorTrustScore> scores = trustScoreRepository.findAll().stream()
                 .filter(s -> capability.equals(s.capabilityKey))
                 .toList();
 
             if (scores.isEmpty()) {
-                // Bootstrap phase — no trust data yet
                 return new AgentRow(capability, dimension, null,
-                    policy.threshold(), 0, 0, 0, 0);
+                    policy.threshold(), 0, 0, 0, 0, null, distinctDimensions);
             }
 
-            // Aggregate across all actors for this capability
             double avgScore = scores.stream().mapToDouble(s -> s.trustScore).average().orElse(0.0);
             int totalDecisions = scores.stream().mapToInt(s -> s.decisionCount).sum();
             int totalPositive = scores.stream().mapToInt(s -> s.attestationPositive).sum();
             int totalNegative = scores.stream().mapToInt(s -> s.attestationNegative).sum();
             int maturity = totalDecisions >= policy.minimumObservations() ? 2 : 0;
+            int totalAttestations = totalPositive + totalNegative;
+            String endorsementRatio = totalAttestations == 0
+                ? null
+                : Math.round(100.0 * totalPositive / totalAttestations) + "%";
 
             return new AgentRow(capability, dimension, avgScore,
-                policy.threshold(), maturity, totalDecisions, totalPositive, totalNegative);
+                policy.threshold(), maturity, totalDecisions, totalPositive, totalNegative,
+                endorsementRatio, distinctDimensions);
         }).toList();
 
         return Response.ok(rows).build();
@@ -452,7 +461,8 @@ public class TrialDashboardResource {
             s.status != null ? s.status.name() : null,
             enrolledBySite.getOrDefault(s.id, 0L),
             finalAeBySite.getOrDefault(s.id, 0L),
-            devBySite.getOrDefault(s.id, 0L)
+            devBySite.getOrDefault(s.id, 0L),
+            s.targetEnrollment
         )).toList();
 
         return Response.ok(rows).build();

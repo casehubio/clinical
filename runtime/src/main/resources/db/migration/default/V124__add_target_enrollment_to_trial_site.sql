@@ -1,0 +1,1 @@
+ALTER TABLE trial_site ADD COLUMN target_enrollment INTEGER NOT NULL DEFAULT 0;

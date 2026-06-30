@@ -27,8 +27,13 @@ export const step1Overview = page("1. Trial Overview",
   ),
 
   barChart({
-    title: "Enrollment by Site",
-    lookup: lookup("sites", groupBy("investigatorId", col("investigatorId"), sum("enrolledCount")))
+    title: "Enrollment by Site: Target vs Actual",
+    subtype: "column",
+    lookup: lookup("sites", groupBy("investigatorId",
+      col("investigatorId"),
+      sum("targetEnrollment"),
+      sum("enrolledCount")
+    ))
   }),
 
   table({

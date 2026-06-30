@@ -47,6 +47,7 @@ class TrialDashboardResourceTest {
         siteA.tenantId = principal.tenancyId();
         siteA.trialId = trialId;
         siteA.investigatorId = "dr-chen";
+        siteA.targetEnrollment = 120;
         siteA.persist();
 
         siteBId = UUID.randomUUID();
@@ -55,6 +56,7 @@ class TrialDashboardResourceTest {
         siteB.tenantId = principal.tenancyId();
         siteB.trialId = trialId;
         siteB.investigatorId = "dr-patel";
+        siteB.targetEnrollment = 80;
         siteB.persist();
 
         UUID enrollmentId = UUID.randomUUID();
@@ -132,16 +134,16 @@ class TrialDashboardResourceTest {
 
     @Test
     void agents_returns_capability_list_with_trust_data() {
-        // Agents endpoint aggregates static capabilities with trust scores.
-        // With no trust data seeded, it should still return the full capability list
-        // with null/zero trust fields.
         given()
             .when().get("/trials/{trialId}/agents", trialId)
             .then()
             .statusCode(200)
             .body("size()", equalTo(8))
             .body("[0].capability", notNullValue())
-            .body("[0].trustDimension", notNullValue());
+            .body("[0].trustDimension", notNullValue())
+            .body("[0].threshold", notNullValue())
+            .body("[0].endorsementRatio", nullValue())
+            .body("[0].distinctTrustDimensions", equalTo("eligibility-precision, protocol-adherence, safety-accuracy"));
     }
 
     @Test
@@ -208,8 +210,10 @@ class TrialDashboardResourceTest {
             .body("find { it.investigatorId == 'dr-chen' }.enrolledCount", equalTo(1))
             .body("find { it.investigatorId == 'dr-chen' }.adverseEventCount", equalTo(1))
             .body("find { it.investigatorId == 'dr-chen' }.deviationCount", equalTo(0))
+            .body("find { it.investigatorId == 'dr-chen' }.targetEnrollment", equalTo(120))
             .body("find { it.investigatorId == 'dr-patel' }.enrolledCount", equalTo(0))
-            .body("find { it.investigatorId == 'dr-patel' }.status", equalTo("PENDING"));
+            .body("find { it.investigatorId == 'dr-patel' }.status", equalTo("PENDING"))
+            .body("find { it.investigatorId == 'dr-patel' }.targetEnrollment", equalTo(80));
     }
 
     @Test

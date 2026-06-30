@@ -177,16 +177,17 @@ public class DemoDataSeeder {
         trial.tenantId = principal.tenancyId();
         trial.persist();
 
-        addSite(SITE_A_ID, "dr-chen");
-        addSite(SITE_B_ID, "dr-martinez");
-        addSite(SITE_C_ID, "dr-okonkwo");
+        addSite(SITE_A_ID, "dr-chen", 120);
+        addSite(SITE_B_ID, "dr-martinez", 100);
+        addSite(SITE_C_ID, "dr-okonkwo", 80);
     }
 
-    private void addSite(UUID siteId, String investigatorId) {
+    private void addSite(UUID siteId, String investigatorId, int targetEnrollment) {
         TrialSite site = new TrialSite();
         site.id = siteId;
         site.trialId = TRIAL_ID;
         site.investigatorId = investigatorId;
+        site.targetEnrollment = targetEnrollment;
         site.tenantId = principal.tenancyId();
         site.persist();
     }

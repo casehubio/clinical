@@ -22,6 +22,9 @@ public class TrialSite extends PanacheEntityBase {
     @Column(name = "investigator_id", nullable = false)
     public String investigatorId;
 
+    @Column(name = "target_enrollment", nullable = false)
+    public int targetEnrollment;
+
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
     public SiteStatus status = SiteStatus.PENDING;
