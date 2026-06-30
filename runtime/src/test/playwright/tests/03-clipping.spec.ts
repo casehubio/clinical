@@ -22,7 +22,9 @@ test.describe("Clipping checks", () => {
         await page.waitForSelector("[data-component-id]", { timeout: 10_000 });
 
         await page.goto("/#page=" + encodeURIComponent(pagePath));
-        await page.waitForTimeout(1000);
+        // Wait for page content to render before measuring layout
+        const heading = pagePath.split("/")[1]!;
+        await expect(page.locator("body")).toContainText(heading, { timeout: 5_000 });
 
         const overflow = await page.evaluate(() => {
           const app = document.getElementById("app");

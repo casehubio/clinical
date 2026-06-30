@@ -36,15 +36,11 @@ test.describe("Page reachability", () => {
       // Navigate via hash — pages-runtime uses hash-based routing
       const encodedPath = encodeURIComponent(page.path);
       await p.goto(`/#page=${encodedPath}`);
-      await p.waitForTimeout(1000);
+      await expect(p.locator("body")).toContainText(page.heading, { timeout: 5_000 });
 
-      // Verify heading content is present
-      const body = await p.textContent("body");
-      expect(body).toContain(page.heading);
-
-      // No JS console errors
+      // No JS console errors (targeted filter: only suppress favicon.ico 404s)
       const realErrors = errors.filter(
-        (e) => !e.includes("favicon") && !e.includes("404")
+        (e) => !e.includes("favicon.ico") && !/^Failed to load resource.*404/.test(e)
       );
       expect(realErrors).toEqual([]);
     });

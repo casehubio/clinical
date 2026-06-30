@@ -1,5 +1,8 @@
 import { test, expect } from "@playwright/test";
 
+// Tests depend on seeded demo data and execute sequentially (workers: 1).
+// Read-only assertions run first; mutations (report deviation, approve gate) run last.
+// If test parallelism is enabled, explicit data reset per test will be needed.
 test.describe("Action flows", () => {
   test("step 3→4: report deviation and approve as PI", async ({ page }) => {
     await page.goto("/");
@@ -7,7 +10,7 @@ test.describe("Action flows", () => {
 
     // Navigate to Step 3
     await page.goto("/#page=" + encodeURIComponent("Guided/3. Protocol Deviation"));
-    await page.waitForTimeout(1000);
+    await expect(page.locator("body")).toContainText("Protocol Deviation", { timeout: 5_000 });
 
     // Click "Report CRITICAL Protocol Deviation" action button
     const reportBtn = page.locator("pages-action-button button");
@@ -22,9 +25,6 @@ test.describe("Action flows", () => {
 
     // Navigate to Step 4
     await page.goto("/#page=" + encodeURIComponent("Guided/4. PI Authorisation"));
-    await page.waitForTimeout(1000);
-
-    // The <clinical-pi-approval> component should have loaded
     const piComponent = page.locator("clinical-pi-approval");
     await expect(piComponent).toBeVisible({ timeout: 5_000 });
 
@@ -45,7 +45,7 @@ test.describe("Action flows", () => {
 
     // Navigate to Step 5
     await page.goto("/#page=" + encodeURIComponent("Guided/5. Grade 4 AE Reported"));
-    await page.waitForTimeout(1000);
+    await expect(page.locator("body")).toContainText("Grade 4", { timeout: 5_000 });
 
     // Click "Report Grade 4 Adverse Event" action button
     const reportBtn = page.locator("pages-action-button button");
@@ -60,9 +60,6 @@ test.describe("Action flows", () => {
 
     // Navigate to Step 7
     await page.goto("/#page=" + encodeURIComponent("Guided/7. Resolution & Trust"));
-    await page.waitForTimeout(1000);
-
-    // The <clinical-susar-gate> component should have auto-discovered the REQUESTED AE
     const gateComponent = page.locator("clinical-susar-gate");
     await expect(gateComponent).toBeVisible({ timeout: 5_000 });
 
@@ -86,8 +83,6 @@ test.describe("Action flows", () => {
 
     // Navigate to Step 8
     await page.goto("/#page=" + encodeURIComponent("Guided/8. The Proof"));
-    await page.waitForTimeout(1000);
-
     const merkleComponent = page.locator("clinical-merkle-verify");
     await expect(merkleComponent).toBeVisible({ timeout: 5_000 });
 
