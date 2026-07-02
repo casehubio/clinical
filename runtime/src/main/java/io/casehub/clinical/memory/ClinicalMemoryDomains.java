@@ -1,6 +1,6 @@
 package io.casehub.clinical.memory;
 
-import io.casehub.memory.MemoryDomain;
+import io.casehub.neocortex.memory.MemoryDomain;
 
 public final class ClinicalMemoryDomains {
 

@@ -1,8 +1,8 @@
 package io.casehub.clinical.memory;
 
 import io.casehub.clinical.api.model.CtcaeGrade;
-import io.casehub.memory.Memory;
-import io.casehub.memory.MemoryAttributeKeys;
+import io.casehub.neocortex.memory.Memory;
+import io.casehub.neocortex.memory.MemoryAttributeKeys;
 
 import java.util.List;
 import java.util.Map;

@@ -1,8 +1,8 @@
 package io.casehub.clinical.memory;
 
-import io.casehub.memory.Memory;
-import io.casehub.memory.MemoryAttributeKeys;
-import io.casehub.memory.MemoryDomain;
+import io.casehub.neocortex.memory.Memory;
+import io.casehub.neocortex.memory.MemoryAttributeKeys;
+import io.casehub.neocortex.memory.MemoryDomain;
 import org.junit.jupiter.api.Test;
 
 import java.time.Instant;
