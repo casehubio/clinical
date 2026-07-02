@@ -1,10 +1,10 @@
 package io.casehub.clinical.routing;
 
-import io.casehub.blocks.oversight.ActionRiskClassifier;
-import io.casehub.blocks.oversight.ClassificationContext;
+import io.casehub.api.spi.ActionRiskClassifier;
+import io.casehub.api.spi.ClassificationContext;
 import io.casehub.worker.api.PlannedAction;
-import io.casehub.blocks.oversight.RiskClassifier;
-import io.casehub.blocks.oversight.RiskDecision;
+import io.casehub.api.spi.RiskClassifier;
+import io.casehub.api.spi.RiskDecision;
 import io.casehub.clinical.api.model.ClinicalActionType;
 import jakarta.enterprise.context.ApplicationScoped;
 import java.util.Optional;

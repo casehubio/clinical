@@ -2,9 +2,9 @@ package io.casehub.clinical.routing;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-import io.casehub.blocks.oversight.ClassificationContext;
+import io.casehub.api.spi.ClassificationContext;
 import io.casehub.worker.api.PlannedAction;
-import io.casehub.blocks.oversight.RiskDecision;
+import io.casehub.api.spi.RiskDecision;
 import io.casehub.clinical.api.model.ClinicalActionType;
 import java.util.Map;
 import java.util.UUID;

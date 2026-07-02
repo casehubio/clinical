@@ -17,11 +17,6 @@
   <dependencies>
         <dependency>
             <groupId>io.casehub</groupId>
-            <artifactId>casehub-blocks</artifactId>
-            <version>0.2-SNAPSHOT</version>
-        </dependency>
-        <dependency>
-            <groupId>io.casehub</groupId>
             <artifactId>casehub-neocortex-memory-api</artifactId>
             <version>0.2-SNAPSHOT</version>
         </dependency>
