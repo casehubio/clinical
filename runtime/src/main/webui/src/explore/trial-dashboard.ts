@@ -1,6 +1,6 @@
-import { page, columns, metric, table, markdown, lookup, groupBy, col, sortBy } from "@casehubio/pages-ui";
+import { page, columns, metric, barChart, table, markdown, lookup, groupBy, col, sum, sortBy } from "@casehubio/pages-ui";
 import type { ColumnId } from "@casehubio/data";
-import { trialSummaryDs, ledgerEntriesDs } from "../datasets";
+import { trialSummaryDs, sitesDs, ledgerEntriesDs } from "../datasets";
 
 /**
  * Explore Mode: Trial Dashboard
@@ -38,6 +38,16 @@ Real-time overview of trial status across all sites. This page aggregates enroll
     })]
   ),
 
+  barChart({
+    title: "Enrollment by Site: Target vs Actual",
+    subtype: "column",
+    lookup: lookup("sites", groupBy("investigatorId",
+      col("investigatorId"),
+      sum("targetEnrollment"),
+      sum("enrolledCount")
+    ))
+  }),
+
   // Recent activity table (last 10 ledger entries)
   table({
     sortable: true,
@@ -54,5 +64,5 @@ Real-time overview of trial status across all sites. This page aggregates enroll
     ],
     lookup: lookup("ledger-entries", sortBy("occurredAt", "DESC"))
   }),
-  { datasets: [trialSummaryDs, ledgerEntriesDs] }
+  { datasets: [trialSummaryDs, sitesDs, ledgerEntriesDs] }
 );

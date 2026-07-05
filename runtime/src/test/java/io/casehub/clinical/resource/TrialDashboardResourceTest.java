@@ -5,6 +5,8 @@ import static org.hamcrest.Matchers.*;
 
 import io.casehub.clinical.api.ClinicalGroups;
 import io.casehub.clinical.api.model.CtcaeGrade;
+import io.casehub.clinical.api.model.DeviationSeverity;
+import io.casehub.clinical.api.model.PiApprovalStatus;
 import io.casehub.clinical.api.model.TrialPhase;
 import io.casehub.clinical.entity.*;
 import io.casehub.platform.testing.FixedCurrentPrincipal;
@@ -77,6 +79,16 @@ class TrialDashboardResourceTest {
         ae.reportedAt = Instant.now();
         ae.slaDeadline = Instant.now().plusSeconds(86400);
         ae.persist();
+
+        ProtocolDeviation dev = new ProtocolDeviation();
+        dev.id = UUID.randomUUID();
+        dev.tenantId = principal.tenancyId();
+        dev.siteId = siteAId;
+        dev.deviationType = "CONSENT_VIOLATION";
+        dev.severity = DeviationSeverity.MAJOR;
+        dev.piApprovalStatus = PiApprovalStatus.APPROVED;
+        dev.commandedAt = Instant.now();
+        dev.persist();
     }
 
     @Test
@@ -127,7 +139,7 @@ class TrialDashboardResourceTest {
             .when().get("/trials/{trialId}/deviations", trialId)
             .then()
             .statusCode(200)
-            .body("size()", equalTo(0));
+            .body("size()", greaterThanOrEqualTo(1));
     }
 
     // --- Task 3: Cross-source endpoints ---
@@ -142,6 +154,7 @@ class TrialDashboardResourceTest {
             .body("[0].capability", notNullValue())
             .body("[0].trustDimension", notNullValue())
             .body("[0].threshold", notNullValue())
+            .body("[0].maturityPhase", equalTo("bootstrap"))
             .body("[0].endorsementRatio", nullValue())
             .body("[0].distinctTrustDimensions", equalTo("eligibility-precision, protocol-adherence, safety-accuracy"));
     }
@@ -209,7 +222,7 @@ class TrialDashboardResourceTest {
             .body("size()", equalTo(2))
             .body("find { it.investigatorId == 'dr-chen' }.enrolledCount", equalTo(1))
             .body("find { it.investigatorId == 'dr-chen' }.adverseEventCount", equalTo(1))
-            .body("find { it.investigatorId == 'dr-chen' }.deviationCount", equalTo(0))
+            .body("find { it.investigatorId == 'dr-chen' }.deviationCount", equalTo(1))
             .body("find { it.investigatorId == 'dr-chen' }.targetEnrollment", equalTo(120))
             .body("find { it.investigatorId == 'dr-patel' }.enrolledCount", equalTo(0))
             .body("find { it.investigatorId == 'dr-patel' }.status", equalTo("PENDING"))
@@ -222,5 +235,36 @@ class TrialDashboardResourceTest {
             .when().get("/trials/{trialId}/sites", UUID.randomUUID())
             .then()
             .statusCode(404);
+    }
+
+    @Test
+    void agents_returns_endorsement_ratio_as_number_not_string() {
+        given()
+            .when().get("/trials/{trialId}/agents", trialId)
+            .then()
+            .statusCode(200)
+            .body("[0].maturityPhase", isA(String.class))
+            .body("[0].decisionCount", notNullValue());
+    }
+
+    @Test
+    void adverse_events_returns_enriched_fields() {
+        given()
+            .when().get("/trials/{trialId}/adverse-events", trialId)
+            .then()
+            .statusCode(200)
+            .body("[0].siteName", equalTo("dr-chen"))
+            .body("[0].patientId", equalTo("P-001"));
+    }
+
+    @Test
+    void deviations_returns_enriched_fields() {
+        given()
+            .when().get("/trials/{trialId}/deviations", trialId)
+            .then()
+            .statusCode(200)
+            .body("size()", greaterThanOrEqualTo(1))
+            .body("[0].siteName", equalTo("dr-chen"))
+            .body("[0].reportedAt", notNullValue());
     }
 }

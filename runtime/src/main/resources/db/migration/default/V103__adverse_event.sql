@@ -4,6 +4,7 @@ CREATE TABLE adverse_event (
     grade         VARCHAR(50) NOT NULL,
     actuality     VARCHAR(50) NOT NULL DEFAULT 'ACTUAL',
     outcome       VARCHAR(50) NOT NULL DEFAULT 'ONGOING',
+    event_type    VARCHAR(100),
     occurred_at   TIMESTAMP   NOT NULL,
     reported_at   TIMESTAMP   NOT NULL,
     sla_deadline  TIMESTAMP,

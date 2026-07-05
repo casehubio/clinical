@@ -67,12 +67,11 @@ CaseHub routes high-stakes decisions to trusted agents based on Bayesian Beta tr
           if (value === "established") return "🟢 Established";
           return value;
         ` },
-      { id: "totalDecisions" as ColumnId, label: "Total Decisions" },
+      { id: "decisionCount" as ColumnId, label: "Total Decisions" },
       { id: "endorsementRatio" as ColumnId, label: "Endorsement Ratio",
         expression: `
-          const ratio = parseFloat(value);
-          if (isNaN(ratio)) return "—";
-          return (ratio * 100).toFixed(1) + "%";
+          if (value == null) return "—";
+          return (value * 100).toFixed(1) + "%";
         ` }
     ],
     lookup: lookup("agents")

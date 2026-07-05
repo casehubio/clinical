@@ -38,7 +38,7 @@ All protocol deviations require Principal Investigator approval via formal COMMA
         ` },
       { id: "siteName" as ColumnId, label: "Site" },
       { id: "reportedAt" as ColumnId, label: "Reported",
-        expression: 'new Date(value).toLocaleString()' },
+        expression: 'value ? new Date(value).toLocaleString() : "—"' },
       { id: "piApprovalStatus" as ColumnId, label: "PI Approval",
         expression: `
           if (value === "COMMANDED") return "⏳ COMMANDED";
@@ -47,17 +47,15 @@ All protocol deviations require Principal Investigator approval via formal COMMA
           if (value === "EXPIRED") return "⏰ EXPIRED";
           return value || "—";
         ` },
-      { id: "commitmentState" as ColumnId, label: "Commitment State",
-        expression: `
-          if (value === "COMMANDED") return "🔵 COMMANDED";
-          if (value === "RESOLVED") return "✅ RESOLVED";
-          if (value === "ESCALATED") return "🔼 ESCALATED (IRB)";
-          if (value === "DECLINED") return "❌ DECLINED";
-          if (value === "EXPIRED") return "⏰ EXPIRED";
-          return value || "—";
-        ` },
       { id: "irbDecision" as ColumnId, label: "IRB Decision",
-        expression: 'value || "—"' }
+        expression: `
+          if (!value || value === "PENDING") return "—";
+          if (value === "APPROVED") return "✅ APPROVED";
+          if (value === "REJECTED") return "❌ REJECTED";
+          if (value === "DEFERRED") return "⏳ DEFERRED";
+          if (value === "EXPIRED") return "⏰ EXPIRED";
+          return value;
+        ` }
     ],
     lookup: lookup("deviations", sortBy("reportedAt", "DESC"))
   }),

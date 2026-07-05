@@ -51,21 +51,23 @@ public class TrialDashboardResource {
     ) {}
 
     public record AdverseEventRow(
-        UUID id, UUID enrollmentId, UUID siteId, String grade, String type,
+        UUID id, UUID enrollmentId, UUID siteId, String siteName,
+        String patientId, String grade, String eventType,
         Instant reportedAt, Instant slaDeadline, String escalationStatus,
         String regulatorySubmissionStatus, String slaTimeRemaining
     ) {}
 
     public record DeviationRow(
-        UUID id, UUID siteId, String deviationType, String severity,
-        String piApprovalStatus, Instant commandedAt
+        UUID id, UUID siteId, String siteName, String deviationType,
+        String severity, String piApprovalStatus,
+        Instant reportedAt, String irbDecision
     ) {}
 
     public record AgentRow(
         String capability, String trustDimension,
-        Double trustScore, Double threshold, int maturityPhase,
+        Double trustScore, Double threshold, String maturityPhase,
         int decisionCount, int attestationPositive, int attestationNegative,
-        String endorsementRatio, String distinctTrustDimensions
+        Double endorsementRatio, String distinctTrustDimensions
     ) {}
 
     public record GovernanceContext(
@@ -80,7 +82,7 @@ public class TrialDashboardResource {
     public record LedgerEntryRow(
         UUID id, UUID subjectId, int sequenceNumber,
         String entryType, String actorId, String actorRole,
-        Instant occurredAt, String summary
+        Instant occurredAt, String digest, String summary
     ) {}
 
     public record SiteRow(UUID id, String investigatorId, String status,
@@ -191,6 +193,10 @@ public class TrialDashboardResource {
         // Build siteId lookup from enrollment
         Map<UUID, UUID> enrollmentToSite = enrollments.stream()
             .collect(Collectors.toMap(e -> e.id, e -> e.siteId));
+        Map<UUID, String> siteIdToName = sites.stream()
+            .collect(Collectors.toMap(s -> s.id, s -> s.investigatorId));
+        Map<UUID, String> enrollmentToPatientId = enrollments.stream()
+            .collect(Collectors.toMap(e -> e.id, e -> e.patientId));
 
         List<AdverseEvent> aes = AdverseEvent
             .find("enrollmentId in ?1 and tenantId = ?2", enrollmentIds, principal.tenancyId())
@@ -209,7 +215,10 @@ public class TrialDashboardResource {
             }
             return new AdverseEventRow(
                 ae.id, ae.enrollmentId, enrollmentToSite.get(ae.enrollmentId),
-                ae.grade != null ? ae.grade.name() : null, null,
+                siteIdToName.get(enrollmentToSite.get(ae.enrollmentId)),
+                enrollmentToPatientId.get(ae.enrollmentId),
+                ae.grade != null ? ae.grade.name() : null,
+                ae.eventType,
                 ae.reportedAt, ae.slaDeadline,
                 ae.escalationStatus != null ? ae.escalationStatus.name() : null,
                 ae.regulatorySubmissionStatus != null ? ae.regulatorySubmissionStatus.name() : null,
@@ -233,16 +242,28 @@ public class TrialDashboardResource {
         List<UUID> siteIds = sites.stream().map(s -> s.id).toList();
         if (siteIds.isEmpty()) return Response.ok(List.of()).build();
 
+        Map<UUID, String> siteIdToName = sites.stream()
+            .collect(Collectors.toMap(s -> s.id, s -> s.investigatorId));
+
         List<ProtocolDeviation> devs = ProtocolDeviation
             .find("siteId in ?1 and tenantId = ?2", siteIds, principal.tenancyId())
             .list();
 
-        List<DeviationRow> rows = devs.stream().map(d -> new DeviationRow(
-            d.id, d.siteId, d.deviationType,
-            d.severity != null ? d.severity.name() : null,
-            d.piApprovalStatus != null ? d.piApprovalStatus.name() : null,
-            d.commandedAt
-        )).toList();
+        List<UUID> devIds = devs.stream().map(d -> d.id).toList();
+        Map<UUID, String> irbDecisionByDeviation = devIds.isEmpty() ? Map.of() :
+            IrbApproval.<IrbApproval>find("deviationId in ?1 and tenantId = ?2", devIds, principal.tenancyId())
+                .stream()
+                .collect(Collectors.toMap(irb -> irb.deviationId, irb -> irb.decision.name(), (a, b) -> a));
+
+        List<DeviationRow> rows = devs.stream().map(d -> {
+            String irbDecision = irbDecisionByDeviation.get(d.id);
+            return new DeviationRow(
+                d.id, d.siteId, siteIdToName.get(d.siteId), d.deviationType,
+                d.severity != null ? d.severity.name() : null,
+                d.piApprovalStatus != null ? d.piApprovalStatus.name() : null,
+                d.commandedAt, irbDecision
+            );
+        }).toList();
 
         return Response.ok(rows).build();
     }
@@ -272,18 +293,21 @@ public class TrialDashboardResource {
 
             if (scores.isEmpty()) {
                 return new AgentRow(capability, dimension, null,
-                    policy.threshold(), 0, 0, 0, 0, null, distinctDimensions);
+                    policy.threshold(), "bootstrap", 0, 0, 0, null, distinctDimensions);
             }
 
             double avgScore = scores.stream().mapToDouble(s -> s.trustScore).average().orElse(0.0);
             int totalDecisions = scores.stream().mapToInt(s -> s.decisionCount).sum();
             int totalPositive = scores.stream().mapToInt(s -> s.attestationPositive).sum();
             int totalNegative = scores.stream().mapToInt(s -> s.attestationNegative).sum();
-            int maturity = totalDecisions >= policy.minimumObservations() ? 2 : 0;
+            String maturity;
+            if (totalDecisions < 10) maturity = "bootstrap";
+            else if (totalDecisions < 50) maturity = "emerging";
+            else maturity = "established";
             int totalAttestations = totalPositive + totalNegative;
-            String endorsementRatio = totalAttestations == 0
+            Double endorsementRatio = totalAttestations == 0
                 ? null
-                : Math.round(100.0 * totalPositive / totalAttestations) + "%";
+                : (double) totalPositive / totalAttestations;
 
             return new AgentRow(capability, dimension, avgScore,
                 policy.threshold(), maturity, totalDecisions, totalPositive, totalNegative,
@@ -410,6 +434,7 @@ public class TrialDashboardResource {
                 entry.entryType != null ? entry.entryType.name() : null,
                 entry.actorId, entry.actorRole,
                 entry.occurredAt,
+                entry.digest,
                 buildLedgerSummary(entry)
             ))
             .toList();

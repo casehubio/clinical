@@ -37,6 +37,9 @@ public class AdverseEvent extends PanacheEntityBase {
     @Column(nullable = false)
     public AeOutcome outcome = AeOutcome.ONGOING;
 
+    @Column(name = "event_type")
+    public String eventType;
+
     @Column(name = "occurred_at", nullable = false)
     public Instant occurredAt;
 

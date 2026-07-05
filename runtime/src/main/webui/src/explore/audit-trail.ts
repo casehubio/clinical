@@ -46,7 +46,7 @@ Every action — AE reports, SUSAR decisions, attestations, protocol deviations,
       { id: "subjectId" as ColumnId, label: "Subject ID",
         expression: 'value.substring(0, 8) + "..."' },
       { id: "digest" as ColumnId, label: "Digest (SHA-256)",
-        expression: 'value.substring(0, 16) + "..."' }
+        expression: 'value ? value.substring(0, 16) + "..." : "—"' }
     ],
     lookup: lookup("ledger-entries")
   }),

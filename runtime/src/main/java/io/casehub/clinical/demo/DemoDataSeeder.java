@@ -235,6 +235,7 @@ public class DemoDataSeeder {
             ae.occurredAt = Instant.now().minus(Duration.ofDays(2));
             ae.unexpected = false;
             ae.suspected = true;
+            ae.eventType = "NAUSEA";
             adverseEventService.reportAdverseEvent(ae);
         });
         LOG.infof("Grade 2 AE reported: %s (no SUSAR)", aeId);
@@ -273,6 +274,7 @@ public class DemoDataSeeder {
             ae.occurredAt = Instant.now().minus(Duration.ofHours(index));
             ae.unexpected = true;  // Required for SUSAR criteria
             ae.suspected = true;   // Required for SUSAR criteria
+            ae.eventType = index == 1 ? "THROMBOCYTOPENIA" : index == 2 ? "FEBRILE_NEUTROPENIA" : "HEPATOTOXICITY";
             adverseEventService.reportAdverseEvent(ae);
         });
         LOG.infof("SUSAR %d: Grade 4 AE reported, aeId=%s", index, aeId);
