@@ -1,8 +1,9 @@
 package io.casehub.clinical.api.model;
 
+import io.casehub.api.spi.routing.CandidateSetStrategy;
+import io.casehub.api.spi.routing.StaticSetStrategy;
 import java.time.Duration;
 import java.util.Arrays;
-import java.util.List;
 import java.util.Optional;
 
 /**
@@ -20,46 +21,46 @@ public enum ClinicalActionType {
 
     SUSAR_CRITERIA_DECISION(
         false,
-        List.of("qualified-investigator"),
+        StaticSetStrategy.of("qualified-investigator"),
         "SUSAR criteria met — clinician sign-off required before regulatory clock starts"),
 
     SUSAR_REGULATORY_FILING(
         false,
-        List.of("qualified-investigator"),
+        StaticSetStrategy.of("qualified-investigator"),
         "Regulatory submission of SUSAR report — qualified investigator confirmation required"),
 
     PATIENT_WITHDRAWAL(
         false,
-        List.of("principal-investigator"),
+        StaticSetStrategy.of("principal-investigator"),
         "Patient withdrawal is irreversible — principal investigator confirmation required"),
 
     DOSE_MODIFICATION(
         true,
-        List.of("principal-investigator"),
+        StaticSetStrategy.of("principal-investigator"),
         "Dose modification recommendation requires physician approval — reversible"),
 
     PROTOCOL_DEVIATION_RECORDING(
         false,
-        List.of("principal-investigator", "irb-committee"),
+        StaticSetStrategy.of("principal-investigator", "irb-committee"),
         "Protocol deviation recording — PI or IRB committee confirmation required");
 
     private static final String OVERSIGHT_SCOPE = "casehubio/clinical/oversight";
 
     private final boolean reversible;
-    private final List<String> candidateGroups;
+    private final CandidateSetStrategy candidateGroups;
     private final String reason;
 
     ClinicalActionType(
             final boolean reversible,
-            final List<String> candidateGroups,
+            final CandidateSetStrategy candidateGroups,
             final String reason) {
         this.reversible = reversible;
-        this.candidateGroups = List.copyOf(candidateGroups);
+        this.candidateGroups = candidateGroups;
         this.reason = reason;
     }
 
-    public boolean reversible()           { return reversible; }
-    public List<String> candidateGroups() { return candidateGroups; }
+    public boolean reversible()                    { return reversible; }
+    public CandidateSetStrategy candidateGroups() { return candidateGroups; }
     public String reason()                { return reason; }
     public String scope()                 { return OVERSIGHT_SCOPE; }
     /** Null — regulatory deadline policy is post-GA deployment config, not compile-time constant. */

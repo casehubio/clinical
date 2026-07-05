@@ -23,6 +23,11 @@ import java.util.Map;
 public class ClinicalTrustRoutingPolicyProvider implements TrustRoutingPolicyProvider {
 
     @Override
+    public String id() {
+        return "clinical";
+    }
+
+    @Override
     public TrustRoutingPolicy forCapability(String capability) {
         return switch (capability) {
             case ClinicalCapabilities.SAFETY_MONITORING ->
