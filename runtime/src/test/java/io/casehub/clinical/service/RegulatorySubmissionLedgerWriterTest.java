@@ -11,7 +11,7 @@ import io.casehub.clinical.entity.AdverseEvent;
 import io.casehub.clinical.ledger.IndReportBreachLedgerEntry;
 import io.casehub.clinical.ledger.IndReportFiledLedgerEntry;
 import io.casehub.clinical.ledger.RegulatorySubmissionLedgerEntry;
-import io.casehub.ledger.runtime.repository.LedgerEntryRepository;
+import io.casehub.ledger.api.spi.LedgerEntryRepository;
 import java.time.Clock;
 import java.time.Instant;
 import java.util.Optional;

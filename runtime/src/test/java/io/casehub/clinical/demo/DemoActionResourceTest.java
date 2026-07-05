@@ -13,7 +13,7 @@ import io.casehub.ledger.runtime.service.TrustScoreJob;
 import io.casehub.platform.api.identity.CurrentPrincipal;
 import io.casehub.qhorus.api.gateway.ChannelRef;
 import io.casehub.qhorus.api.gateway.InboundHumanMessage;
-import io.casehub.qhorus.runtime.channel.Channel;
+import io.casehub.qhorus.api.channel.Channel;
 import io.casehub.qhorus.runtime.channel.ChannelService;
 import io.casehub.qhorus.runtime.gateway.ChannelGateway;
 import io.casehub.work.runtime.model.WorkItem;
@@ -94,9 +94,9 @@ class DemoActionResourceTest {
             UUID channelId = UUID.randomUUID();
             String channelName = "clinical/deviation/dev-test/pi-oversight";
 
-            Channel channel = new Channel();
-            channel.id = channelId;
-            channel.name = channelName;
+            Channel channel = Channel.builder(channelName)
+                .id(channelId)
+                .build();
 
             when(channelService.findByName(channelName)).thenReturn(Optional.of(channel));
 

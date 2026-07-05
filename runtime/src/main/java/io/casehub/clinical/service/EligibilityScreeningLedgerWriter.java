@@ -6,7 +6,7 @@ import io.casehub.clinical.api.model.EligibilityScreeningResult;
 import io.casehub.clinical.entity.PatientEnrollment;
 import io.casehub.clinical.ledger.EligibilityScreeningLedgerEntry;
 import io.casehub.ledger.api.model.LedgerEntryType;
-import io.casehub.ledger.runtime.repository.LedgerEntryRepository;
+import io.casehub.ledger.api.spi.LedgerEntryRepository;
 import io.casehub.platform.api.identity.ActorType;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;

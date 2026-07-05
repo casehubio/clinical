@@ -70,7 +70,7 @@ class ProtocolAmendmentListenerTest {
         CaseInstance instance = mock(CaseInstance.class);
         when(instance.getCaseContext()).thenReturn(ctx);
         when(caseInstanceRepository.findByUuid(eq(caseId), any()))
-            .thenReturn(Uni.createFrom().item(instance));
+            .thenReturn(instance);
     }
 
     @Test
@@ -104,7 +104,7 @@ class ProtocolAmendmentListenerTest {
         CaseInstance instance = mock(CaseInstance.class);
         when(instance.getCaseContext()).thenReturn(ctx);
         when(caseInstanceRepository.findByUuid(eq(caseId), any()))
-            .thenReturn(Uni.createFrom().item(instance));
+            .thenReturn(instance);
 
         listener.onCaseLifecycle(goalReached(caseId, "default"));
         verifyNoInteractions(statusUpdater);

@@ -29,8 +29,7 @@ public class SusarOversightListener {
         if (!"GoalReached".equals(event.eventType()) && !"CaseCompleted".equals(event.eventType())) return;
 
         var instance = caseInstanceRepository
-                .findByUuid(event.caseId(), event.tenancyId())
-                .await().atMost(LOOKUP_TIMEOUT);
+                .findByUuid(event.caseId(), event.tenancyId());
         if (instance == null) return;
 
         // Discriminator — only SUSAR oversight cases carry this key

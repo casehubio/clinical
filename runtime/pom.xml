@@ -81,12 +81,12 @@
     <dependency>
       <groupId>io.casehub</groupId>
       <artifactId>casehub-neocortex-memory-jpa</artifactId>
-      <version>${casehub.version}</version>
+      <version>${version.io.casehub}</version>
     </dependency>
     <dependency>
       <groupId>io.casehub</groupId>
       <artifactId>casehub-neocortex-memory-inmem</artifactId>
-      <version>${casehub.version}</version>
+      <version>${version.io.casehub}</version>
       <scope>test</scope>
     </dependency>
 

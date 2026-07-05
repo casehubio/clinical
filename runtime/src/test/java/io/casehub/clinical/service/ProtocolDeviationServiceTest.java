@@ -9,7 +9,7 @@ import io.casehub.clinical.entity.ClinicalTrial;
 import io.casehub.clinical.entity.ProtocolDeviation;
 import io.casehub.clinical.entity.TrialSite;
 import io.casehub.clinical.ledger.ProtocolDeviationLedgerEntry;
-import io.casehub.ledger.runtime.repository.LedgerEntryRepository;
+import io.casehub.ledger.api.spi.LedgerEntryRepository;
 import io.casehub.qhorus.api.message.MessageType;
 import io.casehub.qhorus.runtime.channel.ChannelService;
 import io.casehub.qhorus.runtime.message.CommitmentService;
@@ -93,7 +93,7 @@ class ProtocolDeviationServiceTest {
         assertThat(deviationId).as("deviationId set by Order(1)").isNotNull();
         var channel = channelService.findByName("clinical/deviation/dev-" + deviationId + "/pi-oversight");
         assertThat(channel).isPresent();
-        assertThat(channel.get().allowedTypes).contains("COMMAND");
+        assertThat(channel.get().allowedTypes()).contains(io.casehub.qhorus.api.message.MessageType.COMMAND);
     }
 
     @Test
@@ -101,11 +101,11 @@ class ProtocolDeviationServiceTest {
     void commandMessageInChannelWithCorrelationId() {
         assertThat(deviationId).as("deviationId set by Order(1)").isNotNull();
         var channel = channelService.findByName("clinical/deviation/dev-" + deviationId + "/pi-oversight").orElseThrow();
-        var messages = messageService.pollAfter(channel.id, 0L, 10);
+        var messages = messageService.pollAfter(channel.id(), 0L, 10);
         assertThat(messages).hasSize(1);
-        assertThat(messages.get(0).messageType).isEqualTo(MessageType.COMMAND);
-        assertThat(messages.get(0).correlationId).isEqualTo(deviationId.toString());
-        assertThat(messages.get(0).target).isEqualTo("pi-001");
+        assertThat(messages.get(0).messageType()).isEqualTo(MessageType.COMMAND);
+        assertThat(messages.get(0).correlationId()).isEqualTo(deviationId.toString());
+        assertThat(messages.get(0).target()).isEqualTo("pi-001");
     }
 
     @Test
@@ -114,7 +114,7 @@ class ProtocolDeviationServiceTest {
         assertThat(deviationId).as("deviationId set by Order(1)").isNotNull();
         var commitment = commitmentService.findByCorrelationId(deviationId.toString());
         assertThat(commitment).isPresent();
-        assertThat(commitment.get().state.name()).isEqualTo("OPEN");
+        assertThat(commitment.get().state().name()).isEqualTo("OPEN");
     }
 
     @Test

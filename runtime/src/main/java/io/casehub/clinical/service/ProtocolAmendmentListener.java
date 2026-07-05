@@ -22,8 +22,7 @@ public class ProtocolAmendmentListener {
         if (!"GoalReached".equals(event.eventType()) && !"CaseCompleted".equals(event.eventType())) return;
 
         var instance = caseInstanceRepository
-            .findByUuid(event.caseId(), event.tenancyId())
-            .await().atMost(LOOKUP_TIMEOUT);
+            .findByUuid(event.caseId(), event.tenancyId());
         if (instance == null) return;
 
         Object amendmentIdObj = instance.getCaseContext().getPath("amendmentId");

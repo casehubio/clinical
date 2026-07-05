@@ -15,7 +15,7 @@ import io.casehub.clinical.service.ConsentWithdrawalService;
 import io.casehub.clinical.service.EligibilityScreeningService;
 import io.casehub.clinical.service.PatientEnrollmentNotFoundException;
 import io.casehub.clinical.service.WithdrawalResult;
-import io.casehub.ledger.runtime.repository.LedgerEntryRepository;
+import io.casehub.ledger.api.spi.LedgerEntryRepository;
 import io.casehub.ledger.runtime.service.LedgerProvExportService;
 import io.casehub.ledger.runtime.service.LedgerVerificationService;
 import io.casehub.platform.api.identity.CurrentPrincipal;

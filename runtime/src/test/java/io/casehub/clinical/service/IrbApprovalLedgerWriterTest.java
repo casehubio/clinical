@@ -4,7 +4,7 @@ import io.casehub.clinical.api.ClinicalActors;
 import io.casehub.clinical.api.model.IrbDecision;
 import io.casehub.clinical.entity.IrbApproval;
 import io.casehub.clinical.ledger.IrbApprovalLedgerEntry;
-import io.casehub.ledger.runtime.repository.LedgerEntryRepository;
+import io.casehub.ledger.api.spi.LedgerEntryRepository;
 import io.casehub.platform.api.identity.ActorType;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;

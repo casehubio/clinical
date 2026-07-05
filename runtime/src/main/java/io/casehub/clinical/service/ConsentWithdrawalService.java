@@ -7,7 +7,7 @@ import io.casehub.clinical.ledger.ConsentWithdrawalLedgerEntry;
 import io.casehub.ledger.api.model.ErasureReason;
 import io.casehub.ledger.api.model.LedgerEntryType;
 import io.casehub.ledger.runtime.privacy.LedgerErasureService;
-import io.casehub.ledger.runtime.repository.LedgerEntryRepository;
+import io.casehub.ledger.api.spi.LedgerEntryRepository;
 import io.casehub.platform.api.identity.ActorType;
 import io.casehub.neocortex.memory.CaseMemoryStore;
 import jakarta.enterprise.context.ApplicationScoped;

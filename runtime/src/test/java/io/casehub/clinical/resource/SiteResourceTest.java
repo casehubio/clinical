@@ -174,4 +174,30 @@ class SiteResourceTest {
         principal.setTenancyId("admin-tenant");
         given().when().get("/trials/{t}/sites/{s}", trialId, siteId).then().statusCode(404);
     }
+
+    @Test
+    void post_site_with_target_enrollment_persists_value() {
+        String trialLocation = createTrial();
+        UUID trialId = UUID.fromString(trialLocation.substring(trialLocation.lastIndexOf('/') + 1));
+
+        String siteLocation =
+            given()
+                .contentType("application/json")
+                .body("""
+                    {"investigatorId": "pi-target-001", "targetEnrollment": 150}
+                    """)
+            .when()
+                .post("/trials/{id}/sites", trialId)
+            .then()
+                .statusCode(201)
+                .extract().header("Location");
+
+        given()
+        .when()
+            .get(siteLocation)
+        .then()
+            .statusCode(200)
+            .body("investigatorId", equalTo("pi-target-001"))
+            .body("targetEnrollment", equalTo(150));
+    }
 }

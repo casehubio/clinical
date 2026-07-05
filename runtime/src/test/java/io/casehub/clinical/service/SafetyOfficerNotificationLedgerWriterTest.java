@@ -2,7 +2,7 @@ package io.casehub.clinical.service;
 
 import io.casehub.clinical.api.model.CtcaeGrade;
 import io.casehub.clinical.ledger.SafetyOfficerNotificationLedgerEntry;
-import io.casehub.ledger.runtime.repository.LedgerEntryRepository;
+import io.casehub.ledger.api.spi.LedgerEntryRepository;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;

@@ -2,7 +2,7 @@ package io.casehub.clinical.service;
 
 import io.casehub.clinical.api.model.*;
 import io.casehub.clinical.entity.*;
-import io.casehub.ledger.runtime.repository.LedgerEntryRepository;
+import io.casehub.ledger.api.spi.LedgerEntryRepository;
 import io.casehub.qhorus.runtime.message.CommitmentService;
 import io.quarkus.test.InjectMock;
 import io.quarkus.test.junit.QuarkusTest;

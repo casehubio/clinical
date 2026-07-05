@@ -1,6 +1,6 @@
 package io.casehub.clinical.ledger;
 
-import io.casehub.ledger.runtime.model.LedgerEntry;
+import io.casehub.ledger.runtime.model.jpa.JpaLedgerEntry;
 import jakarta.persistence.*;
 import java.nio.charset.StandardCharsets;
 import java.time.Instant;
@@ -15,7 +15,7 @@ import java.util.UUID;
 @Entity
 @Table(name = "ae_escalation_ledger_entry")
 @DiscriminatorValue("AeEscalation")
-public class AeEscalationLedgerEntry extends LedgerEntry {
+public class AeEscalationLedgerEntry extends JpaLedgerEntry {
 
     @Column(name = "ae_id", nullable = false)
     public UUID aeId;

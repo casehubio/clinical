@@ -6,7 +6,8 @@ import io.casehub.api.model.ContextChangeTrigger;
 import io.casehub.api.model.HumanTaskTarget;
 import io.casehub.api.model.converter.CaseDefinitionYamlMapper;
 import io.casehub.api.model.evaluator.JQExpressionEvaluator;
-import io.casehub.api.model.evaluator.ListEvaluator;
+import io.casehub.api.spi.routing.CandidateSetSpec;
+import io.casehub.api.spi.routing.StaticSetStrategy;
 import org.junit.jupiter.api.Test;
 
 import java.io.InputStream;
@@ -47,9 +48,11 @@ class TrialCoordinationYamlTest {
         assertThat(dsmb.target()).isInstanceOf(HumanTaskTarget.class);
         HumanTaskTarget task = (HumanTaskTarget) dsmb.target();
         assertThat(task.title()).contains("DSMB");
-        ListEvaluator groups = task.candidateGroups();
-        assertThat(groups).isInstanceOf(ListEvaluator.StaticList.class);
-        assertThat(((ListEvaluator.StaticList) groups).values()).contains("dsmb");
+        CandidateSetSpec groups = task.candidateGroups();
+        assertThat(groups).isInstanceOf(CandidateSetSpec.Inline.class);
+        CandidateSetSpec.Inline inline = (CandidateSetSpec.Inline) groups;
+        assertThat(inline.strategy()).isInstanceOf(StaticSetStrategy.class);
+        assertThat(((StaticSetStrategy) inline.strategy()).values()).contains("dsmb");
         assertThat(task.expiresIn()).isNotNull();
     }
 

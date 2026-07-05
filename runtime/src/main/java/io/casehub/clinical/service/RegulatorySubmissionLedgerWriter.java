@@ -6,7 +6,7 @@ import io.casehub.clinical.ledger.IndReportBreachLedgerEntry;
 import io.casehub.clinical.ledger.IndReportFiledLedgerEntry;
 import io.casehub.clinical.ledger.RegulatorySubmissionLedgerEntry;
 import io.casehub.ledger.api.model.LedgerEntryType;
-import io.casehub.ledger.runtime.repository.LedgerEntryRepository;
+import io.casehub.ledger.api.spi.LedgerEntryRepository;
 import io.casehub.platform.api.identity.ActorType;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;

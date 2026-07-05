@@ -10,7 +10,7 @@ import io.casehub.clinical.entity.TrialSite;
 import io.casehub.platform.api.identity.ActorType;
 import io.casehub.qhorus.api.channel.ChannelSemantic;
 import io.casehub.qhorus.api.message.MessageType;
-import io.casehub.qhorus.runtime.channel.ChannelCreateRequest;
+import io.casehub.qhorus.api.channel.ChannelCreateRequest;
 import io.casehub.qhorus.runtime.channel.ChannelService;
 import io.casehub.qhorus.runtime.message.MessageService;
 import jakarta.enterprise.context.ApplicationScoped;
@@ -70,7 +70,7 @@ public class ProtocolDeviationService {
 
         messageService.dispatch(
             io.casehub.qhorus.api.message.MessageDispatch.builder()
-                .channelId(channel.id)
+                .channelId(channel.id())
                 .sender(CLINICAL_SENDER)
                 .type(MessageType.COMMAND)
                 .content(content)

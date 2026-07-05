@@ -1,6 +1,6 @@
 package io.casehub.clinical.ledger;
 
-import io.casehub.ledger.runtime.model.LedgerEntry;
+import io.casehub.ledger.runtime.model.jpa.JpaLedgerEntry;
 import jakarta.persistence.*;
 import java.nio.charset.StandardCharsets;
 import java.time.Instant;
@@ -15,7 +15,7 @@ import java.util.UUID;
 @Entity
 @Table(name = "irb_approval_ledger_entry")
 @DiscriminatorValue("IrbApproval")
-public class IrbApprovalLedgerEntry extends LedgerEntry {
+public class IrbApprovalLedgerEntry extends JpaLedgerEntry {
 
     @Column(name = "irb_approval_id", nullable = false)
     public UUID irbApprovalId;

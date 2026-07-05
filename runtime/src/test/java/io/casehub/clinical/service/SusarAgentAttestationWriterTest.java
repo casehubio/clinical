@@ -21,7 +21,7 @@ import io.casehub.engine.common.internal.event.ActionGateRejectedEvent;
 import io.casehub.ledger.api.model.AttestationVerdict;
 import io.casehub.ledger.model.WorkerDecisionEntry;
 import io.casehub.ledger.repository.CaseLedgerEntryRepository;
-import io.casehub.ledger.runtime.repository.LedgerEntryRepository;
+import io.casehub.ledger.api.spi.LedgerEntryRepository;
 import io.casehub.platform.api.identity.ActorType;
 import io.quarkus.test.InjectMock;
 import io.quarkus.test.junit.QuarkusTest;

@@ -20,7 +20,7 @@ import io.casehub.clinical.service.EligibilityScreeningService;
 import io.casehub.clinical.service.ProtocolAmendmentService;
 import io.casehub.clinical.service.ProtocolDeviationService;
 import io.casehub.clinical.service.TrialActivationService;
-import io.casehub.ledger.runtime.repository.LedgerEntryRepository;
+import io.casehub.ledger.api.spi.LedgerEntryRepository;
 import io.casehub.ledger.runtime.service.LedgerVerificationService;
 import io.casehub.ledger.runtime.service.TrustScoreJob;
 import io.casehub.platform.api.identity.CurrentPrincipal;
@@ -355,7 +355,7 @@ public class DemoDataSeeder {
                             "PI oversight channel not found: " + dev.piCommandChannelName));
 
             channelGateway.receiveHumanMessage(
-                    new ChannelRef(channel.id, channel.name),
+                    new ChannelRef(channel.id(), channel.name()),
                     new InboundHumanMessage(
                             "demo-pi",
                             "{\"decision\":\"APPROVED\"}",

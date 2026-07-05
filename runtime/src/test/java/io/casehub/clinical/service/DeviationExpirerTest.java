@@ -3,7 +3,7 @@ package io.casehub.clinical.service;
 import io.casehub.clinical.api.model.*;
 import io.casehub.clinical.entity.*;
 import io.casehub.clinical.ledger.ProtocolDeviationLedgerEntry;
-import io.casehub.ledger.runtime.repository.LedgerEntryRepository;
+import io.casehub.ledger.api.spi.LedgerEntryRepository;
 import io.quarkus.test.junit.QuarkusTest;
 import jakarta.inject.Inject;
 import jakarta.transaction.Transactional;

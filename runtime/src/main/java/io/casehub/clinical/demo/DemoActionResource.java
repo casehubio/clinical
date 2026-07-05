@@ -90,7 +90,7 @@ public class DemoActionResource {
         }
 
         channelGateway.receiveHumanMessage(
-                new ChannelRef(channel.id, channel.name),
+                new ChannelRef(channel.id(), channel.name()),
                 new InboundHumanMessage(
                         "demo-pi",
                         "{\"decision\":\"APPROVED\"}",
@@ -99,11 +99,11 @@ public class DemoActionResource {
                         deviationId.toString(),
                         null));
 
-        LOG.infof("Demo PI approval sent for deviationId=%s via channel=%s", deviationId, channel.name);
+        LOG.infof("Demo PI approval sent for deviationId=%s via channel=%s", deviationId, channel.name());
         return Response.ok(Map.of(
                 "deviationId", deviationId.toString(),
                 "action", "PI_APPROVED",
-                "channelName", channel.name,
+                "channelName", channel.name(),
                 "note", "MessageReceivedEvent fired — PiResponseListener will process async"))
                 .build();
     }

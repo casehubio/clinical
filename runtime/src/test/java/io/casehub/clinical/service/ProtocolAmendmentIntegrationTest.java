@@ -7,7 +7,7 @@ import io.casehub.clinical.api.model.TrialPhase;
 import io.casehub.clinical.ledger.ProtocolAmendmentLedgerEntry;
 import io.casehub.clinical.support.EngineStateCleaner;
 import io.casehub.engine.common.spi.cache.CaseInstanceCache;
-import io.casehub.ledger.runtime.repository.LedgerEntryRepository;
+import io.casehub.ledger.api.spi.LedgerEntryRepository;
 import io.casehub.platform.testing.FixedCurrentPrincipal;
 import io.quarkus.test.junit.QuarkusTest;
 import io.quarkus.test.security.TestSecurity;

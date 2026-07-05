@@ -10,6 +10,7 @@ import jakarta.inject.Inject;
 import jakarta.transaction.Transactional;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.PositiveOrZero;
 import jakarta.ws.rs.*;
 import jakarta.ws.rs.core.*;
 import java.net.URI;
@@ -22,7 +23,8 @@ public class SiteResource {
 
     @Inject CurrentPrincipal principal;
 
-    public record AddSiteRequest(@NotBlank String investigatorId) {}
+    public record AddSiteRequest(@NotBlank String investigatorId,
+                                  @PositiveOrZero int targetEnrollment) {}
 
     @POST
     @Transactional
@@ -39,6 +41,7 @@ public class SiteResource {
         site.tenantId = trial.tenantId;
         site.trialId = trialId;
         site.investigatorId = req.investigatorId();
+        site.targetEnrollment = req.targetEnrollment();
         site.status = SiteStatus.PENDING;
         site.persist();
 

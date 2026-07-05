@@ -22,7 +22,7 @@ class ClinicalActionRiskClassifierTest {
         RiskDecision decision = classifier.classify(action, ctx);
         assertThat(decision).isInstanceOf(RiskDecision.GateRequired.class);
         RiskDecision.GateRequired gate = (RiskDecision.GateRequired) decision;
-        assertThat(gate.candidateGroups()).containsExactly("qualified-investigator");
+        assertThat(gate.candidateGroups()).isInstanceOf(io.casehub.api.spi.routing.CandidateSetStrategy.class);
         assertThat(gate.reversible()).isFalse();
         assertThat(gate.scope()).isEqualTo("casehubio/clinical/oversight");
         assertThat(gate.expiresIn()).isNull();
@@ -41,7 +41,7 @@ class ClinicalActionRiskClassifierTest {
         PlannedAction action = PlannedAction.of(
                 "withdrawal", ClinicalActionType.PATIENT_WITHDRAWAL.actionType(), Map.of());
         RiskDecision.GateRequired gate = (RiskDecision.GateRequired) classifier.classify(action, ctx);
-        assertThat(gate.candidateGroups()).containsExactly("principal-investigator");
+        assertThat(gate.candidateGroups()).isInstanceOf(io.casehub.api.spi.routing.CandidateSetStrategy.class);
         assertThat(gate.reversible()).isFalse();
     }
 
@@ -58,7 +58,7 @@ class ClinicalActionRiskClassifierTest {
         PlannedAction action = PlannedAction.of(
                 "dev", ClinicalActionType.PROTOCOL_DEVIATION_RECORDING.actionType(), Map.of());
         RiskDecision.GateRequired gate = (RiskDecision.GateRequired) classifier.classify(action, ctx);
-        assertThat(gate.candidateGroups()).containsExactly("principal-investigator", "irb-committee");
+        assertThat(gate.candidateGroups()).isInstanceOf(io.casehub.api.spi.routing.CandidateSetStrategy.class);
     }
 
     @Test

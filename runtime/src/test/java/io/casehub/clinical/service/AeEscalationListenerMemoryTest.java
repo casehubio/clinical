@@ -59,7 +59,7 @@ class AeEscalationListenerMemoryTest {
         CaseInstance instance = mock(CaseInstance.class);
         when(instance.getCaseContext()).thenReturn(ctx);
         when(caseInstanceRepository.findByUuid(eq(caseId), any()))
-            .thenReturn(Uni.createFrom().item(instance));
+            .thenReturn(instance);
         when(statusUpdater.markCompleted(aeId)).thenReturn(true);
 
         listener.onCaseLifecycle(goalReached(caseId));
@@ -90,7 +90,7 @@ class AeEscalationListenerMemoryTest {
         CaseInstance instance = mock(CaseInstance.class);
         when(instance.getCaseContext()).thenReturn(ctx);
         when(caseInstanceRepository.findByUuid(eq(caseId), any()))
-            .thenReturn(Uni.createFrom().item(instance));
+            .thenReturn(instance);
         when(statusUpdater.markCompleted(aeId)).thenReturn(true);
 
         listener.onCaseLifecycle(goalReached(caseId));

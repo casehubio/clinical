@@ -1,7 +1,8 @@
 package io.casehub.clinical.service;
 
 import io.casehub.clinical.api.model.CtcaeGrade;
-import io.casehub.ledger.runtime.model.supplement.ComplianceSupplement;
+import io.casehub.ledger.api.model.supplement.ComplianceSupplement;
+import io.casehub.ledger.runtime.model.supplement.JpaComplianceSupplement;
 import java.util.Objects;
 
 /**
@@ -20,7 +21,7 @@ public final class ClinicalComplianceSupplement {
     private ClinicalComplianceSupplement() {}
 
     public static ComplianceSupplement aeEscalation() {
-        ComplianceSupplement s = new ComplianceSupplement();
+        ComplianceSupplement s = new JpaComplianceSupplement();
         s.planRef = "ICH E6(R3) §5.17 — serious adverse event reporting";
         s.algorithmRef = "AdverseEventEscalationPolicy (rule-based CTCAE routing)";
         s.humanOverrideAvailable = true;
@@ -28,7 +29,7 @@ public final class ClinicalComplianceSupplement {
     }
 
     public static ComplianceSupplement irbDecision() {
-        ComplianceSupplement s = new ComplianceSupplement();
+        ComplianceSupplement s = new JpaComplianceSupplement();
         s.planRef = "21 CFR Part 312 — IRB review and approval";
         s.algorithmRef = "IrbCommitteePolicySpi (configurable IRB routing)";
         s.humanOverrideAvailable = true;
@@ -36,7 +37,7 @@ public final class ClinicalComplianceSupplement {
     }
 
     public static ComplianceSupplement protocolDeviation() {
-        ComplianceSupplement s = new ComplianceSupplement();
+        ComplianceSupplement s = new JpaComplianceSupplement();
         s.planRef = "ICH E6(R3) §4.5 — protocol deviation recording";
         s.algorithmRef = "ProtocolDeviationService (rule-based severity classification)";
         s.humanOverrideAvailable = true;
@@ -44,7 +45,7 @@ public final class ClinicalComplianceSupplement {
     }
 
     public static ComplianceSupplement susarGateDecision() {
-        ComplianceSupplement s = new ComplianceSupplement();
+        ComplianceSupplement s = new JpaComplianceSupplement();
         s.planRef = "ICH E2A §I.A.1 + 21 CFR 312.32 — SUSAR criteria and expedited reporting";
         s.algorithmRef = "SusarCriteriaEvaluator (rule-based CTCAE Grade 4/5 unexpected/suspected)";
         s.humanOverrideAvailable = true;
@@ -52,7 +53,7 @@ public final class ClinicalComplianceSupplement {
     }
 
     public static ComplianceSupplement safetyOfficerNotification() {
-        ComplianceSupplement s = new ComplianceSupplement();
+        ComplianceSupplement s = new JpaComplianceSupplement();
         s.planRef = "ICH E6(R3) §5.17 — safety officer notification on Grade 3+ AE";
         s.algorithmRef = "AdverseEventEscalationPolicy (rule-based CTCAE routing)";
         s.humanOverrideAvailable = true;
@@ -60,7 +61,7 @@ public final class ClinicalComplianceSupplement {
     }
 
     public static ComplianceSupplement sponsorNotification() {
-        ComplianceSupplement s = new ComplianceSupplement();
+        ComplianceSupplement s = new JpaComplianceSupplement();
         s.planRef = "ICH E6(R3) §5.17 — sponsor notification on serious adverse event";
         s.algorithmRef = "AdverseEventEscalationPolicy (rule-based CTCAE routing)";
         s.humanOverrideAvailable = true;
@@ -68,7 +69,7 @@ public final class ClinicalComplianceSupplement {
     }
 
     public static ComplianceSupplement eligibilityScreening() {
-        ComplianceSupplement s = new ComplianceSupplement();
+        ComplianceSupplement s = new JpaComplianceSupplement();
         s.planRef = "ICH E6(R3) §4.2 — patient eligibility assessment and IRB consultation";
         s.algorithmRef = "EligibilityScreeningService (rule-based FHIR criterion evaluation)";
         s.humanOverrideAvailable = true;
@@ -76,7 +77,7 @@ public final class ClinicalComplianceSupplement {
     }
 
     public static ComplianceSupplement protocolAmendment() {
-        ComplianceSupplement s = new ComplianceSupplement();
+        ComplianceSupplement s = new JpaComplianceSupplement();
         s.planRef = "21 CFR Part 312 §312.30 — protocol amendment review";
         s.algorithmRef = "ProtocolAmendmentAdvisor (DefaultProtocolAmendmentAdvisor stub; engine#101 pending)";
         s.humanOverrideAvailable = true;
@@ -85,7 +86,7 @@ public final class ClinicalComplianceSupplement {
 
     public static ComplianceSupplement regulatorySubmission(CtcaeGrade grade) {
         Objects.requireNonNull(grade, "grade");
-        ComplianceSupplement s = new ComplianceSupplement();
+        ComplianceSupplement s = new JpaComplianceSupplement();
         s.planRef = switch (grade) {
             case GRADE_5 -> "21 CFR 312.32(c)(1)(i) — IND 7-day expedited safety reporting, unexpected fatal AE";
             case GRADE_4 -> "21 CFR 312.32(c)(1)(i) — IND 7-day expedited safety reporting, unexpected life-threatening AE";
@@ -99,7 +100,7 @@ public final class ClinicalComplianceSupplement {
 
     public static ComplianceSupplement regulatorySubmissionFiled(CtcaeGrade grade) {
         Objects.requireNonNull(grade, "grade");
-        ComplianceSupplement s = new ComplianceSupplement();
+        ComplianceSupplement s = new JpaComplianceSupplement();
         s.planRef = switch (grade) {
             case GRADE_5 -> "21 CFR 312.32(c)(1)(i) — IND 7-day expedited safety report filed, unexpected fatal AE";
             case GRADE_4 -> "21 CFR 312.32(c)(1)(i) — IND 7-day expedited safety report filed, unexpected life-threatening AE";
@@ -113,7 +114,7 @@ public final class ClinicalComplianceSupplement {
 
     public static ComplianceSupplement regulatorySubmissionBreach(CtcaeGrade grade) {
         Objects.requireNonNull(grade, "grade");
-        ComplianceSupplement s = new ComplianceSupplement();
+        ComplianceSupplement s = new JpaComplianceSupplement();
         s.planRef = switch (grade) {
             case GRADE_5 -> "21 CFR 312.32(c)(1)(i) — IND 7-day expedited reporting deadline missed, unexpected fatal AE";
             case GRADE_4 -> "21 CFR 312.32(c)(1)(i) — IND 7-day expedited reporting deadline missed, unexpected life-threatening AE";

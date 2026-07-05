@@ -91,7 +91,7 @@ class PiResponseListenerIntegrationTest {
 
         ProtocolDeviation dev = ProtocolDeviation.findById(minorDeviationId);
         var channelRef = channelService.findByName(dev.piCommandChannelName)
-            .map(c -> new ChannelRef(c.id, c.name))
+            .map(c -> new ChannelRef(c.id(), c.name()))
             .orElseThrow(() -> new AssertionError("channel not found: " + dev.piCommandChannelName));
 
         channelGateway.receiveHumanMessage(channelRef,
@@ -113,7 +113,7 @@ class PiResponseListenerIntegrationTest {
 
         ProtocolDeviation dev = ProtocolDeviation.findById(criticalDeviationId);
         var channelRef = channelService.findByName(dev.piCommandChannelName)
-            .map(c -> new ChannelRef(c.id, c.name))
+            .map(c -> new ChannelRef(c.id(), c.name()))
             .orElseThrow(() -> new AssertionError("channel not found: " + dev.piCommandChannelName));
 
         channelGateway.receiveHumanMessage(channelRef,

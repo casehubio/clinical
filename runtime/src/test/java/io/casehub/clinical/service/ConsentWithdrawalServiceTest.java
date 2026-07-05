@@ -7,7 +7,7 @@ import io.casehub.clinical.api.model.ConsentStatus;
 import io.casehub.clinical.api.model.EnrollmentStatus;
 import io.casehub.clinical.entity.PatientEnrollment;
 import io.casehub.clinical.ledger.ConsentWithdrawalLedgerEntry;
-import io.casehub.ledger.runtime.repository.LedgerEntryRepository;
+import io.casehub.ledger.api.spi.LedgerEntryRepository;
 import io.quarkus.test.junit.QuarkusTest;
 import jakarta.inject.Inject;
 import jakarta.transaction.Transactional;

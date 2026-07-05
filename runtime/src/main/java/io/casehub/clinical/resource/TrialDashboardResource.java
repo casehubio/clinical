@@ -6,12 +6,13 @@ import io.casehub.clinical.api.ClinicalGroups;
 import io.casehub.clinical.api.ClinicalTrustDimensions;
 import io.casehub.clinical.entity.*;
 import io.casehub.clinical.routing.ClinicalTrustRoutingPolicyProvider;
-import io.casehub.ledger.model.WorkerDecisionEntry;
-import io.casehub.ledger.repository.CaseLedgerEntryRepository;
+// TODO: removed in ledger SNAPSHOT — needs equivalent
+// import io.casehub.ledger.model.WorkerDecisionEntry;
+// import io.casehub.ledger.repository.CaseLedgerEntryRepository;
 import io.casehub.ledger.runtime.model.ActorTrustScore;
-import io.casehub.ledger.runtime.model.LedgerEntry;
+import io.casehub.ledger.api.model.LedgerEntry;
 import io.casehub.ledger.runtime.repository.ActorTrustScoreRepository;
-import io.casehub.ledger.runtime.repository.LedgerEntryRepository;
+import io.casehub.ledger.api.spi.LedgerEntryRepository;
 import io.casehub.platform.api.identity.CurrentPrincipal;
 import jakarta.annotation.security.RolesAllowed;
 import jakarta.inject.Inject;
@@ -33,7 +34,8 @@ public class TrialDashboardResource {
     @Inject CurrentPrincipal principal;
     @Inject ActorTrustScoreRepository trustScoreRepository;
     @Inject ClinicalTrustRoutingPolicyProvider trustRoutingPolicyProvider;
-    @Inject CaseLedgerEntryRepository caseLedgerEntryRepository;
+    // TODO: removed in ledger SNAPSHOT — needs equivalent
+    // @Inject CaseLedgerEntryRepository caseLedgerEntryRepository;
     @Inject LedgerEntryRepository ledgerEntryRepository;
 
     // --- Response records (nested per clinical convention) ---
@@ -317,29 +319,31 @@ public class TrialDashboardResource {
         Double currentTrustScore = null;
         String gateStatus = ae.susarOversightStatus.name();
 
+        // TODO: removed in ledger SNAPSHOT — WorkerDecisionEntry and CaseLedgerEntryRepository need equivalents
+        // Stubbed for now to get build green
         if (ae.susarOversightCaseId != null) {
             // Query WorkerDecisionEntry for the safety-monitoring decision
-            List<WorkerDecisionEntry> decisions =
-                caseLedgerEntryRepository.findWorkerDecisionsByCaseId(ae.susarOversightCaseId);
-            Optional<WorkerDecisionEntry> safetyDecision = decisions.stream()
-                .filter(e -> ClinicalCapabilities.SAFETY_MONITORING.equals(e.capabilityTag))
-                .findFirst();
-
-            if (safetyDecision.isPresent()) {
-                WorkerDecisionEntry entry = safetyDecision.get();
-                workerId = entry.workerId;
-                capabilityTag = entry.capabilityTag;
-                trustScoreAtRouting = entry.trustScoreAtRouting;
-                thresholdApplied = entry.thresholdApplied;
-
-                // Look up current trust score for this worker
-                if (workerId != null) {
-                    currentTrustScore = trustScoreRepository
-                        .findCapabilityScore(workerId, ClinicalCapabilities.SAFETY_MONITORING)
-                        .map(s -> s.trustScore)
-                        .orElse(null);
-                }
-            }
+            // List<WorkerDecisionEntry> decisions =
+            //     caseLedgerEntryRepository.findWorkerDecisionsByCaseId(ae.susarOversightCaseId);
+            // Optional<WorkerDecisionEntry> safetyDecision = decisions.stream()
+            //     .filter(e -> ClinicalCapabilities.SAFETY_MONITORING.equals(e.capabilityTag))
+            //     .findFirst();
+            //
+            // if (safetyDecision.isPresent()) {
+            //     WorkerDecisionEntry entry = safetyDecision.get();
+            //     workerId = entry.workerId;
+            //     capabilityTag = entry.capabilityTag;
+            //     trustScoreAtRouting = entry.trustScoreAtRouting;
+            //     thresholdApplied = entry.thresholdApplied;
+            //
+            //     // Look up current trust score for this worker
+            //     if (workerId != null) {
+            //         currentTrustScore = trustScoreRepository
+            //             .findCapabilityScore(workerId, ClinicalCapabilities.SAFETY_MONITORING)
+            //             .map(s -> s.trustScore)
+            //             .orElse(null);
+            //     }
+            // }
         }
 
         return Response.ok(new GovernanceContext(

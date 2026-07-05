@@ -1,6 +1,6 @@
 package io.casehub.clinical.ledger;
 
-import io.casehub.ledger.runtime.model.LedgerEntry;
+import io.casehub.ledger.runtime.model.jpa.JpaLedgerEntry;
 import jakarta.persistence.Column;
 import jakarta.persistence.DiscriminatorValue;
 import jakarta.persistence.Entity;
@@ -23,7 +23,7 @@ import java.util.UUID;
 @Entity
 @Table(name = "regulatory_submission_ledger_entry")
 @DiscriminatorValue("RegulatorySubmission")
-public class RegulatorySubmissionLedgerEntry extends LedgerEntry {
+public class RegulatorySubmissionLedgerEntry extends JpaLedgerEntry {
 
     @Column(name = "ae_id", nullable = false)
     public UUID aeId;

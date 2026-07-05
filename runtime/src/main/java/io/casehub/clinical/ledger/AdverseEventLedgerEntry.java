@@ -1,6 +1,6 @@
 package io.casehub.clinical.ledger;
 
-import io.casehub.ledger.runtime.model.LedgerEntry;
+import io.casehub.ledger.runtime.model.jpa.JpaLedgerEntry;
 import jakarta.persistence.*;
 import java.nio.charset.StandardCharsets;
 import java.time.Instant;
@@ -19,7 +19,7 @@ import java.util.UUID;
 @Entity
 @Table(name = "ae_ledger_entry")
 @DiscriminatorValue("ADVERSE_EVENT")
-public class AdverseEventLedgerEntry extends LedgerEntry {
+public class AdverseEventLedgerEntry extends JpaLedgerEntry {
 
     @Column(name = "adverse_event_id", nullable = false)
     public UUID adverseEventId;

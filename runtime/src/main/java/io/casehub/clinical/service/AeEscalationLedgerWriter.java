@@ -4,7 +4,7 @@ import io.casehub.clinical.api.ClinicalActors;
 import io.casehub.clinical.api.model.CtcaeGrade;
 import io.casehub.clinical.ledger.AeEscalationLedgerEntry;
 import io.casehub.ledger.api.model.LedgerEntryType;
-import io.casehub.ledger.runtime.repository.LedgerEntryRepository;
+import io.casehub.ledger.api.spi.LedgerEntryRepository;
 import io.casehub.platform.api.identity.ActorType;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;

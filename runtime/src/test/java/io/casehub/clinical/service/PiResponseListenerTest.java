@@ -4,7 +4,7 @@ import io.casehub.clinical.api.model.*;
 import io.casehub.clinical.entity.*;
 import io.casehub.clinical.ledger.ProtocolDeviationLedgerEntry;
 import io.casehub.platform.api.identity.ActorType;
-import io.casehub.ledger.runtime.repository.LedgerEntryRepository;
+import io.casehub.ledger.api.spi.LedgerEntryRepository;
 import io.casehub.qhorus.api.message.MessageType;
 import io.quarkus.test.junit.QuarkusTest;
 import jakarta.inject.Inject;

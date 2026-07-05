@@ -11,7 +11,7 @@ import io.casehub.clinical.entity.ClinicalTrial;
 import io.casehub.clinical.entity.PatientEnrollment;
 import io.casehub.clinical.entity.TrialSite;
 import io.casehub.clinical.ledger.AdverseEventLedgerEntry;
-import io.casehub.ledger.runtime.repository.LedgerEntryRepository;
+import io.casehub.ledger.api.spi.LedgerEntryRepository;
 import io.quarkus.test.junit.QuarkusTest;
 import jakarta.inject.Inject;
 import jakarta.transaction.Transactional;
