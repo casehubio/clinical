@@ -51,6 +51,13 @@
       <artifactId>casehub-engine-ledger</artifactId>
     </dependency>
 
+    <!-- Routing blocks — RoutingFeatureExtractor SPI + AI routing strategies -->
+    <dependency>
+      <groupId>io.casehub</groupId>
+      <artifactId>casehub-blocks</artifactId>
+      <version>${version.io.casehub}</version>
+    </dependency>
+
     <!-- Layer 3: formal PI obligation tracking via COMMAND lifecycle -->
     <dependency>
       <groupId>io.casehub</groupId>
