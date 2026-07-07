@@ -8,6 +8,8 @@ import io.casehub.api.model.ContextChangeTrigger;
 import io.casehub.api.model.GoalBasedCompletion;
 import io.casehub.api.model.HumanTaskTarget;
 import io.casehub.api.model.converter.CaseDefinitionYamlMapper;
+import io.casehub.api.spi.routing.CandidateSetSpec;
+import io.casehub.api.spi.routing.StaticSetStrategy;
 import java.io.IOException;
 import org.junit.jupiter.api.Test;
 
@@ -113,8 +115,27 @@ class ClinicalCaseDefinitionEquivalenceTest {
         var yamlHT = (HumanTaskTarget) yamlBinding.target();
         assertThat(dslHT.title()).isEqualTo(yamlHT.title());
         assertThat(dslHT.expiresIn()).isEqualTo(yamlHT.expiresIn());
-        assertThat(dslHT.candidateGroups()).isEqualTo(yamlHT.candidateGroups());
+        verifyCandidateSetSpec(dslHT.candidateGroups(), yamlHT.candidateGroups(), dslBinding.getName());
         assertThat(dslHT.inputMapping()).isEqualTo(yamlHT.inputMapping());
         assertThat(dslHT.outputMapping()).isEqualTo(yamlHT.outputMapping());
+    }
+
+    private static void verifyCandidateSetSpec(CandidateSetSpec actual, CandidateSetSpec expected, String bindingName) {
+        if (expected == null) {
+            assertThat(actual).as("binding '%s' candidateGroups", bindingName).isNull();
+            return;
+        }
+        assertThat(actual).as("binding '%s' candidateGroups", bindingName).isNotNull();
+        assertThat(actual.getClass()).as("binding '%s' candidateGroups type", bindingName)
+            .isEqualTo(expected.getClass());
+        if (expected instanceof CandidateSetSpec.Inline yamlInline
+            && actual instanceof CandidateSetSpec.Inline dslInline) {
+            assertThat(dslInline.strategy().id()).isEqualTo(yamlInline.strategy().id());
+            if (yamlInline.strategy() instanceof StaticSetStrategy yamlStatic) {
+                assertThat(((StaticSetStrategy) dslInline.strategy()).values())
+                    .as("binding '%s' candidateGroups values", bindingName)
+                    .isEqualTo(yamlStatic.values());
+            }
+        }
     }
 }

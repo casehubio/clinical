@@ -11,9 +11,11 @@ import io.quarkus.hibernate.orm.panache.PanacheEntityBase;
 import jakarta.persistence.*;
 import java.time.Instant;
 import java.util.UUID;
+import org.hibernate.annotations.DynamicUpdate;
 
 @Entity
 @Table(name = "adverse_event")
+@DynamicUpdate
 public class AdverseEvent extends PanacheEntityBase {
 
     @Id

@@ -16,6 +16,7 @@ import org.jboss.logging.Logger;
 
 import java.time.Clock;
 import java.time.Duration;
+import java.util.List;
 import java.util.Map;
 
 /**
@@ -49,7 +50,7 @@ public class SponsorNotificationExhaustedWorkItemListener {
                             + " Reason: " + safeReason(event.failureReason())
                             + ". Deviation " + event.deviationId()
                             + " at site " + event.siteId() + " requires manual sponsor contact.")
-                    .category(CATEGORY)
+                    .types(List.of(CATEGORY))
                     .formKey(CATEGORY)
                     .priority(WorkItemPriority.HIGH)
                     .candidateGroups(CANDIDATE_GROUPS)

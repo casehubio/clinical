@@ -104,7 +104,7 @@ class RegulatorySubmissionBreachListenerTest {
                 "/workitems/" + UUID.randomUUID(),
                 UUID.randomUUID().toString(),
                 UUID.randomUUID(), WorkItemStatus.ESCALATED,
-                Instant.now(), "system", null, null, null, null, "test-tenant", null, null, null, null);
+                Instant.now(), "system", null, null, null, null, "test-tenant", null, null, null, null, null);
         listener.onWorkItemLifecycle(event);
         verify(ledgerWriter, never()).writeBreachEntry(any());
     }

@@ -51,7 +51,7 @@ public class AdverseEventService {
                     .description("Grade " + ae.grade.label() + " AE for enrollment "
                             + ae.enrollmentId + ". GCP SLA: "
                             + ae.grade.sla().orElseThrow().toHours() + "h from " + ae.reportedAt)
-                    .category("adverse-event")
+                    .types(java.util.List.of("adverse-event"))
                     .formKey("adverse-event-review")
                     .priority(priority(ae))
                     .candidateGroups(requirements.candidateGroups())

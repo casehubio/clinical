@@ -77,7 +77,7 @@ class SponsorNotificationExhaustedWorkItemListenerTest {
         listener.onExhausted(exhaustedEvent(DeviationSeverity.MAJOR));
 
         final WorkItemCreateRequest req = captureCreated();
-        assertThat(req.category).isEqualTo("sponsor-notification-escalation");
+        assertThat(req.types).containsExactly("sponsor-notification-escalation");
     }
 
     @Test

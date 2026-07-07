@@ -24,10 +24,14 @@ import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.MethodOrderer;
+import org.junit.jupiter.api.Order;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.TestMethodOrder;
 import org.mockito.ArgumentCaptor;
 
 @QuarkusTest
+@TestMethodOrder(MethodOrderer.OrderAnnotation.class)
 class RegulatorySubmissionCaseServiceTest {
 
     @Inject RegulatorySubmissionCaseService service;
@@ -35,7 +39,6 @@ class RegulatorySubmissionCaseServiceTest {
 
     @BeforeEach
     void stubCaseHub() {
-        // Default: startCase() succeeds with a generated UUID — overridden in rollback test
         when(regulatorySubmissionCaseHub.startCase(any()))
                 .thenReturn(CompletableFuture.completedFuture(UUID.randomUUID()));
     }
@@ -123,6 +126,7 @@ class RegulatorySubmissionCaseServiceTest {
     }
 
     @Test
+    @Order(1)
     void start_case_failure_resets_status_to_none() {
         UUID aeId = persistAe(CtcaeGrade.GRADE_5, true);
         AdverseEventReportedEvent event = buildEvent(aeId, CtcaeGrade.GRADE_5);

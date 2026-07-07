@@ -54,42 +54,18 @@ class ThreeSiteShowcaseTest {
     /** Captured just before the first REST call — used to filter out WorkItems from prior tests. */
     Instant testStartedAt;
 
-    /**
-     * Single @BeforeEach — merged to guarantee ordering (JUnit 5 does not order multiple
-     * @BeforeEach methods). Must be non-@Transactional at the outer level to avoid holding
-     * a JTA connection during the Awaitility engine-quiesce poll; entity persistence is
-     * delegated to {@link #persistTestData()}, which opens its own @Transactional scope.
-     *
-     * <p>Order within this method is intentional:
-     * 1. Wait for prior test classes' engine cases to leave STARTING — prevents their
-     *    CaseStartedEventHandler.update() from racing with EngineStateCleaner.clearAll().
-     * 2. Clear engine in-memory state (store + cache).
-     * 3. Persist test entities inside a fresh @Transactional scope.
-     */
     @BeforeEach
     void setup() {
-        // ── 1. Engine quiesce — wait for no STARTING cases from prior test classes ──
-        // Note: we do NOT call engineStateCleaner.clearAll() here. The showcase test uses
-        // completely fresh UUIDs for trial/site/patient on every run, so there is no state
-        // contamination between this test's cases and prior tests' cases. Calling clearAll()
-        // would race with in-flight async handlers from the previous run's retry — see
-        // casehubio/clinical#87 for the engine-side fix (TestCaseInstanceRepository.clear() API).
-        // Engine isolation: prior test classes (ClinicalLayerComplianceTest) fire @ObservesAsync
-        // CDI events (e.g. ProtocolDeviationResolvedEvent) that trigger IrbDeviationCaseService.
-        // That handler may not have started yet when this @BeforeEach runs — the AE cases move to
-        // WAITING quickly, making the cache appear stable before the IRB case is registered.
-        // If the showcase test starts a new case while IrbDeviationCaseService.startCase() is
-        // in-flight, concurrent Vert.x operations conflict → RECIPIENT_FAILURE on the new case.
-        //
-        // Fix: use an initial poll delay to give @ObservesAsync handlers time to start and
-        // register their cases in the cache before we begin checking.
-        // Tracking: casehubio/clinical#87 (engine TestCaseInstanceRepository.clear() API).
+        // Wait for prior test classes' @ObservesAsync handlers to finish starting engine
+        // cases. clearAll() is NOT called — it disrupts Vert.x handlers and causes
+        // RECIPIENT_FAILURE on subsequent startCase() calls. Fresh UUIDs each run
+        // prevent data contamination from accumulated cases.
+        // Known limitation: in-memory engine cross-test contamination (clinical#87)
+        // can cause RECIPIENT_FAILURE in full-suite runs.
         await().pollDelay(3, SECONDS)
                .atMost(20, SECONDS)
-               .until(() ->
-                    caseInstanceCache.getAll().stream()
-                        .noneMatch(ci -> ci.getState() == CaseStatus.STARTING
-                            || ci.getState() == CaseStatus.RUNNING));
+               .until(() -> caseInstanceCache.getAll().stream()
+                    .noneMatch(ci -> ci.getState() == CaseStatus.STARTING));
         testStartedAt = Instant.now();
 
         // ── 2. Assign IDs for this test ──
