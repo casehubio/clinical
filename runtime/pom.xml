@@ -97,6 +97,13 @@
       <scope>test</scope>
     </dependency>
 
+    <!-- Task 1: CBR case-based reasoning — InMemoryCbrCaseMemoryStore for precedent retrieval -->
+    <dependency>
+      <groupId>io.casehub</groupId>
+      <artifactId>casehub-neocortex-memory-cbr-inmem</artifactId>
+      <version>${version.io.casehub}</version>
+    </dependency>
+
     <!-- Layer 5: platform expression engine + @DefaultBean mocks (required by casehub-engine) -->
     <dependency>
       <groupId>io.casehub</groupId>

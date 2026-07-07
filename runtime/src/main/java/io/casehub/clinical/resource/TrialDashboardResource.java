@@ -4,8 +4,12 @@ import io.casehub.api.spi.routing.TrustRoutingPolicy;
 import io.casehub.clinical.api.ClinicalCapabilities;
 import io.casehub.clinical.api.ClinicalGroups;
 import io.casehub.clinical.api.ClinicalTrustDimensions;
+import io.casehub.clinical.api.model.*;
+import io.casehub.clinical.cbr.ClinicalCbrDomains;
+import io.casehub.clinical.cbr.ClinicalCbrService;
 import io.casehub.clinical.entity.*;
 import io.casehub.clinical.routing.ClinicalTrustRoutingPolicyProvider;
+import io.casehub.neocortex.memory.cbr.*;
 // TODO: removed in ledger SNAPSHOT — needs equivalent
 // import io.casehub.ledger.model.WorkerDecisionEntry;
 // import io.casehub.ledger.repository.CaseLedgerEntryRepository;
@@ -37,6 +41,7 @@ public class TrialDashboardResource {
     // TODO: removed in ledger SNAPSHOT — needs equivalent
     // @Inject CaseLedgerEntryRepository caseLedgerEntryRepository;
     @Inject LedgerEntryRepository ledgerEntryRepository;
+    @Inject ClinicalCbrService cbrService;
 
     // --- Response records (nested per clinical convention) ---
 
@@ -495,6 +500,140 @@ public class TrialDashboardResource {
         )).toList();
 
         return Response.ok(rows).build();
+    }
+
+    @GET
+    @Path("/adverse-events/{aeId}/precedents")
+    @RolesAllowed({ClinicalGroups.SPONSOR, ClinicalGroups.INVESTIGATOR,
+                   ClinicalGroups.COORDINATOR, ClinicalGroups.MONITOR})
+    public Response aePrecedents(@PathParam("trialId") UUID trialId,
+                                  @PathParam("aeId") UUID aeId) {
+        // Load AE
+        AdverseEvent ae = AdverseEvent.findByIdForTenant(aeId, principal);
+        if (ae == null) return Response.status(404).build();
+
+        // Resolve trial via enrollment → site → trial traversal
+        PatientEnrollment enrollment = ae.enrollmentId != null
+            ? PatientEnrollment.findByIdForTenant(ae.enrollmentId, principal)
+            : null;
+        TrialSite site = enrollment != null && enrollment.siteId != null
+            ? TrialSite.findByIdForTenant(enrollment.siteId, principal)
+            : null;
+        ClinicalTrial trial = site != null && site.trialId != null
+            ? ClinicalTrial.findByIdForTenant(site.trialId, principal)
+            : null;
+
+        // Build features map from AE (categorical fields must be Strings)
+        Map<String, Object> features = Map.of(
+            "grade", ae.grade != null ? ae.grade.ordinal() + 1 : 0,
+            "eventType", ae.eventType != null ? ae.eventType : "UNKNOWN",
+            "trialPhase", trial != null && trial.phase != null ? trial.phase.name() : "UNKNOWN",
+            "unexpected", String.valueOf(ae.unexpected),
+            "suspected", String.valueOf(ae.suspected)
+        );
+
+        // Build query with outcome features weighted 0.0
+        CbrQuery query = CbrQuery.of(principal.tenancyId(), ClinicalCbrDomains.AE,
+                "clinical-ae", features, 10)
+            .withMinSimilarity(0.3)
+            .withVectorWeight(0.0)
+            .withWeight("safetyReviewOutcome", 0.0)
+            .withWeight("dsmbEscalated", 0.0)
+            .withWeight("indReportFiled", 0.0)
+            .withWeight("susarOversight", 0.0);
+
+        List<AePrecedentResponse> results = cbrService.retrieveSimilar(query, FeatureVectorCbrCase.class)
+            .stream()
+            .map(this::mapToAeResponse)
+            .toList();
+
+        return Response.ok(results).build();
+    }
+
+    @GET
+    @Path("/deviations/{devId}/precedents")
+    @RolesAllowed({ClinicalGroups.SPONSOR, ClinicalGroups.INVESTIGATOR,
+                   ClinicalGroups.COORDINATOR, ClinicalGroups.MONITOR})
+    public Response deviationPrecedents(@PathParam("trialId") UUID trialId,
+                                        @PathParam("devId") UUID devId) {
+        // Load deviation
+        ProtocolDeviation deviation = ProtocolDeviation.findByIdForTenant(devId, principal);
+        if (deviation == null) return Response.status(404).build();
+
+        // Build features map
+        Map<String, Object> features = Map.of(
+            "deviationType", deviation.deviationType != null ? deviation.deviationType : "UNKNOWN",
+            "severity", deviation.severity != null ? deviation.severity.name() : "UNKNOWN",
+            "escalationRequirement", deviation.escalationRequirement != null
+                ? deviation.escalationRequirement.name() : "UNKNOWN"
+        );
+
+        // Build query with outcome features weighted 0.0
+        CbrQuery query = CbrQuery.of(principal.tenancyId(), ClinicalCbrDomains.DEVIATION,
+                "clinical-deviation", features, 10)
+            .withMinSimilarity(0.3)
+            .withVectorWeight(0.0)
+            .withWeight("piDecision", 0.0)
+            .withWeight("irbDecision", 0.0);
+
+        List<DeviationPrecedentResponse> results = cbrService.retrieveSimilar(query, PlanCbrCase.class)
+            .stream()
+            .map(this::mapToDeviationResponse)
+            .toList();
+
+        return Response.ok(results).build();
+    }
+
+    private AePrecedentResponse mapToAeResponse(ScoredCbrCase<FeatureVectorCbrCase> scored) {
+        FeatureVectorCbrCase c = scored.cbrCase();
+        Map<String, Object> features = c.features();
+
+        // Extract features with safe casting
+        Object gradeObj = features.get("grade");
+        int gradeInt = gradeObj instanceof Number ? ((Number) gradeObj).intValue() : 0;
+        String gradeStr = gradeInt > 0 && gradeInt <= 5 ? "GRADE_" + gradeInt : "UNKNOWN";
+
+        // Boolean features are stored as Strings ("true"/"false")
+        return new AePrecedentResponse(
+            scored.score(),
+            gradeStr,
+            String.valueOf(features.getOrDefault("eventType", "UNKNOWN")),
+            String.valueOf(features.getOrDefault("trialPhase", "UNKNOWN")),
+            "true".equals(String.valueOf(features.get("unexpected"))),
+            "true".equals(String.valueOf(features.get("suspected"))),
+            String.valueOf(features.getOrDefault("safetyReviewOutcome", "UNKNOWN")),
+            "true".equals(String.valueOf(features.get("dsmbEscalated"))),
+            "true".equals(String.valueOf(features.get("indReportFiled"))),
+            "true".equals(String.valueOf(features.get("susarOversight"))),
+            c.problem(),
+            c.outcome()
+        );
+    }
+
+    private DeviationPrecedentResponse mapToDeviationResponse(ScoredCbrCase<PlanCbrCase> scored) {
+        PlanCbrCase c = scored.cbrCase();
+        Map<String, Object> features = c.features();
+
+        // Map plan traces to step responses
+        List<PlanStepResponse> steps = c.planTrace().stream()
+            .map(trace -> new PlanStepResponse(
+                trace.bindingName(),
+                trace.capabilityName(),
+                trace.stepOutcome()
+            ))
+            .toList();
+
+        return new DeviationPrecedentResponse(
+            scored.score(),
+            String.valueOf(features.getOrDefault("deviationType", "UNKNOWN")),
+            String.valueOf(features.getOrDefault("severity", "UNKNOWN")),
+            String.valueOf(features.getOrDefault("escalationRequirement", "UNKNOWN")),
+            String.valueOf(features.getOrDefault("piDecision", "UNKNOWN")),
+            String.valueOf(features.getOrDefault("irbDecision", "UNKNOWN")),
+            steps,
+            c.problem(),
+            c.outcome()
+        );
     }
 
     /** Build a human-readable summary from ledger entry fields. */

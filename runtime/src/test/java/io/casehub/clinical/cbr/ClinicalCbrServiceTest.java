@@ -1,0 +1,63 @@
+package io.casehub.clinical.cbr;
+
+import io.casehub.neocortex.memory.MemoryDomain;
+import io.casehub.neocortex.memory.cbr.*;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.mockito.InOrder;
+
+import java.util.List;
+import java.util.Map;
+
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.Mockito.*;
+
+class ClinicalCbrServiceTest {
+
+    private CbrCaseMemoryStore store;
+    private ClinicalCbrService service;
+
+    @BeforeEach
+    void setUp() {
+        store = mock(CbrCaseMemoryStore.class);
+        service = new ClinicalCbrService(store);
+    }
+
+    @Test
+    void storeIdempotent_erasesBeforeStore() {
+        final var cbrCase = new FeatureVectorCbrCase("problem", "solution", "outcome", 0.9, Map.of());
+        final String caseType = "clinical-ae";
+        final String entityId = "ae-123";
+        final MemoryDomain domain = new MemoryDomain("clinical-ae");
+        final String tenantId = "tenant-1";
+        final String caseId = "case-123";
+
+        when(store.store(cbrCase, caseType, entityId, domain, tenantId, caseId))
+            .thenReturn("cbr-id-123");
+
+        final String result = service.storeIdempotent(cbrCase, caseType, entityId, domain, tenantId, caseId);
+
+        assertThat(result).isEqualTo("cbr-id-123");
+
+        final InOrder inOrder = inOrder(store);
+        inOrder.verify(store).eraseEntity(entityId, tenantId);
+        inOrder.verify(store).store(cbrCase, caseType, entityId, domain, tenantId, caseId);
+    }
+
+    @Test
+    void retrieveSimilar_delegatesToStore() {
+        final var query = CbrQuery.of("tenant-1", new MemoryDomain("clinical-ae"),
+            "clinical-ae", Map.of("grade", 3.0), 5);
+        final var expected = List.of(
+            new ScoredCbrCase<>(new FeatureVectorCbrCase("p1", "s1", "o1", 0.9, Map.of()), 0.95),
+            new ScoredCbrCase<>(new FeatureVectorCbrCase("p2", "s2", "o2", 0.8, Map.of()), 0.85)
+        );
+
+        when(store.retrieveSimilar(query, FeatureVectorCbrCase.class)).thenReturn(expected);
+
+        final List<ScoredCbrCase<FeatureVectorCbrCase>> result = service.retrieveSimilar(query, FeatureVectorCbrCase.class);
+
+        assertThat(result).isEqualTo(expected);
+        verify(store).retrieveSimilar(query, FeatureVectorCbrCase.class);
+    }
+}

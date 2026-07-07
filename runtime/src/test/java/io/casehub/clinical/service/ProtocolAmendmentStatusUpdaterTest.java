@@ -2,14 +2,17 @@ package io.casehub.clinical.service;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.Mockito.*;
 
+import io.casehub.clinical.api.ProtocolAmendmentResolvedEvent;
 import io.casehub.clinical.api.model.AmendmentCaseStatus;
 import io.casehub.clinical.api.model.ProtocolAmendmentStatus;
 import io.casehub.clinical.api.spi.AmendmentRecommendation;
 import io.casehub.clinical.entity.ProtocolAmendment;
 import io.quarkus.test.InjectMock;
 import io.quarkus.test.junit.QuarkusTest;
+import jakarta.enterprise.event.Event;
 import jakarta.inject.Inject;
 import jakarta.transaction.Transactional;
 import java.time.Instant;
@@ -22,6 +25,7 @@ class ProtocolAmendmentStatusUpdaterTest {
 
     @Inject ProtocolAmendmentStatusUpdater updater;
     @InjectMock ProtocolAmendmentLedgerWriter ledgerWriter;
+    @InjectMock Event<ProtocolAmendmentResolvedEvent> resolvedEvents;
 
     UUID amendmentId;
 
@@ -97,6 +101,57 @@ class ProtocolAmendmentStatusUpdaterTest {
     void unknown_amendmentId_returns_silently() {
         updater.applyRecommendation(UUID.randomUUID(), "PROCEED");
         verifyNoInteractions(ledgerWriter);
+    }
+
+    @Test
+    void proceed_fires_resolved_event() {
+        updater.applyRecommendation(amendmentId, "PROCEED");
+
+        verify(resolvedEvents).fireAsync(argThat(event ->
+            event.amendmentId().equals(amendmentId) &&
+            event.terminalStatus() == ProtocolAmendmentStatus.APPROVED &&
+            event.recommendation() == AmendmentRecommendation.PROCEED &&
+            event.tenantId().equals("default")
+        ));
+    }
+
+    @Test
+    void halt_fires_resolved_event() {
+        updater.applyRecommendation(amendmentId, "HALT");
+
+        verify(resolvedEvents).fireAsync(argThat(event ->
+            event.amendmentId().equals(amendmentId) &&
+            event.terminalStatus() == ProtocolAmendmentStatus.HALTED &&
+            event.recommendation() == AmendmentRecommendation.HALT
+        ));
+    }
+
+    @Test
+    void refer_to_dsmb_fires_resolved_event() {
+        updater.applyRecommendation(amendmentId, "REFER_TO_DSMB");
+
+        verify(resolvedEvents).fireAsync(argThat(event ->
+            event.amendmentId().equals(amendmentId) &&
+            event.terminalStatus() == ProtocolAmendmentStatus.SUPERVISED &&
+            event.recommendation() == AmendmentRecommendation.REFER_TO_DSMB
+        ));
+    }
+
+    @Test
+    void unknown_recommendation_does_not_fire_event() {
+        updater.applyRecommendation(amendmentId, "UNKNOWN_VALUE");
+
+        verifyNoInteractions(resolvedEvents);
+    }
+
+    @Test
+    void idempotent_call_does_not_fire_event() {
+        updater.applyRecommendation(amendmentId, "PROCEED");
+        reset(resolvedEvents);
+
+        updater.applyRecommendation(amendmentId, "HALT");
+
+        verifyNoInteractions(resolvedEvents);
     }
 
     @Transactional
