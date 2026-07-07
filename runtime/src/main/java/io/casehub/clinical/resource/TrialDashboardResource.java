@@ -59,7 +59,8 @@ public class TrialDashboardResource {
         UUID id, UUID enrollmentId, UUID siteId, String siteName,
         String patientId, String grade, String eventType,
         Instant reportedAt, Instant slaDeadline, String escalationStatus,
-        String regulatorySubmissionStatus, String slaTimeRemaining
+        String regulatorySubmissionStatus, String slaTimeRemaining,
+        Double slaTimeRemainingHours
     ) {}
 
     public record DeviationRow(
@@ -93,6 +94,16 @@ public class TrialDashboardResource {
     public record SiteRow(UUID id, String investigatorId, String status,
                           long enrolledCount, long adverseEventCount,
                           long deviationCount, int targetEnrollment) {}
+
+    public record CommitmentLifecycleResponse(
+        UUID deviationId,
+        String deviationType,
+        String severity,
+        String piApprovalStatus,
+        String channelName,
+        Instant commandedAt,
+        Instant resolvedAt
+    ) {}
 
     /** All 8 capabilities with their primary trust dimension. */
     private static final List<String[]> CAPABILITY_DIMENSIONS = List.of(
@@ -210,8 +221,10 @@ public class TrialDashboardResource {
         Instant now = Instant.now();
         List<AdverseEventRow> rows = aes.stream().map(ae -> {
             String slaRemaining = null;
+            Double slaHours = null;
             if (ae.slaDeadline != null) {
                 Duration remaining = Duration.between(now, ae.slaDeadline);
+                slaHours = remaining.toMinutes() / 60.0;
                 if (remaining.isNegative()) {
                     slaRemaining = "OVERDUE by " + formatDuration(remaining.abs());
                 } else {
@@ -227,7 +240,8 @@ public class TrialDashboardResource {
                 ae.reportedAt, ae.slaDeadline,
                 ae.escalationStatus != null ? ae.escalationStatus.name() : null,
                 ae.regulatorySubmissionStatus != null ? ae.regulatorySubmissionStatus.name() : null,
-                slaRemaining
+                slaRemaining,
+                slaHours
             );
         }).toList();
 
@@ -582,6 +596,37 @@ public class TrialDashboardResource {
             .toList();
 
         return Response.ok(results).build();
+    }
+
+    @GET
+    @Path("/deviations/{devId}/commitment")
+    @RolesAllowed({ClinicalGroups.SPONSOR, ClinicalGroups.INVESTIGATOR, ClinicalGroups.COORDINATOR})
+    public Response getCommitmentLifecycle(
+            @PathParam("trialId") UUID trialId,
+            @PathParam("devId") UUID devId) {
+
+        ProtocolDeviation deviation = ProtocolDeviation.findByIdForTenant(devId, principal);
+        if (deviation == null) {
+            return Response.status(404).build();
+        }
+
+        // Verify deviation belongs to this trial (via site → trial)
+        TrialSite site = TrialSite.findByIdForTenant(deviation.siteId, principal);
+        if (site == null || !site.trialId.equals(trialId)) {
+            return Response.status(404).build();
+        }
+
+        var response = new CommitmentLifecycleResponse(
+            devId,
+            deviation.deviationType,
+            deviation.severity != null ? deviation.severity.name() : null,
+            deviation.piApprovalStatus != null ? deviation.piApprovalStatus.name() : null,
+            deviation.piCommandChannelName,
+            deviation.commandedAt,
+            deviation.responseDeadline
+        );
+
+        return Response.ok(response).build();
     }
 
     private AePrecedentResponse mapToAeResponse(ScoredCbrCase<FeatureVectorCbrCase> scored) {

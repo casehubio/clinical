@@ -1,0 +1,4 @@
+workItemId,title,status,priority,claimDeadline,assignee,candidateGroups,createdAt,description
+wi-001,Review SUSAR ae-003,CLAIMED,HIGH,2026-07-08T10:00:00Z,sponsor-reviewer-1,clinical-safety,2026-07-07T08:00:00Z,Review Grade 4 neutropenia SUSAR for IND filing
+wi-002,Approve deviation dev-002,UNCLAIMED,MEDIUM,2026-07-09T14:00:00Z,,clinical-pi,2026-07-07T09:00:00Z,Principal Investigator review of dosing deviation
+wi-003,IRB review for dev-004,UNCLAIMED,HIGH,2026-07-10T16:00:00Z,,clinical-irb,2026-07-07T10:00:00Z,Ethics committee review of consent amendment

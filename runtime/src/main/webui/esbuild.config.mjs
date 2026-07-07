@@ -15,6 +15,9 @@ const config = {
   sourcemap: true,
   minify: !watch,
   logLevel: "info",
+  loader: {
+    ".csv": "text",
+  },
 };
 
 if (watch) {

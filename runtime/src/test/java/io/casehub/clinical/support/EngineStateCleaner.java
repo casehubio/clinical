@@ -3,7 +3,8 @@ package io.casehub.clinical.support;
 import io.casehub.api.model.CaseStatus;
 import io.casehub.engine.common.spi.cache.CaseInstanceCache;
 import io.casehub.persistence.memory.InMemoryCaseInstanceRepository;
-import io.casehub.persistence.memory.MemoryPlanItemStore;
+// TODO(#121): MemoryPlanItemStore class not found during test compilation — engine snapshot update?
+// import io.casehub.persistence.memory.MemoryPlanItemStore;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 import org.jboss.logging.Logger;
@@ -36,7 +37,8 @@ public class EngineStateCleaner {
     private static final Logger LOG = Logger.getLogger(EngineStateCleaner.class);
 
     @Inject CaseInstanceCache caseInstanceCache;
-    @Inject MemoryPlanItemStore planItemStore;
+    // TODO(#121): MemoryPlanItemStore injection commented out — class not found during compilation
+    // @Inject MemoryPlanItemStore planItemStore;
     @Inject InMemoryCaseInstanceRepository caseInstanceRepository;
 
     /**

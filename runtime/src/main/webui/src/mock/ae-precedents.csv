@@ -1,0 +1,4 @@
+precedentId,aeId,eventType,grade,similarity,escalationOutcome,indFiled,resolutionDays
+prec-ae-001,ae-demo-001,HEPATOTOXICITY,GRADE_4,0.92,ESCALATED,true,3
+prec-ae-002,ae-demo-001,HEPATOTOXICITY,GRADE_3,0.85,ESCALATED,false,5
+prec-ae-003,ae-demo-001,HEPATOTOXICITY,GRADE_4,0.88,COMPLETED,true,2

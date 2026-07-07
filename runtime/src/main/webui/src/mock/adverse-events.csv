@@ -1,0 +1,6 @@
+id,grade,eventType,patientId,siteId,siteName,reportedAt,slaDeadline,slaTimeRemainingHours,escalationStatus,regulatorySubmissionStatus,unexpected,suspected
+ae-001,GRADE_4,HEPATOTOXICITY,pat-001,site-a,Memorial Cancer Center,2026-07-01T10:00:00Z,2026-07-02T10:00:00Z,18.5,COMPLETED,FILED,true,true
+ae-002,GRADE_2,NAUSEA,pat-002,site-a,Memorial Cancer Center,2026-07-02T14:00:00Z,2026-07-09T14:00:00Z,150.0,REPORTED,,false,false
+ae-003,GRADE_4,NEUTROPENIA,pat-003,site-b,Johns Hopkins Oncology,2026-07-03T08:00:00Z,2026-07-04T08:00:00Z,-2.5,ESCALATED,PENDING,true,true
+ae-004,GRADE_3,THROMBOCYTOPENIA,pat-004,site-a,Memorial Cancer Center,2026-07-04T11:00:00Z,2026-07-05T11:00:00Z,6.0,REQUESTED,,true,false
+ae-005,GRADE_1,FATIGUE,pat-005,site-c,Mayo Clinic Research,2026-07-05T09:00:00Z,2026-07-12T09:00:00Z,168.0,REPORTED,,false,false

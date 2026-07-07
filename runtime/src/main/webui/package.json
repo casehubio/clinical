@@ -1,16 +1,31 @@
 {
-  "name": "casehub-clinical-ui",
+  "name": "casehub-clinical-webui",
   "private": true,
   "scripts": {
     "build": "node esbuild.config.mjs",
-    "dev": "node esbuild.config.mjs --watch"
+    "dev": "node esbuild.config.mjs --watch",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "test:watch": "vitest"
   },
   "dependencies": {
+    "lit": "^3.0.0",
     "@casehubio/pages-runtime": "file:../../../../../pages/packages/pages-runtime",
-    "@casehubio/pages-ui": "file:../../../../../pages/packages/pages-ui"
+    "@casehubio/pages-ui": "file:../../../../../pages/packages/pages-ui",
+    "@casehubio/pages-component": "file:../../../../../pages/packages/pages-component",
+    "@casehubio/pages-data": "file:../../../../../pages/packages/pages-data",
+    "@casehubio/pages-ui-tokens": "file:../../../../../pages/packages/pages-ui-tokens",
+    "@casehubio/blocks-ui-core": "file:../../../../../blocks-ui/packages/blocks-ui-core",
+    "@casehubio/blocks-ui-approval-gate": "file:../../../../../blocks-ui/components/approval-gate",
+    "@casehubio/blocks-ui-sla-indicator": "file:../../../../../blocks-ui/components/sla-indicator",
+    "@casehubio/blocks-ui-kpi-metric-row": "file:../../../../../blocks-ui/components/kpi-metric-row",
+    "@casehubio/blocks-ui-data-table": "file:../../../../../blocks-ui/components/data-table",
+    "@casehubio/blocks-ui-work-item-inbox": "file:../../../../../blocks-ui/components/work-item-inbox"
   },
   "devDependencies": {
     "esbuild": "^0.25.0",
-    "typescript": "^5.6.0"
+    "typescript": "^5.6.0",
+    "vitest": "^3.0.0",
+    "happy-dom": "^17.0.0"
   }
 }

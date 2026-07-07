@@ -1,19 +1,27 @@
 import { loadSite } from "@casehubio/pages-runtime";
-import { dashboard } from "./dashboard";
-import { theme } from "./theme";
-import { ClinicalPiApproval } from "./components/clinical-pi-approval";
-import { ClinicalSusarGate } from "./components/clinical-susar-gate";
-import { ClinicalMerkleVerify } from "./components/clinical-merkle-verify";
+import { app } from "./app.js";
+import { ClinicalCommitmentLifecycle } from "./components/commitment-lifecycle.js";
+import { ClinicalCbrPrecedentsPanel } from "./components/cbr-precedents-panel.js";
+import { ClinicalTrustFeedbackDisplay } from "./components/trust-feedback-display.js";
+import { ClinicalRegulatoryComplianceSummary } from "./components/regulatory-compliance-summary.js";
+import { ClinicalGdprErasureAction } from "./components/gdpr-erasure-action.js";
+import { ClinicalSlaBreachPolicyIndicator } from "./components/sla-breach-policy-indicator.js";
+import "@casehubio/blocks-ui-work-item-inbox";
 
-customElements.define("clinical-pi-approval", ClinicalPiApproval);
-customElements.define("clinical-susar-gate", ClinicalSusarGate);
-customElements.define("clinical-merkle-verify", ClinicalMerkleVerify);
+const components: [string, CustomElementConstructor][] = [
+  ["commitment-lifecycle", ClinicalCommitmentLifecycle],
+  ["cbr-precedents-panel", ClinicalCbrPrecedentsPanel],
+  ["trust-feedback-display", ClinicalTrustFeedbackDisplay],
+  ["regulatory-compliance-summary", ClinicalRegulatoryComplianceSummary],
+  ["gdpr-erasure-action", ClinicalGdprErasureAction],
+  ["sla-breach-policy-indicator", ClinicalSlaBreachPolicyIndicator],
+];
 
-const style = document.createElement("style");
-style.textContent = theme;
-document.head.appendChild(style);
+for (const [name, ctor] of components) {
+  if (!customElements.get(name)) customElements.define(name, ctor);
+}
 
 const container = document.getElementById("app");
 if (container) {
-  loadSite(container, dashboard).catch(console.error);
+  loadSite(container, app).catch(console.error);
 }
