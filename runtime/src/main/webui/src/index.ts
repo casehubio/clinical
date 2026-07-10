@@ -6,7 +6,6 @@ import { ClinicalTrustFeedbackDisplay } from "./components/trust-feedback-displa
 import { ClinicalRegulatoryComplianceSummary } from "./components/regulatory-compliance-summary.js";
 import { ClinicalGdprErasureAction } from "./components/gdpr-erasure-action.js";
 import { ClinicalSlaBreachPolicyIndicator } from "./components/sla-breach-policy-indicator.js";
-import "@casehubio/blocks-ui-work-item-inbox";
 
 const components: [string, CustomElementConstructor][] = [
   ["commitment-lifecycle", ClinicalCommitmentLifecycle],
@@ -23,5 +22,8 @@ for (const [name, ctor] of components) {
 
 const container = document.getElementById("app");
 if (container) {
-  loadSite(container, app).catch(console.error);
+  loadSite(container, app).catch((err) => {
+    console.error("loadSite failed:", err);
+    container.innerHTML = `<pre style="color:red;padding:2rem;">${err?.stack ?? err}</pre>`;
+  });
 }

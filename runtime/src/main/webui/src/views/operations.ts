@@ -11,18 +11,18 @@ import {
 export function operations(): Component {
   const trialDashboard = rows(
     columns([3, 3, 3, 3],
-      [metric({ title: "Trial Phase", lookup: lookup(trialSummaryDs.uuid, groupBy(null, col("phase"))) })],
-      [metric({ title: "Total Enrolled", lookup: lookup(trialSummaryDs.uuid, groupBy(null, sum("totalEnrolled"))) })],
-      [metric({ title: "Adverse Events", lookup: lookup(trialSummaryDs.uuid, groupBy(null, sum("activeAeCount"))) })],
-      [metric({ title: "Protocol Deviations", lookup: lookup(trialSummaryDs.uuid, groupBy(null, sum("deviationCount"))) })],
+      [metric({ title: "Trial Phase", lookup: lookup(trialSummaryDs.id, groupBy(null, col("phase"))) })],
+      [metric({ title: "Total Enrolled", lookup: lookup(trialSummaryDs.id, groupBy(null, sum("totalEnrolled"))) })],
+      [metric({ title: "Adverse Events", lookup: lookup(trialSummaryDs.id, groupBy(null, sum("activeAeCount"))) })],
+      [metric({ title: "Protocol Deviations", lookup: lookup(trialSummaryDs.id, groupBy(null, sum("deviationCount"))) })],
     ),
     barChart({
       title: "Enrollment by Site: Target vs Actual",
-      lookup: lookup(sitesDs.uuid, groupBy("investigatorId", col("investigatorId"), col("targetEnrollment"), col("enrolledCount"))),
+      lookup: lookup(sitesDs.id, groupBy("investigatorId", col("investigatorId"), col("targetEnrollment"), col("enrolledCount"))),
     }),
     table({
       title: "Recent Activity",
-      lookup: lookup(ledgerEntriesDs.uuid),
+      lookup: lookup(ledgerEntriesDs.id),
       sortable: true,
       pageSize: 10,
       columns: [
@@ -37,7 +37,7 @@ export function operations(): Component {
   const trustGovernance = rows(
     table({
       title: "Agent Trust Scores",
-      lookup: lookup(agentsDs.uuid),
+      lookup: lookup(agentsDs.id),
       sortable: true,
       pageSize: 25,
       columns: [
@@ -54,7 +54,7 @@ export function operations(): Component {
   const slaHealth = rows(
     pieChart({
       title: "Work Items by SLA Status",
-      lookup: lookup(workItemsDs.uuid, groupBy("slaStatus", col("slaStatus"), count("id"))),
+      lookup: lookup(workItemsDs.id, groupBy("slaStatus", col("slaStatus"), count("id"))),
     }),
   );
 

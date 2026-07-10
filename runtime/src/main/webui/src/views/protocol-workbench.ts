@@ -9,7 +9,7 @@ import { auditTrailStub } from "../stubs/audit-trail-viewer.js";
 export function protocolWorkbench(): Component {
   const deviationTable = table({
     title: "Protocol Deviations",
-    lookup: lookup(deviationsDs.uuid),
+    lookup: lookup(deviationsDs.id),
     sortable: true,
     pageSize: 25,
     columns: [
@@ -53,7 +53,7 @@ export function protocolWorkbench(): Component {
       ></cbr-precedents-panel>`),
     )],
     ["Audit Trail", panel("Ledger Entries",
-      auditTrailStub(ledgerEntriesDs.uuid),
+      auditTrailStub(ledgerEntriesDs.id),
     )],
   );
 

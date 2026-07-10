@@ -1,5 +1,7 @@
-import { dataset, inlineDataset } from "@casehubio/pages-ui";
-import type { DatasetOptions } from "@casehubio/pages-ui";
+import { bind } from "@casehubio/pages-ui";
+import { csvSource } from "@casehubio/pages-data";
+import type { DataSourceBinding } from "@casehubio/pages-data";
+import type { DataSetId } from "@casehubio/pages-data";
 
 import adverseEventsCsv from "./mock/adverse-events.csv?raw";
 import deviationsCsv from "./mock/deviations.csv?raw";
@@ -24,11 +26,15 @@ export function dualDataset(
   id: string,
   endpoint: string,
   mockCsv: string,
-  options?: DatasetOptions,
-) {
-  return DEMO_MODE
-    ? inlineDataset(id, mockCsv, options)
-    : dataset(id, endpoint, options);
+): DataSourceBinding {
+  if (DEMO_MODE) {
+    return bind(id, csvSource(mockCsv));
+  }
+  return {
+    id: id as DataSetId,
+    source: { connect() {}, disconnect() {} },
+    url: endpoint,
+  } as DataSourceBinding;
 }
 
 export const adverseEventsDs = dualDataset(
@@ -47,7 +53,6 @@ export const trialSummaryDs = dualDataset(
   "trial-summary",
   `/api/trials/${TRIAL_ID}/summary`,
   trialSummaryCsv,
-  { expression: "[$]" },
 );
 
 export const sitesDs = dualDataset(
@@ -93,14 +98,7 @@ export const deviationPrecedentsDs = dualDataset(
 );
 
 export const allDatasets = [
-  adverseEventsDs,
-  deviationsDs,
-  trialSummaryDs,
-  sitesDs,
-  agentsDs,
-  ledgerEntriesDs,
-  patientsDs,
-  workItemsDs,
-  aePrecedentsDs,
-  deviationPrecedentsDs,
+  adverseEventsDs, deviationsDs, trialSummaryDs, sitesDs,
+  agentsDs, ledgerEntriesDs, patientsDs, workItemsDs,
+  aePrecedentsDs, deviationPrecedentsDs,
 ];

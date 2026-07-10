@@ -5,7 +5,7 @@ describe("dualDataset", () => {
   it("returns a dataset object", () => {
     const ds = dualDataset("test", "/api/test", "id,name\n1,Alpha\n2,Beta");
     expect(ds).toBeDefined();
-    expect(ds.uuid).toBeDefined();
+    expect(ds.id).toBeDefined();
   });
 
   it("exports DEMO_MODE constant", () => {

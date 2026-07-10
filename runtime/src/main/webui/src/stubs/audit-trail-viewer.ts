@@ -1,10 +1,10 @@
 import { table, lookup } from "@casehubio/pages-ui";
 import type { Component } from "@casehubio/pages-ui";
 
-export function auditTrailStub(datasetUuid: string): Component {
+export function auditTrailStub(datasetId: string): Component {
   return table({
     title: "Audit Trail",
-    lookup: lookup(datasetUuid),
+    lookup: lookup(datasetId),
     sortable: true,
     pageSize: 25,
     columns: [

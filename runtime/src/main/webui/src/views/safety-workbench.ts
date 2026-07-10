@@ -9,7 +9,7 @@ import { auditTrailStub } from "../stubs/audit-trail-viewer.js";
 export function safetyWorkbench(): Component {
   const aeTable = table({
     title: "Adverse Events",
-    lookup: lookup(adverseEventsDs.uuid),
+    lookup: lookup(adverseEventsDs.id),
     sortable: true,
     pageSize: 25,
     columns: [
@@ -55,7 +55,7 @@ export function safetyWorkbench(): Component {
       ></cbr-precedents-panel>`),
     )],
     ["Audit Trail", panel("Ledger Entries",
-      auditTrailStub(ledgerEntriesDs.uuid),
+      auditTrailStub(ledgerEntriesDs.id),
     )],
   );
 

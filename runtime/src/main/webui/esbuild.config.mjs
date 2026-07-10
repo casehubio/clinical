@@ -18,6 +18,10 @@ const config = {
   loader: {
     ".csv": "text",
   },
+  define: {
+    "import.meta.env.VITE_DEMO_MODE": JSON.stringify(process.env.VITE_DEMO_MODE || "true"),
+    "import.meta.env.VITE_TRIAL_ID": JSON.stringify(process.env.VITE_TRIAL_ID || ""),
+  },
 };
 
 if (watch) {
