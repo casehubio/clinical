@@ -102,7 +102,7 @@ public class ProtocolDeviationService {
             ChannelSemantic.APPEND,
             null, null, null, null, null,
             CHANNEL_ALLOWED_TYPES,
-            null, null, null, null, null
+            null, null, null, null, null, null
         ));
     }
 

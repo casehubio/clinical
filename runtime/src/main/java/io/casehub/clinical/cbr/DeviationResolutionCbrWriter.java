@@ -6,6 +6,7 @@ import io.casehub.clinical.api.model.IrbDecision;
 import io.casehub.clinical.api.model.PiApprovalStatus;
 import io.casehub.clinical.entity.IrbApproval;
 import io.casehub.clinical.entity.ProtocolDeviation;
+import io.casehub.neocortex.memory.cbr.FeatureValue;
 import io.casehub.neocortex.memory.cbr.PlanCbrCase;
 import io.casehub.neocortex.memory.cbr.PlanTrace;
 import jakarta.enterprise.context.ApplicationScoped;
@@ -154,7 +155,7 @@ public class DeviationResolutionCbrWriter {
             solution,
             "RESOLVED",
             1.0,
-            features,
+            FeatureValue.toFeatureMap(features),
             trace
         );
 

@@ -46,8 +46,8 @@ class SusarOversightLifecycleTest {
         UUID caseId = findAe(aeId).susarOversightCaseId;
 
         // Drive gate approval and case completion directly (GE-20260614-b97659 Option 1)
-        gateDecisionListener.onApproved(new ActionGateApprovedEvent(caseId, 1L, null, "dr-smith"));
-        oversightListener.onCaseLifecycle(new CaseLifecycleEvent(
+        gateDecisionListener.onApproved(new ActionGateApprovedEvent(caseId, "default", 1L, null, "dr-smith"));
+        oversightListener.onCaseLifecycle(CaseLifecycleEvent.of(
                 caseId, TEST_TENANCY_ID, "GoalReached", "GoalReached",
                 "COMPLETED", "system", "SYSTEM", null));
 

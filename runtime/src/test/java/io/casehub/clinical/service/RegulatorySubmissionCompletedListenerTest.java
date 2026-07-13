@@ -122,7 +122,7 @@ class RegulatorySubmissionCompletedListenerTest {
     }
 
     private CaseLifecycleEvent event(String eventType, UUID caseId) {
-        return new CaseLifecycleEvent(
+        return CaseLifecycleEvent.of(
                 caseId, "test-tenant", "SomeCommand", eventType,
                 null, null, null, null);
     }

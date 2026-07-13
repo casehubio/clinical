@@ -6,6 +6,7 @@ import io.casehub.clinical.api.model.*;
 import io.casehub.clinical.entity.IrbApproval;
 import io.casehub.clinical.entity.ProtocolDeviation;
 import io.casehub.clinical.api.ClinicalGroups;
+import io.casehub.neocortex.memory.cbr.FeatureValue;
 import io.casehub.neocortex.memory.cbr.PlanCbrCase;
 import io.casehub.neocortex.memory.cbr.PlanTrace;
 import io.casehub.platform.testing.FixedCurrentPrincipal;
@@ -107,7 +108,7 @@ class DeviationResolutionCbrWriterTest {
         assertThat(stored.outcome()).isEqualTo("RESOLVED");
         assertThat(stored.confidence()).isEqualTo(1.0);
 
-        Map<String, Object> features = stored.features();
+        Map<String, Object> features = FeatureValue.toRawMap(stored.features());
         assertThat(features)
             .containsEntry("deviationType", "CONSENT_TIMING_DELAY")
             .containsEntry("severity", "MINOR")
@@ -180,7 +181,7 @@ class DeviationResolutionCbrWriterTest {
         );
 
         PlanCbrCase stored = caseCaptor.getValue();
-        assertThat(stored.features())
+        assertThat(FeatureValue.toRawMap(stored.features()))
             .containsEntry("piDecision", "ESCALATED")
             .containsEntry("irbDecision", "N/A");  // No IRB decision yet
 
@@ -245,7 +246,7 @@ class DeviationResolutionCbrWriterTest {
 
         PlanCbrCase stored = caseCaptor.getValue();
         assertThat(stored.solution()).contains("IRB decision: APPROVED");
-        assertThat(stored.features())
+        assertThat(FeatureValue.toRawMap(stored.features()))
             .containsEntry("piDecision", "ESCALATED")
             .containsEntry("irbDecision", "APPROVED");
 

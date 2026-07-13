@@ -138,24 +138,22 @@ class PrecedentEndpointTest {
     private void populateAePrecedents() {
         // Store 3 AE precedents (categorical fields must be Strings)
         for (int i = 0; i < 3; i++) {
-            Map<String, Object> features = Map.of(
-                "grade", 3,
-                "eventType", "Neutropenia",
-                "trialPhase", "PHASE_III",
-                "unexpected", "true",
-                "suspected", "true",
-                "safetyReviewOutcome", "CONTINUE_MONITORING",
-                "dsmbEscalated", "false",
-                "indReportFiled", "true",
-                "susarOversight", "true"
-            );
-
             FeatureVectorCbrCase cbrCase = new FeatureVectorCbrCase(
                 "Grade 3 Neutropenia in PHASE_III trial, unexpected=true, suspected=true",
                 "Safety review outcome: CONTINUE_MONITORING, DSMB escalated: false, IND report: true, SUSAR oversight: true",
                 "COMPLETED",
                 1.0,
-                features
+                FeatureValue.toFeatureMap(Map.of(
+                    "grade", 3,
+                    "eventType", "Neutropenia",
+                    "trialPhase", "PHASE_III",
+                    "unexpected", "true",
+                    "suspected", "true",
+                    "safetyReviewOutcome", "CONTINUE_MONITORING",
+                    "dsmbEscalated", "false",
+                    "indReportFiled", "true",
+                    "susarOversight", "true"
+                ))
             );
 
             cbrService.storeIdempotent(
@@ -172,14 +170,6 @@ class PrecedentEndpointTest {
     private void populateDeviationPrecedents() {
         // Store 2 deviation precedents with plan traces
         for (int i = 0; i < 2; i++) {
-            Map<String, Object> features = Map.of(
-                "deviationType", "CONSENT_TIMING_DELAY",
-                "severity", "MINOR",
-                "escalationRequirement", "NONE",
-                "piDecision", "APPROVED",
-                "irbDecision", "N/A"
-            );
-
             List<PlanTrace> planTrace = List.of(
                 new PlanTrace("pi-oversight", "pi-authorisation", "pi-smith", "APPROVED", 1, Map.of())
             );
@@ -189,7 +179,13 @@ class PrecedentEndpointTest {
                 "PI decision: APPROVED, IRB decision: N/A",
                 "RESOLVED",
                 1.0,
-                features,
+                FeatureValue.toFeatureMap(Map.of(
+                    "deviationType", "CONSENT_TIMING_DELAY",
+                    "severity", "MINOR",
+                    "escalationRequirement", "NONE",
+                    "piDecision", "APPROVED",
+                    "irbDecision", "N/A"
+                )),
                 planTrace
             );
 

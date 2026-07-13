@@ -9,6 +9,7 @@ import io.casehub.clinical.entity.PatientEnrollment;
 import io.casehub.clinical.entity.TrialSite;
 import io.casehub.neocortex.memory.cbr.CbrCaseMemoryStore;
 import io.casehub.neocortex.memory.cbr.CbrQuery;
+import io.casehub.neocortex.memory.cbr.FeatureValue;
 import io.casehub.neocortex.memory.cbr.FeatureVectorCbrCase;
 import io.casehub.neocortex.memory.cbr.ScoredCbrCase;
 import io.casehub.platform.testing.FixedCurrentPrincipal;
@@ -126,7 +127,7 @@ class AeResolutionCbrWriterIntegrationTest {
             principal.tenancyId(),
             ClinicalCbrDomains.AE,
             "clinical-ae",
-            Map.of("grade", 3.0),
+            FeatureValue.toFeatureMap(Map.of("grade", 3.0)),
             10
         );
 
@@ -137,7 +138,7 @@ class AeResolutionCbrWriterIntegrationTest {
         FeatureVectorCbrCase storedCase = results.stream()
             .map(ScoredCbrCase::cbrCase)
             .filter(c -> {
-                Map<String, Object> f = c.features();
+                Map<String, Object> f = FeatureValue.toRawMap(c.features());
                 return f.get("grade").equals(3)
                     && f.get("eventType").equals("Neutropenia")
                     && f.get("safetyReviewOutcome").equals("CONTINUE_MONITORING")
@@ -151,7 +152,7 @@ class AeResolutionCbrWriterIntegrationTest {
         assertThat(storedCase.outcome()).isEqualTo("COMPLETED");
         assertThat(storedCase.confidence()).isEqualTo(1.0);
 
-        Map<String, Object> features = storedCase.features();
+        Map<String, Object> features = FeatureValue.toRawMap(storedCase.features());
         assertThat(features.get("grade")).isEqualTo(3);  // GRADE_3.ordinal() + 1
         assertThat(features.get("eventType")).isEqualTo("Neutropenia");
         assertThat(features.get("trialPhase")).isEqualTo("PHASE_III");
@@ -187,7 +188,7 @@ class AeResolutionCbrWriterIntegrationTest {
             principal.tenancyId(),
             ClinicalCbrDomains.AE,
             "clinical-ae",
-            Map.of("grade", 4.0),
+            FeatureValue.toFeatureMap(Map.of("grade", 4.0)),
             10
         );
 
@@ -198,7 +199,7 @@ class AeResolutionCbrWriterIntegrationTest {
         FeatureVectorCbrCase storedCase = results.stream()
             .map(ScoredCbrCase::cbrCase)
             .filter(c -> {
-                Map<String, Object> f = c.features();
+                Map<String, Object> f = FeatureValue.toRawMap(c.features());
                 return f.get("grade").equals(4)
                     && f.get("eventType").equals("UNKNOWN")
                     && f.get("safetyReviewOutcome").equals("SUSPEND_ENROLLMENT");
@@ -206,7 +207,7 @@ class AeResolutionCbrWriterIntegrationTest {
             .findFirst()
             .orElseThrow(() -> new AssertionError("Expected case not found in results"));
 
-        Map<String, Object> features = storedCase.features();
+        Map<String, Object> features = FeatureValue.toRawMap(storedCase.features());
         assertThat(features.get("eventType")).isEqualTo("UNKNOWN");
         assertThat(storedCase.problem()).contains("UNKNOWN");
     }
@@ -235,7 +236,7 @@ class AeResolutionCbrWriterIntegrationTest {
             principal.tenancyId(),
             ClinicalCbrDomains.AE,
             "clinical-ae",
-            Map.of("grade", 3.0),
+            FeatureValue.toFeatureMap(Map.of("grade", 3.0)),
             10
         );
 
@@ -246,7 +247,7 @@ class AeResolutionCbrWriterIntegrationTest {
         FeatureVectorCbrCase storedCase = results.stream()
             .map(ScoredCbrCase::cbrCase)
             .filter(c -> {
-                Map<String, Object> f = c.features();
+                Map<String, Object> f = FeatureValue.toRawMap(c.features());
                 return f.get("grade").equals(3)
                     && f.get("eventType").equals("Neutropenia")
                     && f.get("safetyReviewOutcome").equals("UNKNOWN")
@@ -255,7 +256,7 @@ class AeResolutionCbrWriterIntegrationTest {
             .findFirst()
             .orElseThrow(() -> new AssertionError("Expected case not found in results"));
 
-        Map<String, Object> features = storedCase.features();
+        Map<String, Object> features = FeatureValue.toRawMap(storedCase.features());
         assertThat(features.get("safetyReviewOutcome")).isEqualTo("UNKNOWN");
         assertThat(storedCase.solution()).contains("UNKNOWN");
     }
@@ -284,7 +285,7 @@ class AeResolutionCbrWriterIntegrationTest {
             principal.tenancyId(),
             ClinicalCbrDomains.AE,
             "clinical-ae",
-            Map.of("grade", 5.0),
+            FeatureValue.toFeatureMap(Map.of("grade", 5.0)),
             10
         );
 
@@ -295,7 +296,7 @@ class AeResolutionCbrWriterIntegrationTest {
         FeatureVectorCbrCase storedCase = results.stream()
             .map(ScoredCbrCase::cbrCase)
             .filter(c -> {
-                Map<String, Object> f = c.features();
+                Map<String, Object> f = FeatureValue.toRawMap(c.features());
                 return f.get("grade").equals(5)
                     && f.get("eventType").equals("Neutropenia")
                     && f.get("safetyReviewOutcome").equals("TRIAL_SUSPENSION_RECOMMENDED")
@@ -304,7 +305,7 @@ class AeResolutionCbrWriterIntegrationTest {
             .findFirst()
             .orElseThrow(() -> new AssertionError("Expected case not found in results"));
 
-        Map<String, Object> features = storedCase.features();
+        Map<String, Object> features = FeatureValue.toRawMap(storedCase.features());
         assertThat(features.get("grade")).isEqualTo(5);  // GRADE_5.ordinal() + 1
         assertThat(storedCase.problem()).contains("Grade 5");
         assertThat(storedCase.solution()).contains("TRIAL_SUSPENSION_RECOMMENDED");

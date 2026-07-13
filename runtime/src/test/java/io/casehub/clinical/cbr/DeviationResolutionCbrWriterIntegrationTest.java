@@ -8,6 +8,7 @@ import io.casehub.clinical.entity.ProtocolDeviation;
 import io.casehub.clinical.api.ClinicalGroups;
 import io.casehub.neocortex.memory.cbr.CbrCaseMemoryStore;
 import io.casehub.neocortex.memory.cbr.CbrQuery;
+import io.casehub.neocortex.memory.cbr.FeatureValue;
 import io.casehub.neocortex.memory.cbr.PlanCbrCase;
 import io.casehub.neocortex.memory.cbr.ScoredCbrCase;
 import io.casehub.platform.testing.FixedCurrentPrincipal;
@@ -92,7 +93,7 @@ class DeviationResolutionCbrWriterIntegrationTest {
             tenantId,
             ClinicalCbrDomains.DEVIATION,
             "clinical-deviation",
-            Map.of("deviationType", "CONSENT_TIMING_DELAY", "severity", "MINOR"),
+            FeatureValue.toFeatureMap(Map.of("deviationType", "CONSENT_TIMING_DELAY", "severity", "MINOR")),
             10
         );
 
@@ -103,7 +104,7 @@ class DeviationResolutionCbrWriterIntegrationTest {
         assertThat(retrieved.problem()).contains("CONSENT_TIMING_DELAY", "MINOR");
         assertThat(retrieved.solution()).contains("PI decision: APPROVED");
         assertThat(retrieved.outcome()).isEqualTo("RESOLVED");
-        assertThat(retrieved.features())
+        assertThat(FeatureValue.toRawMap(retrieved.features()))
             .containsEntry("deviationType", "CONSENT_TIMING_DELAY")
             .containsEntry("severity", "MINOR")
             .containsEntry("piDecision", "APPROVED")
@@ -176,7 +177,7 @@ class DeviationResolutionCbrWriterIntegrationTest {
             tenantId,
             ClinicalCbrDomains.DEVIATION,
             "clinical-deviation",
-            Map.of("deviationType", "INFORMED_CONSENT_VIOLATION"),
+            FeatureValue.toFeatureMap(Map.of("deviationType", "INFORMED_CONSENT_VIOLATION")),
             10
         );
 
@@ -186,11 +187,11 @@ class DeviationResolutionCbrWriterIntegrationTest {
         // Find the case for this specific deviation
         PlanCbrCase retrieved = results.stream()
             .map(ScoredCbrCase::cbrCase)
-            .filter(c -> c.features().get("deviationType").equals("INFORMED_CONSENT_VIOLATION"))
+            .filter(c -> FeatureValue.toRawMap(c.features()).get("deviationType").equals("INFORMED_CONSENT_VIOLATION"))
             .findFirst()
             .orElseThrow();
         assertThat(retrieved.solution()).contains("IRB decision: APPROVED");
-        assertThat(retrieved.features())
+        assertThat(FeatureValue.toRawMap(retrieved.features()))
             .containsEntry("piDecision", "ESCALATED")
             .containsEntry("irbDecision", "APPROVED");
 
@@ -238,7 +239,7 @@ class DeviationResolutionCbrWriterIntegrationTest {
             tenantId,
             ClinicalCbrDomains.DEVIATION,
             "clinical-deviation",
-            Map.of("severity", "MAJOR"),
+            FeatureValue.toFeatureMap(Map.of("severity", "MAJOR")),
             10
         );
 
@@ -246,7 +247,7 @@ class DeviationResolutionCbrWriterIntegrationTest {
         assertThat(results).isNotEmpty();
 
         PlanCbrCase retrieved = results.get(0).cbrCase();
-        assertThat(retrieved.features())
+        assertThat(FeatureValue.toRawMap(retrieved.features()))
             .containsEntry("piDecision", "REJECTED")
             .containsEntry("severity", "MAJOR")
             .containsEntry("escalationRequirement", "SPONSOR_NOTIFICATION");

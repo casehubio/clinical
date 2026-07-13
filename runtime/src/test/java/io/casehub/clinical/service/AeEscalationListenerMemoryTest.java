@@ -116,7 +116,7 @@ class AeEscalationListenerMemoryTest {
     }
 
     private static CaseLifecycleEvent goalReached(UUID caseId) {
-        return new CaseLifecycleEvent(
-            caseId, null, "CompleteCase", "GoalReached", "RUNNING", "system", "system", null);
+        return CaseLifecycleEvent.of(
+            caseId, "default", "CompleteCase", "GoalReached", "RUNNING", "system", "system", null);
     }
 }

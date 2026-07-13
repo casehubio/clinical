@@ -7,6 +7,7 @@ import io.casehub.api.model.Binding;
 import io.casehub.api.model.ContextChangeTrigger;
 import io.casehub.api.model.GoalBasedCompletion;
 import io.casehub.api.model.HumanTaskTarget;
+import io.casehub.api.model.StandardGoalKind;
 import io.casehub.api.model.converter.CaseDefinitionYamlMapper;
 import io.casehub.api.spi.routing.CandidateSetSpec;
 import io.casehub.api.spi.routing.StaticSetStrategy;
@@ -42,11 +43,11 @@ class ClinicalCaseDefinitionEquivalenceTest {
 
         assertThat(fromDsl.getCompletion()).isInstanceOf(GoalBasedCompletion.class);
         var dslCompletion = (GoalBasedCompletion) fromDsl.getCompletion();
-        assertThat(dslCompletion.getSuccess()).isInstanceOf(AllOfGoalExpression.class);
-        assertThat(((AllOfGoalExpression) dslCompletion.getSuccess()).getGoals())
+        assertThat(dslCompletion.getGoals().get(StandardGoalKind.SUCCESS)).isInstanceOf(AllOfGoalExpression.class);
+        assertThat(((AllOfGoalExpression) dslCompletion.getGoals().get(StandardGoalKind.SUCCESS)).children())
             .containsExactlyInAnyOrderElementsOf(
-                ((AllOfGoalExpression) ((GoalBasedCompletion) fromYaml.getCompletion()).getSuccess()).getGoals());
-        assertThat(dslCompletion.getFailure()).isNull();
+                ((AllOfGoalExpression) ((GoalBasedCompletion) fromYaml.getCompletion()).getGoals().get(StandardGoalKind.SUCCESS)).children());
+        assertThat(dslCompletion.getGoals().get(StandardGoalKind.FAILURE)).isNull();
     }
 
     @Test
@@ -76,11 +77,11 @@ class ClinicalCaseDefinitionEquivalenceTest {
 
         assertThat(fromDsl.getCompletion()).isInstanceOf(GoalBasedCompletion.class);
         var dslCompletion = (GoalBasedCompletion) fromDsl.getCompletion();
-        assertThat(dslCompletion.getSuccess()).isInstanceOf(AllOfGoalExpression.class);
-        assertThat(((AllOfGoalExpression) dslCompletion.getSuccess()).getGoals())
+        assertThat(dslCompletion.getGoals().get(StandardGoalKind.SUCCESS)).isInstanceOf(AllOfGoalExpression.class);
+        assertThat(((AllOfGoalExpression) dslCompletion.getGoals().get(StandardGoalKind.SUCCESS)).children())
             .containsExactlyInAnyOrderElementsOf(
-                ((AllOfGoalExpression) ((GoalBasedCompletion) fromYaml.getCompletion()).getSuccess()).getGoals());
-        assertThat(dslCompletion.getFailure()).isNull();
+                ((AllOfGoalExpression) ((GoalBasedCompletion) fromYaml.getCompletion()).getGoals().get(StandardGoalKind.SUCCESS)).children());
+        assertThat(dslCompletion.getGoals().get(StandardGoalKind.FAILURE)).isNull();
     }
 
     @Test

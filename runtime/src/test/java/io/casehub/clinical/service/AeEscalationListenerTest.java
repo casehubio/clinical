@@ -60,8 +60,8 @@ class AeEscalationListenerTest {
         when(statusUpdater.markCompleted(aeId)).thenReturn(true);
         when(completedEvents.fireAsync(any())).thenReturn(CompletableFuture.completedFuture(null));
 
-        listener.onCaseLifecycle(new CaseLifecycleEvent(
-                caseId, null, "CompleteCase", "CaseCompleted", "COMPLETED", "system", "system", null));
+        listener.onCaseLifecycle(CaseLifecycleEvent.of(
+                caseId, "default", "CompleteCase", "CaseCompleted", "COMPLETED", "system", "system", null));
 
         ArgumentCaptor<AeEscalationCompletedEvent> captor =
                 ArgumentCaptor.forClass(AeEscalationCompletedEvent.class);
@@ -96,8 +96,8 @@ class AeEscalationListenerTest {
         when(statusUpdater.markCompleted(aeId)).thenReturn(true);
         when(completedEvents.fireAsync(any())).thenReturn(CompletableFuture.completedFuture(null));
 
-        listener.onCaseLifecycle(new CaseLifecycleEvent(
-                caseId, null, "CompleteCase", "CaseCompleted", "COMPLETED", "system", "system", null));
+        listener.onCaseLifecycle(CaseLifecycleEvent.of(
+                caseId, "default", "CompleteCase", "CaseCompleted", "COMPLETED", "system", "system", null));
 
         ArgumentCaptor<AeEscalationCompletedEvent> captor =
                 ArgumentCaptor.forClass(AeEscalationCompletedEvent.class);
@@ -108,8 +108,8 @@ class AeEscalationListenerTest {
 
     @Test
     void non_completed_events_are_ignored() {
-        listener.onCaseLifecycle(new CaseLifecycleEvent(
-                UUID.randomUUID(), null, "StartCase", "CaseStarted", "RUNNING", "system", "system", null));
+        listener.onCaseLifecycle(CaseLifecycleEvent.of(
+                UUID.randomUUID(), "default", "StartCase", "CaseStarted", "RUNNING", "system", "system", null));
 
         verifyNoInteractions(caseInstanceRepository);
         verifyNoInteractions(completedEvents);
@@ -149,8 +149,8 @@ class AeEscalationListenerTest {
         when(instance.getCaseContext()).thenReturn(ctx);
         when(caseInstanceRepository.findByUuid(eq(caseId), any())).thenReturn(instance);
 
-        listener.onCaseLifecycle(new CaseLifecycleEvent(
-                caseId, null, "CompleteCase", "GoalReached", "RUNNING", "system", "system", null));
+        listener.onCaseLifecycle(CaseLifecycleEvent.of(
+                caseId, "default", "CompleteCase", "GoalReached", "RUNNING", "system", "system", null));
 
         verifyNoInteractions(ledgerWriter);
         verifyNoInteractions(completedEvents);
@@ -159,8 +159,8 @@ class AeEscalationListenerTest {
     // --- helper methods ---
 
     private CaseLifecycleEvent goalReachedEvent(UUID caseId) {
-        return new CaseLifecycleEvent(
-                caseId, null, "CompleteCase", "GoalReached", "RUNNING", "system", "system", null);
+        return CaseLifecycleEvent.of(
+                caseId, "default", "CompleteCase", "GoalReached", "RUNNING", "system", "system", null);
     }
 
     private void mockInstanceWith(UUID caseId, UUID aeId, UUID enrollmentId, String grade) {

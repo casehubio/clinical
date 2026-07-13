@@ -59,13 +59,13 @@ class SusarOversightApprovedLifecycleTest {
         // Checkpoint 2: drive gate approval directly — tests the approved gate path in
         // SusarGateDecisionListener (ledger entry written, no case signals).
         // The gateId is not significant here — listener discriminates via DB lookup, not gateId.
-        gateDecisionListener.onApproved(new ActionGateApprovedEvent(caseId, 1L, null, "dr-smith"));
+        gateDecisionListener.onApproved(new ActionGateApprovedEvent(caseId, "default", 1L, null, "dr-smith"));
 
         // Checkpoint 3: drive the goal-reached observer directly — tests SusarOversightListener
         // (GoalReached → markCompleted → ae.susarOversightStatus = COMPLETED).
         // Tenancy ID must match what FixedCurrentPrincipal provides so InMemoryCaseInstanceRepository
         // findByUuid(caseId, tenancyId) locates the case.
-        CaseLifecycleEvent goalReached = new CaseLifecycleEvent(
+        CaseLifecycleEvent goalReached = CaseLifecycleEvent.of(
                 caseId, TEST_TENANCY_ID, "GoalReached", "GoalReached",
                 "COMPLETED", "system", "SYSTEM", null);
         oversightListener.onCaseLifecycle(goalReached);

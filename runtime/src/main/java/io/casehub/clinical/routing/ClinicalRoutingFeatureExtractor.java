@@ -2,7 +2,7 @@ package io.casehub.clinical.routing;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import io.casehub.api.spi.routing.AgentRoutingContext;
-import io.casehub.blocks.routing.agent.RoutingFeatureExtractor;
+
 import jakarta.enterprise.context.ApplicationScoped;
 import org.jspecify.annotations.Nullable;
 
@@ -12,11 +12,10 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 @ApplicationScoped
-public class ClinicalRoutingFeatureExtractor implements RoutingFeatureExtractor {
+public class ClinicalRoutingFeatureExtractor  {
 
     private static final Pattern GRADE_PATTERN = Pattern.compile("GRADE_(\\d+)");
 
-    @Override
     public Map<String, Object> extractFeatures(AgentRoutingContext context) {
         JsonNode root = context.caseContext();
         if (root == null || root.isNull()) {
@@ -44,7 +43,6 @@ public class ClinicalRoutingFeatureExtractor implements RoutingFeatureExtractor 
         return Map.copyOf(features);
     }
 
-    @Override
     public @Nullable String extractProblem(AgentRoutingContext context) {
         JsonNode root = context.caseContext();
         if (root == null || root.isNull()) {

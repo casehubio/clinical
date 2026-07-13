@@ -548,7 +548,7 @@ public class TrialDashboardResource {
 
         // Build query with outcome features weighted 0.0
         CbrQuery query = CbrQuery.of(principal.tenancyId(), ClinicalCbrDomains.AE,
-                "clinical-ae", features, 10)
+                "clinical-ae", FeatureValue.toFeatureMap(features), 10)
             .withMinSimilarity(0.3)
             .withVectorWeight(0.0)
             .withWeight("safetyReviewOutcome", 0.0)
@@ -584,7 +584,7 @@ public class TrialDashboardResource {
 
         // Build query with outcome features weighted 0.0
         CbrQuery query = CbrQuery.of(principal.tenancyId(), ClinicalCbrDomains.DEVIATION,
-                "clinical-deviation", features, 10)
+                "clinical-deviation", FeatureValue.toFeatureMap(features), 10)
             .withMinSimilarity(0.3)
             .withVectorWeight(0.0)
             .withWeight("piDecision", 0.0)
@@ -631,7 +631,7 @@ public class TrialDashboardResource {
 
     private AePrecedentResponse mapToAeResponse(ScoredCbrCase<FeatureVectorCbrCase> scored) {
         FeatureVectorCbrCase c = scored.cbrCase();
-        Map<String, Object> features = c.features();
+        Map<String, Object> features = FeatureValue.toRawMap(c.features());
 
         // Extract features with safe casting
         Object gradeObj = features.get("grade");
@@ -657,7 +657,7 @@ public class TrialDashboardResource {
 
     private DeviationPrecedentResponse mapToDeviationResponse(ScoredCbrCase<PlanCbrCase> scored) {
         PlanCbrCase c = scored.cbrCase();
-        Map<String, Object> features = c.features();
+        Map<String, Object> features = FeatureValue.toRawMap(c.features());
 
         // Map plan traces to step responses
         List<PlanStepResponse> steps = c.planTrace().stream()

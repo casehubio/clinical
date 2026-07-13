@@ -64,7 +64,7 @@ class SusarAgentAttestationWriterTest {
     @Transactional
     void approved_gate_writes_endorsed_with_human_attestor() {
         persistAe(susarCaseId);
-        writer.onApproved(new ActionGateApprovedEvent(susarCaseId, 1L, null, "dr-smith"));
+        writer.onApproved(new ActionGateApprovedEvent(susarCaseId, "default", 1L, null, "dr-smith"));
         verify(ledgerEntryRepository).saveAttestation(
                 argThat(a ->
                         a.ledgerEntryId.equals(workerEntryId)
@@ -83,7 +83,7 @@ class SusarAgentAttestationWriterTest {
     @Transactional
     void rejected_gate_writes_challenged_with_human_attestor() {
         persistAe(susarCaseId);
-        writer.onRejected(new ActionGateRejectedEvent(susarCaseId, 1L, null, "dr-jones"));
+        writer.onRejected(new ActionGateRejectedEvent(susarCaseId, "default", 1L, null, "dr-jones"));
         verify(ledgerEntryRepository).saveAttestation(
                 argThat(a ->
                         a.verdict == AttestationVerdict.CHALLENGED
@@ -96,7 +96,7 @@ class SusarAgentAttestationWriterTest {
     @Transactional
     void expired_gate_writes_challenged_with_system_attestor() {
         persistAe(susarCaseId);
-        writer.onExpired(new ActionGateExpiredEvent(susarCaseId, 1L));
+        writer.onExpired(new ActionGateExpiredEvent(susarCaseId, "default", 1L));
         verify(ledgerEntryRepository).saveAttestation(
                 argThat(a ->
                         a.verdict == AttestationVerdict.CHALLENGED
@@ -107,7 +107,7 @@ class SusarAgentAttestationWriterTest {
     @Test
     @Transactional
     void non_susar_case_id_silently_skips_attestation() {
-        writer.onApproved(new ActionGateApprovedEvent(UUID.randomUUID(), 1L, null, "dr-smith"));
+        writer.onApproved(new ActionGateApprovedEvent(UUID.randomUUID(), "default", 1L, null, "dr-smith"));
         verify(ledgerEntryRepository, never()).saveAttestation(any(), any());
     }
 
@@ -118,7 +118,7 @@ class SusarAgentAttestationWriterTest {
         persistAe(caseId);
         when(caseLedgerEntryRepository.findWorkerDecisionsByCaseId(caseId))
                 .thenReturn(List.of());
-        writer.onApproved(new ActionGateApprovedEvent(caseId, 1L, null, "dr-smith"));
+        writer.onApproved(new ActionGateApprovedEvent(caseId, "default", 1L, null, "dr-smith"));
         verify(ledgerEntryRepository, never()).saveAttestation(any(), any());
     }
 

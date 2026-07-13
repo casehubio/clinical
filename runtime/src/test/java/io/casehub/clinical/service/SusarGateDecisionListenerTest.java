@@ -42,7 +42,7 @@ class SusarGateDecisionListenerTest {
         UUID caseId = UUID.randomUUID();
         AdverseEvent ae = persistAe(caseId);
 
-        listener.onApproved(new ActionGateApprovedEvent(caseId, 1L, null, "dr-smith"));
+        listener.onApproved(new ActionGateApprovedEvent(caseId, "default", 1L, null, "dr-smith"));
 
         verify(ledgerWriter).writeEntry(
                 Mockito.argThat(a -> a.id.equals(ae.id)),
@@ -58,7 +58,7 @@ class SusarGateDecisionListenerTest {
         UUID caseId = UUID.randomUUID();
         AdverseEvent ae = persistAe(caseId);
 
-        listener.onRejected(new ActionGateRejectedEvent(caseId, 1L, null, "dr-jones"));
+        listener.onRejected(new ActionGateRejectedEvent(caseId, "default", 1L, null, "dr-jones"));
 
         verify(caseHub).signal(caseId, "susarAssessmentComplete", true);
         verify(caseHub).signal(caseId, "susarRequired", false);
@@ -75,7 +75,7 @@ class SusarGateDecisionListenerTest {
         UUID caseId = UUID.randomUUID();
         AdverseEvent ae = persistAe(caseId);
 
-        listener.onExpired(new ActionGateExpiredEvent(caseId, 1L));
+        listener.onExpired(new ActionGateExpiredEvent(caseId, "default", 1L));
 
         verify(caseHub).signal(caseId, "susarAssessmentComplete", true);
         verify(caseHub).signal(caseId, "susarRequired", false);
@@ -90,7 +90,7 @@ class SusarGateDecisionListenerTest {
     void unknown_case_id_is_silently_ignored() {
         UUID unknownCaseId = UUID.randomUUID();
 
-        listener.onRejected(new ActionGateRejectedEvent(unknownCaseId, 1L, null, "dr-jones"));
+        listener.onRejected(new ActionGateRejectedEvent(unknownCaseId, "default", 1L, null, "dr-jones"));
 
         verifyNoInteractions(ledgerWriter, caseHub);
     }

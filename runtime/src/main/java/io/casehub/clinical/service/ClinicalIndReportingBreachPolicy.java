@@ -22,6 +22,12 @@ import java.time.Duration;
 @ApplicationScoped
 public class ClinicalIndReportingBreachPolicy implements SlaBreachPolicy {
 
+
+    @Override
+    public String id() {
+        return "clinical-ind-reporting";
+    }
+
     @Override
     public BreachDecision onBreach(SlaBreachContext ctx) {
         boolean isRegulatory = ctx.task().candidateGroups().contains("regulatory-affairs")

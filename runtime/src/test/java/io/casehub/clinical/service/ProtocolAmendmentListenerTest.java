@@ -59,7 +59,7 @@ class ProtocolAmendmentListenerTest {
     }
 
     private CaseLifecycleEvent goalReached(UUID caseId, String tenancyId) {
-        return new CaseLifecycleEvent(caseId, tenancyId, "CompleteCase",
+        return CaseLifecycleEvent.of(caseId, tenancyId, "CompleteCase",
             "GoalReached", "RUNNING", "system", "system", null);
     }
 

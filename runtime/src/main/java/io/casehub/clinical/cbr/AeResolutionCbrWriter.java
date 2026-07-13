@@ -6,6 +6,7 @@ import io.casehub.clinical.api.model.SusarOversightStatus;
 import io.casehub.clinical.entity.AdverseEvent;
 import io.casehub.clinical.entity.ClinicalTrial;
 import io.casehub.clinical.entity.TrialSite;
+import io.casehub.neocortex.memory.cbr.FeatureValue;
 import io.casehub.neocortex.memory.cbr.FeatureVectorCbrCase;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.enterprise.event.ObservesAsync;
@@ -86,7 +87,7 @@ public class AeResolutionCbrWriter {
                 ae.susarOversightStatus != SusarOversightStatus.NONE
             );
 
-            var cbrCase = new FeatureVectorCbrCase(problem, solution, "COMPLETED", 1.0, features);
+            var cbrCase = new FeatureVectorCbrCase(problem, solution, "COMPLETED", 1.0, FeatureValue.toFeatureMap(features));
             cbrService.storeIdempotent(
                 cbrCase,
                 "clinical-ae",

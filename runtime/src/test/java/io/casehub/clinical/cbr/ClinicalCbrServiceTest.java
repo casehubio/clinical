@@ -47,7 +47,7 @@ class ClinicalCbrServiceTest {
     @Test
     void retrieveSimilar_delegatesToStore() {
         final var query = CbrQuery.of("tenant-1", new MemoryDomain("clinical-ae"),
-            "clinical-ae", Map.of("grade", 3.0), 5);
+            "clinical-ae", FeatureValue.toFeatureMap(Map.of("grade", 3.0)), 5);
         final var expected = List.of(
             new ScoredCbrCase<>(new FeatureVectorCbrCase("p1", "s1", "o1", 0.9, Map.of()), 0.95),
             new ScoredCbrCase<>(new FeatureVectorCbrCase("p2", "s2", "o2", 0.8, Map.of()), 0.85)
