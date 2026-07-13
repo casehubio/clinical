@@ -20,7 +20,7 @@ import io.casehub.platform.testing.FixedCurrentPrincipal;
 import io.casehub.work.runtime.event.WorkItemLifecycleEvent;
 import io.casehub.work.runtime.model.WorkItem;
 import io.casehub.work.runtime.service.WorkItemService;
-import io.casehub.workadapter.WorkItemLifecycleAdapter;
+import io.casehub.work.engine.WorkItemLifecycleAdapter;
 import io.quarkus.test.junit.QuarkusTest;
 import io.quarkus.test.junit.mockito.InjectSpy;
 import jakarta.inject.Inject;

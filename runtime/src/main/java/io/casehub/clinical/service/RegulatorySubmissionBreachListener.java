@@ -5,7 +5,7 @@ import io.casehub.clinical.entity.AdverseEvent;
 import io.casehub.work.runtime.event.WorkItemLifecycleEvent;
 import io.casehub.work.runtime.model.WorkItem;
 import io.casehub.work.api.WorkItemStatus;
-import io.casehub.workadapter.CallerRef;
+import io.casehub.work.engine.CallerRef;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.enterprise.event.ObservesAsync;
 import jakarta.inject.Inject;

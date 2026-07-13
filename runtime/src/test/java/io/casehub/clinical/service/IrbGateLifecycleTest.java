@@ -19,7 +19,7 @@ import io.casehub.work.runtime.event.WorkItemLifecycleEvent;
 import io.casehub.work.runtime.model.WorkItem;
 import io.casehub.work.api.WorkItemStatus;
 import io.casehub.work.runtime.service.WorkItemService;
-import io.casehub.workadapter.WorkItemLifecycleAdapter;
+import io.casehub.work.engine.WorkItemLifecycleAdapter;
 import io.quarkus.test.junit.QuarkusTest;
 import jakarta.inject.Inject;
 import jakarta.transaction.Transactional;

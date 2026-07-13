@@ -14,7 +14,7 @@ import io.casehub.clinical.entity.AdverseEvent;
 import io.casehub.work.runtime.event.WorkItemLifecycleEvent;
 import io.casehub.work.runtime.model.WorkItem;
 import io.casehub.work.api.WorkItemStatus;
-import io.casehub.workadapter.PlanItemCallerRef;
+import io.casehub.work.engine.PlanItemCallerRef;
 import io.quarkus.test.InjectMock;
 import io.quarkus.test.junit.QuarkusTest;
 import jakarta.inject.Inject;
