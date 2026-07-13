@@ -12,13 +12,13 @@ export function operations(): Component {
   const trialDashboard = rows(
     columns([3, 3, 3, 3],
       [metric({ title: "Trial Phase", lookup: lookup(trialSummaryDs.id, groupBy(null, col("phase"))) })],
-      [metric({ title: "Total Enrolled", lookup: lookup(trialSummaryDs.id, groupBy(null, sum("totalEnrolled"))) })],
-      [metric({ title: "Adverse Events", lookup: lookup(trialSummaryDs.id, groupBy(null, sum("activeAeCount"))) })],
-      [metric({ title: "Protocol Deviations", lookup: lookup(trialSummaryDs.id, groupBy(null, sum("deviationCount"))) })],
+      [metric({ title: "Total Enrolled", lookup: lookup(trialSummaryDs.id, groupBy(null, col("enrolledCount"))) })],
+      [metric({ title: "Adverse Events", lookup: lookup(trialSummaryDs.id, groupBy(null, col("activeAeCount"))) })],
+      [metric({ title: "Protocol Deviations", lookup: lookup(trialSummaryDs.id, groupBy(null, col("activeDeviationCount"))) })],
     ),
     barChart({
       title: "Enrollment by Site: Target vs Actual",
-      lookup: lookup(sitesDs.id, groupBy("investigatorId", col("investigatorId"), col("targetEnrollment"), col("enrolledCount"))),
+      lookup: lookup(sitesDs.id, groupBy("siteName", col("siteName"), col("targetCount"), col("enrolledCount"))),
     }),
     table({
       title: "Recent Activity",
@@ -26,10 +26,10 @@ export function operations(): Component {
       sortable: true,
       pageSize: 10,
       columns: [
-        { id: "timestamp" as never, name: "Time", expression: 'value ? new Date(value).toLocaleString() : ""' },
-        { id: "entryType" as never, name: "Event Type", expression: 'value ? value.replace(/([A-Z])/g, " $1").trim() : ""' },
-        { id: "actorId" as never, name: "Actor", expression: 'value ? value.substring(0, 12) + "..." : ""' },
-        { id: "subjectId" as never, name: "Subject", expression: 'value ? value.substring(0, 8) + "..." : ""' },
+        { id: "timestamp" as never, name: "Time", expression: 'value ? $substring(value, 0, 16) : ""' },
+        { id: "entryType" as never, name: "Event Type", expression: 'value' },
+        { id: "actorId" as never, name: "Actor", expression: 'value ? $substring(value, 0, 12) & "..." : ""' },
+        { id: "subjectId" as never, name: "Subject", expression: 'value ? $substring(value, 0, 8) & "..." : ""' },
       ],
     }),
   );
@@ -42,11 +42,11 @@ export function operations(): Component {
       pageSize: 25,
       columns: [
         { id: "capability" as never, name: "Capability" },
-        { id: "trustScore" as never, name: "Trust Score", expression: 'value >= 0.8 ? "🟢 " + Number(value).toFixed(3) : value >= 0.6 ? "🟡 " + Number(value).toFixed(3) : value >= 0.4 ? "🟠 " + Number(value).toFixed(3) : "🔴 " + Number(value).toFixed(3)' },
+        { id: "trustScore" as never, name: "Trust Score", expression: '$number(value) >= 0.8 ? "🟢 " & value : $number(value) >= 0.6 ? "🟡 " & value : $number(value) >= 0.4 ? "🟠 " & value : "🔴 " & value' },
         { id: "trustDimension" as never, name: "Dimension" },
-        { id: "maturityPhase" as never, name: "Maturity", expression: 'value === 0 ? "🔵 Bootstrap" : value === 1 ? "🟡 Emerging" : "🟢 Established"' },
+        { id: "maturityPhase" as never, name: "Maturity", expression: '$number(value) = 0 ? "🔵 Bootstrap" : $number(value) = 1 ? "🟡 Emerging" : "🟢 Established"' },
         { id: "decisionCount" as never, name: "Decisions" },
-        { id: "endorsementRatio" as never, name: "Endorsement", expression: 'value != null ? (Number(value) * 100).toFixed(1) + "%" : "—"' },
+        { id: "endorsementRatio" as never, name: "Endorsement", expression: 'value ? $string($round($number(value) * 100, 1)) & "%" : "—"' },
       ],
     }),
   );
@@ -54,7 +54,7 @@ export function operations(): Component {
   const slaHealth = rows(
     pieChart({
       title: "Work Items by SLA Status",
-      lookup: lookup(workItemsDs.id, groupBy("slaStatus", col("slaStatus"), count("id"))),
+      lookup: lookup(workItemsDs.id, groupBy("slaStatus", col("slaStatus"), count("title"))),
     }),
   );
 

@@ -1,5 +1,5 @@
-agentId,capability,trustScore,totalDecisions,accurateDecisions,failedDecisions,lastActiveAt
-agent-001,safety-monitoring,0.94,156,147,9,2026-07-07T08:30:00Z
-agent-002,eligibility-screening,0.88,89,78,11,2026-07-07T09:15:00Z
-agent-003,protocol-review,0.91,42,38,4,2026-07-06T16:45:00Z
-agent-004,safety-monitoring,0.87,134,117,17,2026-07-07T07:20:00Z
+capability,trustScore,trustDimension,maturityPhase,decisionCount,endorsementRatio
+safety-monitoring,0.94,safety-accuracy,2,156,0.942
+eligibility-screening,0.88,eligibility-precision,1,89,0.876
+protocol-review,0.91,protocol-adherence,2,42,0.905
+safety-monitoring,0.87,safety-accuracy,0,134,0.873

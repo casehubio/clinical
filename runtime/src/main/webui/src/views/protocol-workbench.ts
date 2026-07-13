@@ -3,7 +3,7 @@ import {
   lookup,
 } from "@casehubio/pages-ui";
 import type { Component } from "@casehubio/pages-ui";
-import { deviationsDs, deviationPrecedentsDs, ledgerEntriesDs, TRIAL_ID } from "../datasets.js";
+import { deviationsDs, deviationPrecedentsDs, ledgerEntriesDs, TRIAL_ID, DEMO_MODE } from "../datasets.js";
 import { auditTrailStub } from "../stubs/audit-trail-viewer.js";
 
 export function protocolWorkbench(): Component {
@@ -14,15 +14,15 @@ export function protocolWorkbench(): Component {
     pageSize: 25,
     columns: [
       { id: "deviationType" as never, name: "Type" },
-      { id: "severity" as never, name: "Severity", expression: 'value === "CRITICAL" ? "🔴 CRITICAL" : value === "MAJOR" ? "🟠 MAJOR" : "🟡 MINOR"' },
+      { id: "severity" as never, name: "Severity", expression: 'value = "CRITICAL" ? "🔴 CRITICAL" : value = "MAJOR" ? "🟠 MAJOR" : "🟡 MINOR"' },
       { id: "siteName" as never, name: "Site" },
-      { id: "piApprovalStatus" as never, name: "PI Approval", expression: 'value === "COMMANDED" ? "⏳ COMMANDED" : value === "APPROVED" ? "✅ APPROVED" : value === "DECLINED" ? "❌ DECLINED" : value === "EXPIRED" ? "⏰ EXPIRED" : value' },
-      { id: "irbDecision" as never, name: "IRB Decision", expression: 'value === "APPROVED" ? "✅ APPROVED" : value === "REJECTED" ? "❌ REJECTED" : value === "PENDING" ? "⏳ PENDING" : value ?? "—"' },
-      { id: "reportedAt" as never, name: "Reported", expression: 'value ? new Date(value).toLocaleDateString() : ""' },
+      { id: "piApprovalStatus" as never, name: "PI Approval", expression: 'value = "COMMANDED" ? "⏳ COMMANDED" : value = "APPROVED" ? "✅ APPROVED" : value = "DECLINED" ? "❌ DECLINED" : value = "EXPIRED" ? "⏰ EXPIRED" : value' },
+      { id: "irbStatus" as never, name: "IRB Decision", expression: 'value = "APPROVED" ? "✅ APPROVED" : value = "REJECTED" ? "❌ REJECTED" : value = "PENDING" ? "⏳ PENDING" : value ? value : "—"' },
+      { id: "reportedAt" as never, name: "Reported", expression: 'value ? $substring(value, 0, 10) : ""' },
     ],
     rowStyle: [
-      { condition: 'severity === "CRITICAL"', style: { "background-color": "var(--pages-red-2, #fdf0f0)" } },
-      { condition: 'piApprovalStatus === "EXPIRED"', style: { "background-color": "var(--pages-red-2, #fdf0f0)" } },
+      { condition: '#{row.severity} == "CRITICAL"', style: { "background-color": "var(--pages-red-2, #fdf0f0)" } },
+      { condition: '#{row.piApprovalStatus} == "EXPIRED"', style: { "background-color": "var(--pages-red-2, #fdf0f0)" } },
     ],
     filter: { enabled: true },
     emptyMessage: "No protocol deviations recorded",
@@ -50,6 +50,7 @@ export function protocolWorkbench(): Component {
       html(`<cbr-precedents-panel
         endpoint="/api/trials/${TRIAL_ID}/deviations/dev-demo-001/precedents"
         empty-message="No similar deviations found in case memory"
+        ${DEMO_MODE ? "demo" : ""}
       ></cbr-precedents-panel>`),
     )],
     ["Audit Trail", panel("Ledger Entries",

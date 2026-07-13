@@ -3,7 +3,7 @@ import {
   lookup,
 } from "@casehubio/pages-ui";
 import type { Component } from "@casehubio/pages-ui";
-import { adverseEventsDs, aePrecedentsDs, ledgerEntriesDs, TRIAL_ID } from "../datasets.js";
+import { adverseEventsDs, aePrecedentsDs, ledgerEntriesDs, TRIAL_ID, DEMO_MODE } from "../datasets.js";
 import { auditTrailStub } from "../stubs/audit-trail-viewer.js";
 
 export function safetyWorkbench(): Component {
@@ -13,17 +13,17 @@ export function safetyWorkbench(): Component {
     sortable: true,
     pageSize: 25,
     columns: [
-      { id: "grade" as never, name: "Grade", expression: 'value === "GRADE_4" || value === "GRADE_5" ? "🔴 " + value : value === "GRADE_3" ? "🟠 " + value : value' },
+      { id: "grade" as never, name: "Grade", expression: '(value = "GRADE_4" or value = "GRADE_5") ? "🔴 " & value : value = "GRADE_3" ? "🟠 " & value : value' },
       { id: "eventType" as never, name: "Event Type" },
-      { id: "patientId" as never, name: "Patient", expression: 'value ? value.substring(0, 8) + "..." : ""' },
+      { id: "patientId" as never, name: "Patient", expression: 'value ? $substring(value, 0, 8) & "..." : ""' },
       { id: "siteName" as never, name: "Site" },
-      { id: "slaTimeRemainingHours" as never, name: "SLA Remaining", expression: 'value < 0 ? "🔴 OVERDUE" : value < 4 ? "🟠 " + Math.round(value) + "h" : value < 12 ? "🟡 " + Math.round(value) + "h" : "🟢 " + Math.round(value) + "h"' },
+      { id: "slaTimeRemainingHours" as never, name: "SLA Remaining", expression: '$number(value) < 0 ? "🔴 OVERDUE" : $number(value) < 4 ? "🟠 " & $string($round($number(value))) & "h" : $number(value) < 12 ? "🟡 " & $string($round($number(value))) & "h" : "🟢 " & $string($round($number(value))) & "h"' },
       { id: "escalationStatus" as never, name: "Escalation" },
       { id: "regulatorySubmissionStatus" as never, name: "IND Status" },
     ],
     rowStyle: [
-      { condition: 'grade === "GRADE_4" || grade === "GRADE_5"', style: { "background-color": "var(--pages-red-2, #fdf0f0)" } },
-      { condition: "slaTimeRemainingHours < 0", style: { "background-color": "var(--pages-red-3, #fde0e0)" } },
+      { condition: '#{row.grade} == "GRADE_4" || #{row.grade} == "GRADE_5"', style: { "background-color": "var(--pages-red-2, #fdf0f0)" } },
+      { condition: '#{row.slaTimeRemainingHours} < 0', style: { "background-color": "var(--pages-red-3, #fde0e0)" } },
     ],
     filter: { enabled: true },
     emptyMessage: "No adverse events reported",
@@ -52,6 +52,7 @@ export function safetyWorkbench(): Component {
       html(`<cbr-precedents-panel
         endpoint="/api/trials/${TRIAL_ID}/adverse-events/ae-demo-001/precedents"
         empty-message="No similar adverse events found in case memory"
+        ${DEMO_MODE ? "demo" : ""}
       ></cbr-precedents-panel>`),
     )],
     ["Audit Trail", panel("Ledger Entries",

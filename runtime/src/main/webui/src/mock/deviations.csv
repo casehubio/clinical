@@ -1,5 +1,5 @@
-id,deviationType,severity,description,siteId,siteName,reportedAt,piApprovalStatus,irbRequired,irbStatus,resolvedAt
-dev-001,ELIGIBILITY_WAIVER,CRITICAL,Patient enrolled with partial eligibility criteria met,site-a,Memorial Cancer Center,2026-07-01T09:00:00Z,APPROVED,true,APPROVED,2026-07-03T15:00:00Z
-dev-002,DOSING_DEVIATION,MAJOR,Dose administered 2 hours outside protocol window,site-b,Johns Hopkins Oncology,2026-07-02T11:00:00Z,PENDING,false,,
-dev-003,VISIT_WINDOW,MINOR,Follow-up visit 3 days late due to patient travel,site-c,Mayo Clinic Research,2026-07-03T10:00:00Z,APPROVED,false,,2026-07-04T16:00:00Z
-dev-004,CONSENT_AMENDMENT,CRITICAL,Patient consent re-obtained after protocol amendment,site-a,Memorial Cancer Center,2026-07-04T14:00:00Z,APPROVED,true,PENDING,
+deviationType,severity,siteName,piApprovalStatus,irbStatus,reportedAt
+ELIGIBILITY_WAIVER,CRITICAL,Memorial Cancer Center,APPROVED,APPROVED,2026-07-01T09:00:00Z
+DOSING_DEVIATION,MAJOR,Johns Hopkins Oncology,PENDING,,2026-07-02T11:00:00Z
+VISIT_WINDOW,MINOR,Mayo Clinic Research,APPROVED,,2026-07-03T10:00:00Z
+CONSENT_AMENDMENT,CRITICAL,Memorial Cancer Center,APPROVED,PENDING,2026-07-04T14:00:00Z

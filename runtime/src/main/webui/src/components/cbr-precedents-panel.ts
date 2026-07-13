@@ -91,6 +91,8 @@ export class ClinicalCbrPrecedentsPanel extends LitElement {
   `;
 
   @property() endpoint = "";
+  @property({ type: Boolean }) demo = false;
+  @property({ attribute: false }) data: Precedent[] | null = null;
   @property({ attribute: false }) columns: ColumnDef[] = [
     { key: "similarity", label: "Similarity" },
     { key: "grade", label: "Grade/Severity" },
@@ -106,13 +108,35 @@ export class ClinicalCbrPrecedentsPanel extends LitElement {
 
   connectedCallback() {
     super.connectedCallback();
-    if (this.endpoint) this._fetchPrecedents();
+    if (this.data) {
+      this._precedents = this.data;
+    } else if (this.demo) {
+      this._precedents = this._getDemoData();
+    } else if (this.endpoint) {
+      this._fetchPrecedents();
+    }
   }
 
   updated(changed: Map<string, unknown>) {
-    if (changed.has("endpoint") && this.endpoint) {
+    if (changed.has("data") && this.data) {
+      this._precedents = this.data;
+      this._error = "";
+      this._loading = false;
+    } else if (changed.has("demo") && this.demo && !this.data) {
+      this._precedents = this._getDemoData();
+      this._error = "";
+      this._loading = false;
+    } else if (changed.has("endpoint") && this.endpoint && !this.data && !this.demo) {
       this._fetchPrecedents();
     }
+  }
+
+  private _getDemoData(): Precedent[] {
+    return [
+      { caseId: "prec-001", similarity: 92, outcome: "Resolved", resolutionTime: "3 days", grade: "GRADE_4", reportedDate: "2026-05-12" },
+      { caseId: "prec-002", similarity: 85, outcome: "Escalated", resolutionTime: "5 days", grade: "GRADE_3", reportedDate: "2026-04-28" },
+      { caseId: "prec-003", similarity: 78, outcome: "Resolved", resolutionTime: "2 days", grade: "GRADE_4", reportedDate: "2026-03-15" },
+    ];
   }
 
   private async _fetchPrecedents() {
