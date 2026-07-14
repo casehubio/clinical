@@ -34,17 +34,17 @@ public class ClinicalTrustRoutingPolicyProvider implements TrustRoutingPolicyPro
             case ClinicalCapabilities.SAFETY_MONITORING ->
                 // Strict: safety-critical, tight borderline margin → Phase 3 near threshold
                 new TrustRoutingPolicy(0.75, 20, 0.05, 0.7,
-                        Map.of(ClinicalTrustDimensions.SAFETY_ACCURACY, 0.70), false, null, Set.of());
+                        Map.of(ClinicalTrustDimensions.SAFETY_ACCURACY, 0.70), false, null, Set.of(), 0.0);
 
             case ClinicalCapabilities.ELIGIBILITY_SCREENING ->
                 // Moderate: reversible decision, wider margin acceptable
                 new TrustRoutingPolicy(0.70, 15, 0.10, 0.6,
-                        Map.of(ClinicalTrustDimensions.ELIGIBILITY_PRECISION, 0.65), false, null, Set.of());
+                        Map.of(ClinicalTrustDimensions.ELIGIBILITY_PRECISION, 0.65), false, null, Set.of(), 0.0);
 
             case ClinicalCapabilities.PROTOCOL_REVIEW ->
                 // Conservative: high minimum observations before trust kicks in
                 new TrustRoutingPolicy(0.65, 25, 0.08, 0.6,
-                        Map.of(ClinicalTrustDimensions.PROTOCOL_ADHERENCE, 0.60), false, null, Set.of());
+                        Map.of(ClinicalTrustDimensions.PROTOCOL_ADHERENCE, 0.60), false, null, Set.of(), 0.0);
 
             default ->
                 TrustRoutingPolicy.DEFAULT;  // availability routing for all other capabilities

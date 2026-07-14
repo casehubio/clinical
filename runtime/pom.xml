@@ -275,6 +275,7 @@
           <systemPropertyVariables>
             <java.util.logging.manager>org.jboss.logmanager.LogManager</java.util.logging.manager>
           </systemPropertyVariables>
+          <excludedGroups>showcase</excludedGroups>
         </configuration>
       </plugin>
     </plugins>

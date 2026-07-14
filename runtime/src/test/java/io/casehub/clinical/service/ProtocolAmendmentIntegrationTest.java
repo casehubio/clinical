@@ -14,7 +14,10 @@ import io.quarkus.test.security.TestSecurity;
 import jakarta.inject.Inject;
 import jakarta.transaction.Transactional;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.MethodOrderer;
+import org.junit.jupiter.api.Order;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.TestMethodOrder;
 
 import java.util.UUID;
 
@@ -26,6 +29,7 @@ import static org.hamcrest.Matchers.equalTo;
 
 @QuarkusTest
 @TestSecurity(user = "test-actor", roles = {ClinicalGroups.SPONSOR, ClinicalGroups.INVESTIGATOR, ClinicalGroups.COORDINATOR})
+@TestMethodOrder(MethodOrderer.OrderAnnotation.class)
 class ProtocolAmendmentIntegrationTest {
 
     @Inject LedgerEntryRepository ledgerRepo;
@@ -35,18 +39,9 @@ class ProtocolAmendmentIntegrationTest {
 
     UUID trialId;
 
-    /**
-     * Wait for in-flight engine cases from prior test classes to finish their STARTING phase,
-     * then clear all engine in-memory state. Prevents "CaseInstance not found or wrong tenant"
-     * races in InMemoryCaseInstanceRepository when prior test classes' cases (e.g.
-     * ClinicalLayerComplianceTest) remain active and interfere with new startCase() calls.
-     */
     @BeforeEach
-    void waitForEngineQuiesceBefore() {
-        await().atMost(15, SECONDS).until(() ->
-            caseInstanceCache.getAll().stream()
-                .noneMatch(ci -> ci.getState() == CaseStatus.STARTING));
-        engineStateCleaner.clearAll();
+    void setup() {
+        engineStateCleaner.cancelAllAndClear();
         persistTestData();
     }
 
@@ -64,6 +59,7 @@ class ProtocolAmendmentIntegrationTest {
     }
 
     @Test
+    @Order(2)
     void propose_creates_amendment_PROPOSED_and_writes_proposal_ledger_entry() {
         String loc = given()
             .contentType("application/json")
@@ -86,6 +82,7 @@ class ProtocolAmendmentIntegrationTest {
     }
 
     @Test
+    @Order(1)
     void propose_then_await_APPROVED_and_writes_resolution_ledger_entry() {
         String loc = given()
             .contentType("application/json")

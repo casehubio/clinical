@@ -45,6 +45,27 @@ public class EligibilityScreeningLedgerWriter {
         ledgerEntryRepository.save(entry, "default");
     }
 
+    public void writeResolutionEntry(PatientEnrollment enrollment,
+                                     String resolutionOutcome,
+                                     String resolvedBy) {
+        EligibilityScreeningLedgerEntry entry = new EligibilityScreeningLedgerEntry();
+        entry.id              = UUID.randomUUID();
+        entry.subjectId       = enrollment.id;
+        entry.sequenceNumber  = nextSequenceNumber(enrollment.id);
+        entry.entryType       = LedgerEntryType.EVENT;
+        entry.actorId         = resolvedBy;
+        entry.actorType       = ActorType.HUMAN;
+        entry.actorRole       = "eligibility-resolver";
+        entry.occurredAt      = clock.instant();
+        entry.enrollmentId    = enrollment.id;
+        entry.screeningResult = resolutionOutcome;
+        entry.criteriaCount   = 0;
+        entry.marginalCount   = 0;
+        entry.attach(ClinicalComplianceSupplement.eligibilityScreening());
+        ledgerEntryRepository.save(entry, "default");
+    }
+
+
     private int nextSequenceNumber(UUID subjectId) {
         return ledgerEntryRepository.findLatestBySubjectId(subjectId, "default")
             .map(e -> e.sequenceNumber + 1)

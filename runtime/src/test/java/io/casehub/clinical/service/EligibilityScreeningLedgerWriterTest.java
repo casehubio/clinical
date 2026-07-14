@@ -21,7 +21,8 @@ import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.eq;
-import static org.mockito.Mockito.*;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
 class EligibilityScreeningLedgerWriterTest {
@@ -85,5 +86,52 @@ class EligibilityScreeningLedgerWriterTest {
         verify(repo).save(captor.capture(), eq("default"));
         assertThat(((EligibilityScreeningLedgerEntry) captor.getValue()).screeningResult)
             .isEqualTo("MARGINAL");
+    }
+
+    @Test
+    void writeResolutionEntry_sets_outcome_and_actor() {
+        UUID id = UUID.randomUUID();
+        when(clock.instant()).thenReturn(Instant.now());
+        when(repo.findLatestBySubjectId(id, "default")).thenReturn(Optional.empty());
+
+        writer.writeResolutionEntry(enrollment(id), "CONFIRMED", "irb-committee-001");
+
+        ArgumentCaptor<LedgerEntry> captor = ArgumentCaptor.forClass(LedgerEntry.class);
+        verify(repo).save(captor.capture(), eq("default"));
+        EligibilityScreeningLedgerEntry entry = (EligibilityScreeningLedgerEntry) captor.getValue();
+        assertThat(entry.screeningResult).isEqualTo("CONFIRMED");
+        assertThat(entry.actorId).isEqualTo("irb-committee-001");
+        assertThat(entry.actorRole).isEqualTo("eligibility-resolver");
+    }
+
+    @Test
+    void writeResolutionEntry_increments_sequence_number() {
+        UUID id = UUID.randomUUID();
+        when(clock.instant()).thenReturn(Instant.now());
+
+        EligibilityScreeningLedgerEntry existing = new EligibilityScreeningLedgerEntry();
+        existing.sequenceNumber = 3;
+        when(repo.findLatestBySubjectId(id, "default")).thenReturn(Optional.of(existing));
+
+        writer.writeResolutionEntry(enrollment(id), "WAIVED", "pi-chen");
+
+        ArgumentCaptor<LedgerEntry> captor = ArgumentCaptor.forClass(LedgerEntry.class);
+        verify(repo).save(captor.capture(), eq("default"));
+        assertThat(captor.getValue().sequenceNumber).isEqualTo(4);
+    }
+
+    @Test
+    void writeResolutionEntry_uses_human_actor_type() {
+        UUID id = UUID.randomUUID();
+        when(clock.instant()).thenReturn(Instant.now());
+        when(repo.findLatestBySubjectId(id, "default")).thenReturn(Optional.empty());
+
+        writer.writeResolutionEntry(enrollment(id), "REJECTED", "irb-committee-002");
+
+        ArgumentCaptor<LedgerEntry> captor = ArgumentCaptor.forClass(LedgerEntry.class);
+        verify(repo).save(captor.capture(), eq("default"));
+        EligibilityScreeningLedgerEntry entry = (EligibilityScreeningLedgerEntry) captor.getValue();
+        assertThat(entry.actorType).isEqualTo(io.casehub.platform.api.identity.ActorType.HUMAN);
+        assertThat(entry.enrollmentId).isEqualTo(id);
     }
 }

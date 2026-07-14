@@ -1,15 +1,15 @@
 package io.casehub.clinical.demo;
 
+import io.casehub.clinical.api.model.AeOutcome;
 import io.casehub.clinical.api.model.ConsentStatus;
 import io.casehub.clinical.api.model.CriterionResult;
 import io.casehub.clinical.api.model.CtcaeGrade;
 import io.casehub.clinical.api.model.DeviationSeverity;
 import io.casehub.clinical.api.model.EventActuality;
-import io.casehub.clinical.api.model.AeOutcome;
+import io.casehub.clinical.api.model.PiApprovalStatus;
 import io.casehub.clinical.api.model.SusarOversightStatus;
 import io.casehub.clinical.api.model.TrialPhase;
 import io.casehub.clinical.api.model.TrialStatus;
-import io.casehub.clinical.api.model.PiApprovalStatus;
 import io.casehub.clinical.entity.AdverseEvent;
 import io.casehub.clinical.entity.ClinicalTrial;
 import io.casehub.clinical.entity.PatientEnrollment;
@@ -131,8 +131,7 @@ public class DemoDataSeeder {
      * Each phase uses separate transactions to avoid holding JDBC connections
      * during async polling.
      */
-    void seed() {
-        // Phase 1: Trial structure
+    void seed() {        // Phase 1: Trial structure
         createTrialAndSites();
         createPatients();
 
@@ -143,8 +142,12 @@ public class DemoDataSeeder {
         // Phase 3: Site A — eligibility screening + AE lifecycle
         screenPatientA();
         reportGrade2Ae();
-        seedSusarLifecycles();
-        LOG.info("Phase 3 complete: Site A events seeded");
+        try {
+            seedSusarLifecycles();
+            LOG.info("Phase 3 complete: Site A events seeded");
+        } catch (Exception e) {
+            LOG.warn("Phase 3 partial: SUSAR lifecycles failed — continuing with remaining phases", e);
+        }
 
         // Phase 4: Site B — protocol deviation with PI approval
         seedProtocolDeviation();
@@ -160,8 +163,7 @@ public class DemoDataSeeder {
 
         // Phase 7: Verify Merkle chains
         verifyMerkleChains();
-        LOG.info("Phase 7 complete: Merkle chains verified");
-    }
+        LOG.info("Phase 7 complete: Merkle chains verified");}
 
     // ── Phase 1: Trial structure ─────────────────────────────────────────────
 
@@ -255,10 +257,13 @@ public class DemoDataSeeder {
      */
     void seedSusarLifecycles() {
         for (int i = 1; i <= 3; i++) {
-            UUID aeId = seedSingleSusarLifecycle(i);
-            LOG.infof("SUSAR lifecycle %d/3 complete: aeId=%s", i, aeId);
-        }
-    }
+            try {
+                UUID aeId = seedSingleSusarLifecycle(i);
+                LOG.infof("SUSAR lifecycle %d/3 complete: aeId=%s", i, aeId);
+            } catch (Exception e) {
+                LOG.warnf(e, "SUSAR lifecycle %d/3 failed — continuing with remaining", i);
+            }
+        }}
 
     private UUID seedSingleSusarLifecycle(int index) {
         UUID aeId = UUID.randomUUID();

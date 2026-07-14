@@ -70,12 +70,12 @@ public class AeResolutionCbrWriter {
                 "grade", event.grade().ordinal() + 1,
                 "eventType", ae.eventType != null ? ae.eventType : "UNKNOWN",
                 "trialPhase", trialPhase,
-                "unexpected", event.unexpected(),
-                "suspected", ae.suspected,
+                "unexpected", String.valueOf(event.unexpected()),
+                "suspected", String.valueOf(ae.suspected),
                 "safetyReviewOutcome", event.safetyReviewOutcome() != null ? event.safetyReviewOutcome() : "UNKNOWN",
-                "dsmbEscalated", event.dsmbEscalated(),
-                "indReportFiled", ae.regulatorySubmissionStatus != RegulatorySubmissionStatus.NONE,
-                "susarOversight", ae.susarOversightStatus != SusarOversightStatus.NONE
+                "dsmbEscalated", String.valueOf(event.dsmbEscalated()),
+                "indReportFiled", String.valueOf(ae.regulatorySubmissionStatus != RegulatorySubmissionStatus.NONE),
+                "susarOversight", String.valueOf(ae.susarOversightStatus != SusarOversightStatus.NONE)
             );
 
             String problem = "Grade %d %s in %s trial, unexpected=%s, suspected=%s".formatted(

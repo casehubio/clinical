@@ -139,10 +139,10 @@ class AeResolutionCbrWriterIntegrationTest {
             .map(ScoredCbrCase::cbrCase)
             .filter(c -> {
                 Map<String, Object> f = FeatureValue.toRawMap(c.features());
-                return f.get("grade").equals(3)
+                return f.get("grade").equals(3.0)
                     && f.get("eventType").equals("Neutropenia")
                     && f.get("safetyReviewOutcome").equals("CONTINUE_MONITORING")
-                    && f.get("dsmbEscalated").equals(false);
+                    && f.get("dsmbEscalated").equals("false");
             })
             .findFirst()
             .orElseThrow(() -> new AssertionError("Expected case not found in results"));
@@ -153,15 +153,15 @@ class AeResolutionCbrWriterIntegrationTest {
         assertThat(storedCase.confidence()).isEqualTo(1.0);
 
         Map<String, Object> features = FeatureValue.toRawMap(storedCase.features());
-        assertThat(features.get("grade")).isEqualTo(3);  // GRADE_3.ordinal() + 1
+        assertThat(features.get("grade")).isEqualTo(3.0);  // GRADE_3.ordinal() + 1, stored as NumberVal
         assertThat(features.get("eventType")).isEqualTo("Neutropenia");
         assertThat(features.get("trialPhase")).isEqualTo("PHASE_III");
-        assertThat(features.get("unexpected")).isEqualTo(true);
-        assertThat(features.get("suspected")).isEqualTo(true);
+        assertThat(features.get("unexpected")).isEqualTo("true");
+        assertThat(features.get("suspected")).isEqualTo("true");
         assertThat(features.get("safetyReviewOutcome")).isEqualTo("CONTINUE_MONITORING");
-        assertThat(features.get("dsmbEscalated")).isEqualTo(false);
-        assertThat(features.get("indReportFiled")).isEqualTo(true);
-        assertThat(features.get("susarOversight")).isEqualTo(true);
+        assertThat(features.get("dsmbEscalated")).isEqualTo("false");
+        assertThat(features.get("indReportFiled")).isEqualTo("true");
+        assertThat(features.get("susarOversight")).isEqualTo("true");
     }
 
     @Test
@@ -200,7 +200,7 @@ class AeResolutionCbrWriterIntegrationTest {
             .map(ScoredCbrCase::cbrCase)
             .filter(c -> {
                 Map<String, Object> f = FeatureValue.toRawMap(c.features());
-                return f.get("grade").equals(4)
+                return f.get("grade").equals(4.0)
                     && f.get("eventType").equals("UNKNOWN")
                     && f.get("safetyReviewOutcome").equals("SUSPEND_ENROLLMENT");
             })
@@ -248,10 +248,10 @@ class AeResolutionCbrWriterIntegrationTest {
             .map(ScoredCbrCase::cbrCase)
             .filter(c -> {
                 Map<String, Object> f = FeatureValue.toRawMap(c.features());
-                return f.get("grade").equals(3)
+                return f.get("grade").equals(3.0)
                     && f.get("eventType").equals("Neutropenia")
                     && f.get("safetyReviewOutcome").equals("UNKNOWN")
-                    && f.get("dsmbEscalated").equals(false);
+                    && f.get("dsmbEscalated").equals("false");
             })
             .findFirst()
             .orElseThrow(() -> new AssertionError("Expected case not found in results"));
@@ -297,16 +297,16 @@ class AeResolutionCbrWriterIntegrationTest {
             .map(ScoredCbrCase::cbrCase)
             .filter(c -> {
                 Map<String, Object> f = FeatureValue.toRawMap(c.features());
-                return f.get("grade").equals(5)
+                return f.get("grade").equals(5.0)
                     && f.get("eventType").equals("Neutropenia")
                     && f.get("safetyReviewOutcome").equals("TRIAL_SUSPENSION_RECOMMENDED")
-                    && f.get("dsmbEscalated").equals(true);
+                    && f.get("dsmbEscalated").equals("true");
             })
             .findFirst()
             .orElseThrow(() -> new AssertionError("Expected case not found in results"));
 
         Map<String, Object> features = FeatureValue.toRawMap(storedCase.features());
-        assertThat(features.get("grade")).isEqualTo(5);  // GRADE_5.ordinal() + 1
+        assertThat(features.get("grade")).isEqualTo(5.0);  // GRADE_5, stored as NumberVal.ordinal() + 1
         assertThat(storedCase.problem()).contains("Grade 5");
         assertThat(storedCase.solution()).contains("TRIAL_SUSPENSION_RECOMMENDED");
     }

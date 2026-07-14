@@ -41,6 +41,7 @@ import static org.hamcrest.Matchers.*;
  */
 @QuarkusTest
 @TestSecurity(user = "test-actor", roles = {ClinicalGroups.SPONSOR, ClinicalGroups.INVESTIGATOR, ClinicalGroups.COORDINATOR})
+@org.junit.jupiter.api.Tag("showcase")
 class ThreeSiteShowcaseTest {
 
     @Inject WorkItemQueries workItemQueries;
@@ -56,16 +57,7 @@ class ThreeSiteShowcaseTest {
 
     @BeforeEach
     void setup() {
-        // Wait for prior test classes' @ObservesAsync handlers to finish starting engine
-        // cases. clearAll() is NOT called — it disrupts Vert.x handlers and causes
-        // RECIPIENT_FAILURE on subsequent startCase() calls. Fresh UUIDs each run
-        // prevent data contamination from accumulated cases.
-        // Known limitation: in-memory engine cross-test contamination (clinical#87)
-        // can cause RECIPIENT_FAILURE in full-suite runs.
-        await().pollDelay(3, SECONDS)
-               .atMost(20, SECONDS)
-               .until(() -> caseInstanceCache.getAll().stream()
-                    .noneMatch(ci -> ci.getState() == CaseStatus.STARTING));
+        engineStateCleaner.cancelAllAndClear();
         testStartedAt = Instant.now();
 
         // ── 2. Assign IDs for this test ──

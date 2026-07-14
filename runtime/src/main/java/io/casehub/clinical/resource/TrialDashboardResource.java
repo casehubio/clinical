@@ -10,9 +10,8 @@ import io.casehub.clinical.cbr.ClinicalCbrService;
 import io.casehub.clinical.entity.*;
 import io.casehub.clinical.routing.ClinicalTrustRoutingPolicyProvider;
 import io.casehub.neocortex.memory.cbr.*;
-// TODO: removed in ledger SNAPSHOT — needs equivalent
-// import io.casehub.ledger.model.WorkerDecisionEntry;
-// import io.casehub.ledger.repository.CaseLedgerEntryRepository;
+import io.casehub.ledger.model.WorkerDecisionEntry;
+import io.casehub.ledger.repository.CaseLedgerEntryRepository;
 import io.casehub.ledger.runtime.model.ActorTrustScore;
 import io.casehub.ledger.api.model.LedgerEntry;
 import io.casehub.ledger.runtime.repository.ActorTrustScoreRepository;
@@ -38,8 +37,7 @@ public class TrialDashboardResource {
     @Inject CurrentPrincipal principal;
     @Inject ActorTrustScoreRepository trustScoreRepository;
     @Inject ClinicalTrustRoutingPolicyProvider trustRoutingPolicyProvider;
-    // TODO: removed in ledger SNAPSHOT — needs equivalent
-    // @Inject CaseLedgerEntryRepository caseLedgerEntryRepository;
+    @Inject CaseLedgerEntryRepository caseLedgerEntryRepository;
     @Inject LedgerEntryRepository ledgerEntryRepository;
     @Inject ClinicalCbrService cbrService;
 
@@ -362,31 +360,27 @@ public class TrialDashboardResource {
         Double currentTrustScore = null;
         String gateStatus = ae.susarOversightStatus.name();
 
-        // TODO: removed in ledger SNAPSHOT — WorkerDecisionEntry and CaseLedgerEntryRepository need equivalents
-        // Stubbed for now to get build green
         if (ae.susarOversightCaseId != null) {
-            // Query WorkerDecisionEntry for the safety-monitoring decision
-            // List<WorkerDecisionEntry> decisions =
-            //     caseLedgerEntryRepository.findWorkerDecisionsByCaseId(ae.susarOversightCaseId);
-            // Optional<WorkerDecisionEntry> safetyDecision = decisions.stream()
-            //     .filter(e -> ClinicalCapabilities.SAFETY_MONITORING.equals(e.capabilityTag))
-            //     .findFirst();
-            //
-            // if (safetyDecision.isPresent()) {
-            //     WorkerDecisionEntry entry = safetyDecision.get();
-            //     workerId = entry.workerId;
-            //     capabilityTag = entry.capabilityTag;
-            //     trustScoreAtRouting = entry.trustScoreAtRouting;
-            //     thresholdApplied = entry.thresholdApplied;
-            //
-            //     // Look up current trust score for this worker
-            //     if (workerId != null) {
-            //         currentTrustScore = trustScoreRepository
-            //             .findCapabilityScore(workerId, ClinicalCapabilities.SAFETY_MONITORING)
-            //             .map(s -> s.trustScore)
-            //             .orElse(null);
-            //     }
-            // }
+            List<WorkerDecisionEntry> decisions =
+                caseLedgerEntryRepository.findWorkerDecisionsByCaseId(ae.susarOversightCaseId);
+            Optional<WorkerDecisionEntry> safetyDecision = decisions.stream()
+                .filter(e -> ClinicalCapabilities.SAFETY_MONITORING.equals(e.capabilityTag))
+                .findFirst();
+
+            if (safetyDecision.isPresent()) {
+                WorkerDecisionEntry entry = safetyDecision.get();
+                workerId = entry.workerId;
+                capabilityTag = entry.capabilityTag;
+                trustScoreAtRouting = entry.trustScoreAtRouting;
+                thresholdApplied = entry.thresholdApplied;
+
+                if (workerId != null) {
+                    currentTrustScore = trustScoreRepository
+                        .findCapabilityScore(workerId, ClinicalCapabilities.SAFETY_MONITORING)
+                        .map(s -> s.trustScore)
+                        .orElse(null);
+                }
+            }
         }
 
         return Response.ok(new GovernanceContext(
