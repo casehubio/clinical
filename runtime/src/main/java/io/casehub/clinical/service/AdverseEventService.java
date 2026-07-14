@@ -16,7 +16,11 @@ import io.casehub.work.runtime.service.WorkItemService;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.enterprise.event.Event;
 import jakarta.inject.Inject;
+import jakarta.transaction.Status;
+import jakarta.transaction.Synchronization;
+import jakarta.transaction.TransactionSynchronizationRegistry;
 import jakarta.transaction.Transactional;
+
 import java.time.Instant;
 import java.util.Map;
 import java.util.UUID;
@@ -24,52 +28,70 @@ import java.util.UUID;
 @ApplicationScoped
 public class AdverseEventService {
 
-    @Inject WorkItemService workItemService;
-    @Inject AdverseEventLedgerWriter ledgerWriter;
-    @Inject ObjectMapper objectMapper;
-    @Inject AdverseEventEscalationPolicy policy;
-    @Inject Event<AdverseEventReportedEvent> reportedEvents;
-    @Inject ClinicalMemoryService memoryService;
+    @Inject
+    WorkItemService                    workItemService;
+    @Inject
+    AdverseEventLedgerWriter           ledgerWriter;
+    @Inject
+    ObjectMapper                       objectMapper;
+    @Inject
+    AdverseEventEscalationPolicy       policy;
+    @Inject
+    Event<AdverseEventReportedEvent>   reportedEvents;
+    @Inject
+    ClinicalMemoryService              memoryService;
+    @Inject
+    TransactionSynchronizationRegistry txSync;
 
     @Transactional
     public void reportAdverseEvent(AdverseEvent ae) {
-        ae.reportedAt = Instant.now();
+        ae.reportedAt  = Instant.now();
         ae.slaDeadline = ae.reportedAt.plus(ae.grade.sla().orElseThrow());
 
         PatientEnrollment enrollment = PatientEnrollment.findById(ae.enrollmentId);
-        UUID siteId = enrollment != null ? enrollment.siteId : null;
+        UUID              siteId     = enrollment != null ? enrollment.siteId : null;
         ae.tenantId = enrollment != null ? enrollment.tenantId : "default";
 
-        TrialSite site = siteId != null ? TrialSite.findById(siteId) : null;
-        UUID trialId = site != null ? site.trialId : null;
+        TrialSite site    = siteId != null ? TrialSite.findById(siteId) : null;
+        UUID      trialId = site != null ? site.trialId : null;
         AdverseEventEscalationRequirements requirements =
                 policy.evaluate(new AdverseEventContext(ae.id, ae.enrollmentId, siteId, ae.grade));
 
         if (!requirements.engineCaseRequired()) {
             var workItem = workItemService.create(WorkItemCreateRequest.builder()
-                    .title("Adverse Event — " + ae.grade.label())
-                    .description("Grade " + ae.grade.label() + " AE for enrollment "
-                            + ae.enrollmentId + ". GCP SLA: "
-                            + ae.grade.sla().orElseThrow().toHours() + "h from " + ae.reportedAt)
-                    .types(java.util.List.of("adverse-event"))
-                    .formKey("adverse-event-review")
-                    .priority(priority(ae))
-                    .candidateGroups(requirements.candidateGroups())
-                    .createdBy("system")
-                    .payload(payload(ae))
-                    .claimDeadline(ae.slaDeadline)
-                    .build());
+                                                                       .title("Adverse Event — " + ae.grade.label())
+                                                                       .description("Grade " + ae.grade.label() + " AE for enrollment "
+                                                                                    + ae.enrollmentId + ". GCP SLA: "
+                                                                                    + ae.grade.sla().orElseThrow().toHours() + "h from " + ae.reportedAt)
+                                                                       .types(java.util.List.of("adverse-event"))
+                                                                       .formKey("adverse-event-review")
+                                                                       .priority(priority(ae))
+                                                                       .candidateGroups(requirements.candidateGroups())
+                                                                       .createdBy("system")
+                                                                       .payload(payload(ae))
+                                                                       .claimDeadline(ae.slaDeadline)
+                                                                       .build());
             ae.workItemId = workItem.id;
         }
-        // Grade 3+: ae.workItemId remains null — engine creates WorkItems via humanTask bindings
 
         ae.persist();
         ledgerWriter.writeReportEntry(ae);
         memoryService.storeAeReport(ae.id, ae.enrollmentId, siteId, trialId, ae.grade, ae.tenantId);
 
         if (requirements.engineCaseRequired()) {
-            reportedEvents.fireAsync(new AdverseEventReportedEvent(
-                    ae.id, ae.enrollmentId, siteId, ae.grade, ae.reportedAt, ae.tenantId));
+            var event = new AdverseEventReportedEvent(
+                    ae.id, ae.enrollmentId, siteId, ae.grade, ae.reportedAt, ae.tenantId);
+            txSync.registerInterposedSynchronization(new Synchronization() {
+                @Override
+                public void beforeCompletion() {}
+
+                @Override
+                public void afterCompletion(int status) {
+                    if (status == Status.STATUS_COMMITTED) {
+                        reportedEvents.fireAsync(event);
+                    }
+                }
+            });
         }
     }
 
