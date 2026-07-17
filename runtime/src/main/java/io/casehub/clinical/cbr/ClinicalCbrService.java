@@ -10,53 +10,66 @@ import jakarta.inject.Inject;
 
 import java.util.List;
 
-/**
- * Thin wrapper over {@link CbrCaseMemoryStore} with erase-before-store semantics.
- * <p>
- * Ensures idempotent case storage: each entity can have at most one CBR case
- * representation at any given time. When a case is updated (e.g., adverse event
- * escalation completes and outcome is known), the old precedent is erased and
- * replaced with the updated one.
- */
 @ApplicationScoped
 public class ClinicalCbrService {
 
-    private final CbrCaseMemoryStore store;
+    private static final org.jboss.logging.Logger LOG = org.jboss.logging.Logger.getLogger(ClinicalCbrService.class);
+
+    private final CbrCaseMemoryStore                                   store;
+    private final io.casehub.neocortex.memory.cbr.ExplanationRenderer  explanationRenderer;
+    private final io.casehub.clinical.service.CbrRetrievalLedgerWriter ledgerWriter;
+    private final java.time.Clock                                      clock;
 
     @Inject
-    public ClinicalCbrService(final CbrCaseMemoryStore store) {
-        this.store = store;
+    public ClinicalCbrService(final CbrCaseMemoryStore store,
+                              final io.casehub.neocortex.memory.cbr.ExplanationRenderer explanationRenderer,
+                              final io.casehub.clinical.service.CbrRetrievalLedgerWriter ledgerWriter,
+                              final java.time.Clock clock) {
+        this.store               = store;
+        this.explanationRenderer = explanationRenderer;
+        this.ledgerWriter        = ledgerWriter;
+        this.clock               = clock;
     }
 
-    /**
-     * Store a CBR case with idempotent semantics: erase any existing case for
-     * the same entityId, then store the new one.
-     *
-     * @param cbrCase  the case to store (problem, solution, outcome, features)
-     * @param caseType schema identifier (e.g., "clinical-ae")
-     * @param entityId domain entity identifier (e.g., "ae-{aeId}")
-     * @param domain   memory domain (e.g., ClinicalCbrDomains.AE)
-     * @param tenantId tenant identifier
-     * @param caseId   CaseHub case ID (nullable for non-case-linked precedents)
-     * @return the generated CBR case ID
-     */
     public String storeIdempotent(final CbrCase cbrCase, final String caseType,
                                   final String entityId, final MemoryDomain domain,
                                   final String tenantId, final String caseId) {
         store.eraseEntity(entityId, tenantId);
-        return store.store(cbrCase, caseType, entityId, domain, tenantId, caseId);
+        return store.store(cbrCase, caseType, entityId, domain, tenantId, caseId, io.casehub.platform.api.path.Path.root());
     }
 
-    /**
-     * Retrieve similar cases for a given query.
-     *
-     * @param query    feature-based query with topK limit
-     * @param caseType class of CBR case to retrieve
-     * @param <C>      concrete CBR case type
-     * @return list of scored cases, ordered by similarity descending
-     */
     public <C extends CbrCase> List<ScoredCbrCase<C>> retrieveSimilar(final CbrQuery query,
-                                                                        final Class<C> caseType) {
+                                                                      final Class<C> caseType) {
         return store.retrieveSimilar(query, caseType);
+    }
+
+    public <C extends CbrCase> AuditedRetrievalResult<C> retrieveWithAudit(
+            final CbrQuery query, final Class<C> caseType,
+            final java.util.UUID subjectId, final String actorId) {
+        List<ScoredCbrCase<C>>                            cases = retrieveSimilar(query, caseType);
+        io.casehub.neocortex.memory.cbr.CbrRetrievalTrace trace = buildTrace(query, cases);
+
+        String explanation;
+        try {
+            explanation = explanationRenderer.render(trace);
+        } catch (Exception e) {
+            LOG.warnf(e, "ExplanationRenderer failed for trace %s — recording with null explanation", trace.traceId());
+            explanation = null;
+        }
+
+        ledgerWriter.record(trace, explanation, subjectId, actorId);
+        return new AuditedRetrievalResult<>(cases, trace.traceId(), explanation);
+    }
+
+    private <C extends CbrCase> io.casehub.neocortex.memory.cbr.CbrRetrievalTrace buildTrace(
+            CbrQuery query, List<ScoredCbrCase<C>> cases) {
+        List<io.casehub.neocortex.memory.cbr.CbrRetrievalTrace.TracedCase> tracedCases = cases.stream()
+                                                                                              .map(sc -> new io.casehub.neocortex.memory.cbr.CbrRetrievalTrace.TracedCase(
+                                                                                                      sc.caseId(), sc.score(), sc.reranked(),
+                                                                                                      sc.featureSimilarities(),
+                                                                                                      sc.cbrCase().confidence()))
+                                                                                              .toList();
+        return new io.casehub.neocortex.memory.cbr.CbrRetrievalTrace(
+                java.util.UUID.randomUUID().toString(), query, tracedCases, clock.instant());
     }
 }

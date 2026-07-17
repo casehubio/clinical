@@ -1,7 +1,11 @@
 package io.casehub.clinical.cbr;
 
 import io.casehub.neocortex.memory.MemoryDomain;
-import io.casehub.neocortex.memory.cbr.*;
+import io.casehub.neocortex.memory.cbr.CbrCaseMemoryStore;
+import io.casehub.neocortex.memory.cbr.CbrQuery;
+import io.casehub.neocortex.memory.cbr.FeatureValue;
+import io.casehub.neocortex.memory.cbr.FeatureVectorCbrCase;
+import io.casehub.neocortex.memory.cbr.ScoredCbrCase;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.InOrder;
@@ -10,7 +14,10 @@ import java.util.List;
 import java.util.Map;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.mockito.Mockito.*;
+import static org.mockito.Mockito.inOrder;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
 class ClinicalCbrServiceTest {
 
@@ -20,7 +27,10 @@ class ClinicalCbrServiceTest {
     @BeforeEach
     void setUp() {
         store = mock(CbrCaseMemoryStore.class);
-        service = new ClinicalCbrService(store);
+        service = new ClinicalCbrService(store,
+            mock(io.casehub.neocortex.memory.cbr.ExplanationRenderer.class),
+            mock(io.casehub.clinical.service.CbrRetrievalLedgerWriter.class),
+            java.time.Clock.systemUTC());
     }
 
     @Test
@@ -32,7 +42,7 @@ class ClinicalCbrServiceTest {
         final String tenantId = "tenant-1";
         final String caseId = "case-123";
 
-        when(store.store(cbrCase, caseType, entityId, domain, tenantId, caseId))
+        when(store.store(cbrCase, caseType, entityId, domain, tenantId, caseId, io.casehub.platform.api.path.Path.root()))
             .thenReturn("cbr-id-123");
 
         final String result = service.storeIdempotent(cbrCase, caseType, entityId, domain, tenantId, caseId);
@@ -41,13 +51,13 @@ class ClinicalCbrServiceTest {
 
         final InOrder inOrder = inOrder(store);
         inOrder.verify(store).eraseEntity(entityId, tenantId);
-        inOrder.verify(store).store(cbrCase, caseType, entityId, domain, tenantId, caseId);
+        inOrder.verify(store).store(cbrCase, caseType, entityId, domain, tenantId, caseId, io.casehub.platform.api.path.Path.root());
     }
 
     @Test
     void retrieveSimilar_delegatesToStore() {
         final var query = CbrQuery.of("tenant-1", new MemoryDomain("clinical-ae"),
-            "clinical-ae", FeatureValue.toFeatureMap(Map.of("grade", 3.0)), 5);
+            io.casehub.platform.api.path.Path.root(), "clinical-ae", FeatureValue.toFeatureMap(Map.of("grade", 3.0)), 5);
         final var expected = List.of(
             new ScoredCbrCase<>(new FeatureVectorCbrCase("p1", "s1", "o1", 0.9, Map.of()), 0.95),
             new ScoredCbrCase<>(new FeatureVectorCbrCase("p2", "s2", "o2", 0.8, Map.of()), 0.85)

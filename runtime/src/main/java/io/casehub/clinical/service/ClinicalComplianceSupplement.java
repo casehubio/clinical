@@ -125,4 +125,13 @@ public final class ClinicalComplianceSupplement {
         s.humanOverrideAvailable = true;
         return s;
     }
+
+    public static ComplianceSupplement cbrRetrieval() {
+        ComplianceSupplement s = new JpaComplianceSupplement();
+        s.planRef                = "EU AI Act Art.12 — record-keeping for high-risk AI decision support";
+        s.algorithmRef           = "ClinicalCbrService (CBR precedent retrieval, weighted feature similarity)";
+        s.humanOverrideAvailable = true;
+        return s;
+    }
+
 }

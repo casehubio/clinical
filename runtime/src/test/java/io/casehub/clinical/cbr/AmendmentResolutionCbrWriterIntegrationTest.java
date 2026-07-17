@@ -1,7 +1,5 @@
 package io.casehub.clinical.cbr;
 
-import static org.assertj.core.api.Assertions.assertThat;
-
 import io.casehub.clinical.api.ProtocolAmendmentResolvedEvent;
 import io.casehub.clinical.api.model.AmendmentCaseStatus;
 import io.casehub.clinical.api.model.ProtocolAmendmentStatus;
@@ -20,6 +18,8 @@ import java.time.Instant;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
+
+import static org.assertj.core.api.Assertions.assertThat;
 
 @QuarkusTest
 class AmendmentResolutionCbrWriterIntegrationTest {
@@ -66,7 +66,7 @@ class AmendmentResolutionCbrWriterIntegrationTest {
         var query = CbrQuery.of(
             "default",
             ClinicalCbrDomains.AMENDMENT,
-            "clinical-amendment",
+            io.casehub.platform.api.path.Path.root(), "clinical-amendment",
             Map.of(),
             10
         ).withProblem("Extend enrollment period by 6 months");
@@ -97,7 +97,7 @@ class AmendmentResolutionCbrWriterIntegrationTest {
         var query = CbrQuery.of(
             "default",
             ClinicalCbrDomains.AMENDMENT,
-            "clinical-amendment",
+            io.casehub.platform.api.path.Path.root(), "clinical-amendment",
             Map.of(),
             10
         ).withProblem("Extend enrollment period by 6 months");

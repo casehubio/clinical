@@ -1,11 +1,14 @@
 package io.casehub.clinical.cbr;
 
+import io.casehub.clinical.api.ClinicalGroups;
 import io.casehub.clinical.api.IrbApprovalResolvedEvent;
 import io.casehub.clinical.api.ProtocolDeviationResolvedEvent;
-import io.casehub.clinical.api.model.*;
+import io.casehub.clinical.api.model.DeviationSeverity;
+import io.casehub.clinical.api.model.EscalationRequirement;
+import io.casehub.clinical.api.model.IrbDecision;
+import io.casehub.clinical.api.model.PiApprovalStatus;
 import io.casehub.clinical.entity.IrbApproval;
 import io.casehub.clinical.entity.ProtocolDeviation;
-import io.casehub.clinical.api.ClinicalGroups;
 import io.casehub.neocortex.memory.cbr.CbrCaseMemoryStore;
 import io.casehub.neocortex.memory.cbr.CbrQuery;
 import io.casehub.neocortex.memory.cbr.FeatureValue;
@@ -92,7 +95,7 @@ class DeviationResolutionCbrWriterIntegrationTest {
         var query = CbrQuery.of(
             tenantId,
             ClinicalCbrDomains.DEVIATION,
-            "clinical-deviation",
+            io.casehub.platform.api.path.Path.root(), "clinical-deviation",
             FeatureValue.toFeatureMap(Map.of("deviationType", "CONSENT_TIMING_DELAY", "severity", "MINOR")),
             10
         );
@@ -176,7 +179,7 @@ class DeviationResolutionCbrWriterIntegrationTest {
         var query = CbrQuery.of(
             tenantId,
             ClinicalCbrDomains.DEVIATION,
-            "clinical-deviation",
+            io.casehub.platform.api.path.Path.root(), "clinical-deviation",
             FeatureValue.toFeatureMap(Map.of("deviationType", "INFORMED_CONSENT_VIOLATION")),
             10
         );
@@ -238,7 +241,7 @@ class DeviationResolutionCbrWriterIntegrationTest {
         var query = CbrQuery.of(
             tenantId,
             ClinicalCbrDomains.DEVIATION,
-            "clinical-deviation",
+            io.casehub.platform.api.path.Path.root(), "clinical-deviation",
             FeatureValue.toFeatureMap(Map.of("severity", "MAJOR")),
             10
         );

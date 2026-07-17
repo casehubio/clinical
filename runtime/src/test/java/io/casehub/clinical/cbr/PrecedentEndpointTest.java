@@ -259,26 +259,28 @@ class PrecedentEndpointTest {
                 .get("/trials/{trialId}/adverse-events/{aeId}/precedents", trialId, aeId)
                 .then()
                 .statusCode(200)
-                .body("size()", greaterThan(0))
-                .body("[0].score", notNullValue())
-                .body("[0].grade", equalTo("GRADE_3"))
-                .body("[0].eventType", equalTo("Neutropenia"))
-                .body("[0].trialPhase", equalTo("PHASE_III"))
-                .body("[0].unexpected", equalTo(true))
-                .body("[0].suspected", equalTo(true))
-                .body("[0].treatmentArm", equalTo("ARM_A"))
-                .body("[0].priorAeCount", equalTo("MULTIPLE"))
-                .body("[0].safetyReviewOutcome", notNullValue())
-                .body("[0].dsmbEscalated", notNullValue())
-                .body("[0].indReportFiled", notNullValue())
-                .body("[0].susarOversight", notNullValue())
-                .body("[0].steps", hasSize(1))
-                .body("[0].steps[0].bindingName", equalTo("safety-review"))
-                .body("[0].steps[0].capabilityName", equalTo("safety-monitoring"))
-                .body("[0].steps[0].workerName", equalTo("officer-alpha"))
-                .body("[0].steps[0].stepOutcome", equalTo("COMPLETED"))
-                .body("[0].problem", notNullValue())
-                .body("[0].outcome", notNullValue());
+                .body("traceId", notNullValue())
+                .body("explanation", notNullValue())
+                .body("precedents.size()", greaterThan(0))
+                .body("precedents[0].score", notNullValue())
+                .body("precedents[0].grade", equalTo("GRADE_3"))
+                .body("precedents[0].eventType", equalTo("Neutropenia"))
+                .body("precedents[0].trialPhase", equalTo("PHASE_III"))
+                .body("precedents[0].unexpected", equalTo(true))
+                .body("precedents[0].suspected", equalTo(true))
+                .body("precedents[0].treatmentArm", equalTo("ARM_A"))
+                .body("precedents[0].priorAeCount", equalTo("MULTIPLE"))
+                .body("precedents[0].safetyReviewOutcome", notNullValue())
+                .body("precedents[0].dsmbEscalated", notNullValue())
+                .body("precedents[0].indReportFiled", notNullValue())
+                .body("precedents[0].susarOversight", notNullValue())
+                .body("precedents[0].steps", hasSize(1))
+                .body("precedents[0].steps[0].bindingName", equalTo("safety-review"))
+                .body("precedents[0].steps[0].capabilityName", equalTo("safety-monitoring"))
+                .body("precedents[0].steps[0].workerName", equalTo("officer-alpha"))
+                .body("precedents[0].steps[0].stepOutcome", equalTo("COMPLETED"))
+                .body("precedents[0].problem", notNullValue())
+                .body("precedents[0].outcome", notNullValue());
     }
 
     @Test
@@ -300,19 +302,21 @@ class PrecedentEndpointTest {
             .get("/trials/{trialId}/deviations/{devId}/precedents", trialId, deviationId)
         .then()
             .statusCode(200)
-            .body("size()", greaterThan(0))
-            .body("[0].score", notNullValue())
-            .body("[0].deviationType", equalTo("CONSENT_TIMING_DELAY"))
-            .body("[0].severity", equalTo("MINOR"))
-            .body("[0].escalationRequirement", equalTo("NONE"))
-            .body("[0].piDecision", equalTo("APPROVED"))
-            .body("[0].irbDecision", equalTo("N/A"))
-            .body("[0].steps", hasSize(1))
-            .body("[0].steps[0].bindingName", equalTo("pi-oversight"))
-            .body("[0].steps[0].capabilityName", equalTo("pi-authorisation"))
-            .body("[0].steps[0].stepOutcome", equalTo("APPROVED"))
-            .body("[0].problem", notNullValue())
-            .body("[0].outcome", notNullValue());
+            .body("traceId", notNullValue())
+            .body("explanation", notNullValue())
+            .body("precedents.size()", greaterThan(0))
+            .body("precedents[0].score", notNullValue())
+            .body("precedents[0].deviationType", equalTo("CONSENT_TIMING_DELAY"))
+            .body("precedents[0].severity", equalTo("MINOR"))
+            .body("precedents[0].escalationRequirement", equalTo("NONE"))
+            .body("precedents[0].piDecision", equalTo("APPROVED"))
+            .body("precedents[0].irbDecision", equalTo("N/A"))
+            .body("precedents[0].steps", hasSize(1))
+            .body("precedents[0].steps[0].bindingName", equalTo("pi-oversight"))
+            .body("precedents[0].steps[0].capabilityName", equalTo("pi-authorisation"))
+            .body("precedents[0].steps[0].stepOutcome", equalTo("APPROVED"))
+            .body("precedents[0].problem", notNullValue())
+            .body("precedents[0].outcome", notNullValue());
     }
 
     @Test
@@ -334,11 +338,13 @@ class PrecedentEndpointTest {
             .get("/trials/{trialId}/amendments/{amendmentId}/precedents", trialId, amendmentId)
         .then()
             .statusCode(200)
-            .body("size()", greaterThan(0))
-            .body("[0].score", equalTo(1.0f))  // Phase 1 all score 1.0
-            .body("[0].proposedChange", notNullValue())
-            .body("[0].advisorOutcome", notNullValue())
-            .body("[0].outcome", notNullValue());
+            .body("traceId", notNullValue())
+            .body("explanation", notNullValue())
+            .body("precedents.size()", greaterThan(0))
+            .body("precedents[0].score", equalTo(1.0f))  // Phase 1 all score 1.0
+            .body("precedents[0].proposedChange", notNullValue())
+            .body("precedents[0].advisorOutcome", notNullValue())
+            .body("precedents[0].outcome", notNullValue());
     }
 
     @Test
