@@ -8,7 +8,10 @@ import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.mockito.Mockito.*;
+import static org.mockito.Mockito.any;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
 
 class ClinicalCbrSchemaInitializerTest {
 
@@ -37,20 +40,21 @@ class ClinicalCbrSchemaInitializerTest {
 
         final var schemas = captor.getAllValues();
         final var aeSchema = schemas.stream()
-            .filter(s -> s.caseType().equals("clinical-ae"))
-            .findFirst()
-            .orElseThrow();
+                                    .filter(s -> s.caseType().equals("clinical-ae"))
+                                    .findFirst()
+                                    .orElseThrow();
 
-        assertThat(aeSchema.fields()).hasSize(9);
+        assertThat(aeSchema.fields()).hasSize(11);
         assertThat(aeSchema.fields().stream().map(f -> f.name()))
-            .containsExactlyInAnyOrder("grade", "eventType", "trialPhase", "unexpected",
-                "suspected", "safetyReviewOutcome", "dsmbEscalated", "indReportFiled", "susarOversight");
+                .containsExactlyInAnyOrder("grade", "eventType", "trialPhase", "unexpected",
+                                           "suspected", "treatmentArm", "priorAeCount",
+                                           "safetyReviewOutcome", "dsmbEscalated", "indReportFiled", "susarOversight");
 
         // Verify numeric field constraints
         final var gradeField = (io.casehub.neocortex.memory.cbr.FeatureField.Numeric) aeSchema.fields().stream()
-            .filter(f -> f.name().equals("grade"))
-            .findFirst()
-            .orElseThrow();
+                                                                                              .filter(f -> f.name().equals("grade"))
+                                                                                              .findFirst()
+                                                                                              .orElseThrow();
         assertThat(gradeField.min()).isEqualTo(1.0);
         assertThat(gradeField.max()).isEqualTo(5.0);
     }

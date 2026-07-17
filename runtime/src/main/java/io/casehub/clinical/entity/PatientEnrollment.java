@@ -6,7 +6,13 @@ import io.casehub.clinical.api.model.EligibilityScreeningResult;
 import io.casehub.clinical.api.model.EnrollmentStatus;
 import io.casehub.platform.api.identity.CurrentPrincipal;
 import io.quarkus.hibernate.orm.panache.PanacheEntityBase;
-import jakarta.persistence.*;
+import jakarta.persistence.Column;
+import jakarta.persistence.Entity;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
+import jakarta.persistence.Id;
+import jakarta.persistence.Table;
+
 import java.time.Instant;
 import java.util.UUID;
 
@@ -53,6 +59,9 @@ public class PatientEnrollment extends PanacheEntityBase {
     @Enumerated(EnumType.STRING)
     @Column(name = "eligibility_screening_case_status", nullable = false)
     public EligibilityScreeningCaseStatus eligibilityScreeningCaseStatus = EligibilityScreeningCaseStatus.NONE;
+    @Column(name = "treatment_arm")
+    public String                         treatmentArm;
+
 
     public static PatientEnrollment findByIdForTenant(UUID id, CurrentPrincipal principal) {
         if (principal.isCrossTenantAdmin()) return findById(id);

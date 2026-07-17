@@ -14,7 +14,7 @@ import org.jboss.logging.Logger;
  * <p>
  * Three schemas:
  * <ul>
- * <li>clinical-ae — adverse event precedents (9 features: grade, eventType, ...)</li>
+ * <li>clinical-ae — adverse event precedents (11 features: grade, eventType, ...)</li>
  * <li>clinical-deviation — protocol deviation precedents (5 features: deviationType, ...)</li>
  * <li>clinical-amendment — protocol amendment precedents (0 features, pure textual)</li>
  * </ul>
@@ -40,15 +40,17 @@ public class ClinicalCbrSchemaInitializer {
 
     static CbrFeatureSchema aeSchema() {
         return CbrFeatureSchema.of("clinical-ae",
-            FeatureField.numeric("grade", 1, 5),
-            FeatureField.categorical("eventType"),
-            FeatureField.categorical("trialPhase"),
-            FeatureField.categorical("unexpected"),
-            FeatureField.categorical("suspected"),
-            FeatureField.categorical("safetyReviewOutcome"),
-            FeatureField.categorical("dsmbEscalated"),
-            FeatureField.categorical("indReportFiled"),
-            FeatureField.categorical("susarOversight"));
+                                   FeatureField.numeric("grade", 1, 5),
+                                   FeatureField.categorical("eventType"),
+                                   FeatureField.categorical("trialPhase"),
+                                   FeatureField.categorical("unexpected"),
+                                   FeatureField.categorical("suspected"),
+                                   FeatureField.categorical("treatmentArm"),
+                                   FeatureField.categorical("priorAeCount"),
+                                   FeatureField.categorical("safetyReviewOutcome"),
+                                   FeatureField.categorical("dsmbEscalated"),
+                                   FeatureField.categorical("indReportFiled"),
+                                   FeatureField.categorical("susarOversight"));
     }
 
     static CbrFeatureSchema deviationSchema() {

@@ -1,9 +1,30 @@
 package io.casehub.clinical.cbr;
 
 import io.casehub.clinical.api.ClinicalGroups;
-import io.casehub.clinical.api.model.*;
-import io.casehub.clinical.entity.*;
-import io.casehub.neocortex.memory.cbr.*;
+import io.casehub.clinical.api.model.AmendmentCaseStatus;
+import io.casehub.clinical.api.model.ConsentStatus;
+import io.casehub.clinical.api.model.CtcaeGrade;
+import io.casehub.clinical.api.model.DeviationSeverity;
+import io.casehub.clinical.api.model.EnrollmentStatus;
+import io.casehub.clinical.api.model.EscalationRequirement;
+import io.casehub.clinical.api.model.EventActuality;
+import io.casehub.clinical.api.model.PiApprovalStatus;
+import io.casehub.clinical.api.model.ProtocolAmendmentStatus;
+import io.casehub.clinical.api.model.RegulatorySubmissionStatus;
+import io.casehub.clinical.api.model.SiteStatus;
+import io.casehub.clinical.api.model.SusarOversightStatus;
+import io.casehub.clinical.api.model.TrialPhase;
+import io.casehub.clinical.api.model.TrialStatus;
+import io.casehub.clinical.entity.AdverseEvent;
+import io.casehub.clinical.entity.ClinicalTrial;
+import io.casehub.clinical.entity.PatientEnrollment;
+import io.casehub.clinical.entity.ProtocolAmendment;
+import io.casehub.clinical.entity.ProtocolDeviation;
+import io.casehub.clinical.entity.TrialSite;
+import io.casehub.neocortex.memory.cbr.FeatureValue;
+import io.casehub.neocortex.memory.cbr.PlanCbrCase;
+import io.casehub.neocortex.memory.cbr.PlanTrace;
+import io.casehub.neocortex.memory.cbr.TextualCbrCase;
 import io.casehub.platform.testing.FixedCurrentPrincipal;
 import io.quarkus.test.junit.QuarkusTest;
 import io.quarkus.test.security.TestSecurity;
@@ -19,7 +40,10 @@ import java.util.Map;
 import java.util.UUID;
 
 import static io.restassured.RestAssured.given;
-import static org.hamcrest.Matchers.*;
+import static org.hamcrest.Matchers.equalTo;
+import static org.hamcrest.Matchers.greaterThan;
+import static org.hamcrest.Matchers.hasSize;
+import static org.hamcrest.Matchers.notNullValue;
 
 /**
  * Integration test for CBR precedent retrieval REST endpoints.
@@ -136,34 +160,40 @@ class PrecedentEndpointTest {
     }
 
     private void populateAePrecedents() {
-        // Store 3 AE precedents (categorical fields must be Strings)
         for (int i = 0; i < 3; i++) {
-            FeatureVectorCbrCase cbrCase = new FeatureVectorCbrCase(
-                "Grade 3 Neutropenia in PHASE_III trial, unexpected=true, suspected=true",
-                "Safety review outcome: CONTINUE_MONITORING, DSMB escalated: false, IND report: true, SUSAR oversight: true",
-                "COMPLETED",
-                1.0,
-                FeatureValue.toFeatureMap(Map.of(
-                    "grade", 3,
-                    "eventType", "Neutropenia",
-                    "trialPhase", "PHASE_III",
-                    "unexpected", "true",
-                    "suspected", "true",
-                    "safetyReviewOutcome", "CONTINUE_MONITORING",
-                    "dsmbEscalated", "false",
-                    "indReportFiled", "true",
-                    "susarOversight", "true"
-                ))
+            List<PlanTrace> traces = List.of(
+                    new PlanTrace("safety-review", "safety-monitoring", "officer-alpha", "COMPLETED", 1, Map.of())
+                                            );
+
+            PlanCbrCase cbrCase = new PlanCbrCase(
+                    "Grade 3 Neutropenia in PHASE_III trial, unexpected=true, suspected=true",
+                    "Safety review: CONTINUE_MONITORING. DSMB escalated: false. IND report: true. SUSAR oversight: true.",
+                    "COMPLETED",
+                    1.0,
+                    FeatureValue.toFeatureMap(Map.ofEntries(
+                            Map.entry("grade", 3),
+                            Map.entry("eventType", "Neutropenia"),
+                            Map.entry("trialPhase", "PHASE_III"),
+                            Map.entry("unexpected", "true"),
+                            Map.entry("suspected", "true"),
+                            Map.entry("treatmentArm", "ARM_A"),
+                            Map.entry("priorAeCount", "MULTIPLE"),
+                            Map.entry("safetyReviewOutcome", "CONTINUE_MONITORING"),
+                            Map.entry("dsmbEscalated", "false"),
+                            Map.entry("indReportFiled", "true"),
+                            Map.entry("susarOversight", "true")
+                                                           )),
+                    traces
             );
 
             cbrService.storeIdempotent(
-                cbrCase,
-                "clinical-ae",
-                "ae-precedent-" + i,
-                ClinicalCbrDomains.AE,
-                principal.tenancyId(),
-                null
-            );
+                    cbrCase,
+                    "clinical-ae",
+                    "ae-precedent-" + i,
+                    ClinicalCbrDomains.AE,
+                    principal.tenancyId(),
+                    null
+                                      );
         }
     }
 
@@ -224,24 +254,31 @@ class PrecedentEndpointTest {
     @Test
     void aePrecedents_returnsMatchingCases() {
         given()
-            .contentType(ContentType.JSON)
-        .when()
-            .get("/trials/{trialId}/adverse-events/{aeId}/precedents", trialId, aeId)
-        .then()
-            .statusCode(200)
-            .body("size()", greaterThan(0))
-            .body("[0].score", notNullValue())
-            .body("[0].grade", equalTo("GRADE_3"))
-            .body("[0].eventType", equalTo("Neutropenia"))
-            .body("[0].trialPhase", equalTo("PHASE_III"))
-            .body("[0].unexpected", equalTo(true))
-            .body("[0].suspected", equalTo(true))
-            .body("[0].safetyReviewOutcome", notNullValue())
-            .body("[0].dsmbEscalated", notNullValue())
-            .body("[0].indReportFiled", notNullValue())
-            .body("[0].susarOversight", notNullValue())
-            .body("[0].problem", notNullValue())
-            .body("[0].outcome", notNullValue());
+                .contentType(ContentType.JSON)
+                .when()
+                .get("/trials/{trialId}/adverse-events/{aeId}/precedents", trialId, aeId)
+                .then()
+                .statusCode(200)
+                .body("size()", greaterThan(0))
+                .body("[0].score", notNullValue())
+                .body("[0].grade", equalTo("GRADE_3"))
+                .body("[0].eventType", equalTo("Neutropenia"))
+                .body("[0].trialPhase", equalTo("PHASE_III"))
+                .body("[0].unexpected", equalTo(true))
+                .body("[0].suspected", equalTo(true))
+                .body("[0].treatmentArm", equalTo("ARM_A"))
+                .body("[0].priorAeCount", equalTo("MULTIPLE"))
+                .body("[0].safetyReviewOutcome", notNullValue())
+                .body("[0].dsmbEscalated", notNullValue())
+                .body("[0].indReportFiled", notNullValue())
+                .body("[0].susarOversight", notNullValue())
+                .body("[0].steps", hasSize(1))
+                .body("[0].steps[0].bindingName", equalTo("safety-review"))
+                .body("[0].steps[0].capabilityName", equalTo("safety-monitoring"))
+                .body("[0].steps[0].workerName", equalTo("officer-alpha"))
+                .body("[0].steps[0].stepOutcome", equalTo("COMPLETED"))
+                .body("[0].problem", notNullValue())
+                .body("[0].outcome", notNullValue());
     }
 
     @Test
