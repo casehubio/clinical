@@ -8,7 +8,7 @@ export function auditTrailStub(datasetId: string): Component {
     sortable: true,
     pageSize: 25,
     columns: [
-      { id: "timestamp" as never, name: "Timestamp" },
+      { id: "occurredAt" as never, name: "Timestamp" },
       { id: "entryType" as never, name: "Type" },
       { id: "actorId" as never, name: "Actor" },
       { id: "subjectId" as never, name: "Subject" },

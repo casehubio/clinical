@@ -1,6 +1,6 @@
-patientId,siteId,siteName,enrolledAt,consentStatus,eligibilityStatus,activeAeCount,activeDeviationCount
-pat-001,site-a,Memorial Cancer Center,2026-06-15T10:00:00Z,ACTIVE,CONFIRMED,1,0
-pat-002,site-a,Memorial Cancer Center,2026-06-16T14:00:00Z,ACTIVE,CONFIRMED,1,0
-pat-003,site-b,Johns Hopkins Oncology,2026-06-17T09:00:00Z,ACTIVE,CONFIRMED,1,0
-pat-004,site-a,Memorial Cancer Center,2026-06-18T11:00:00Z,ACTIVE,CONFIRMED,1,1
-pat-005,site-c,Mayo Clinic Research,2026-06-19T08:00:00Z,ACTIVE,CONFIRMED,1,0
+patientId,siteId,enrollmentStatus,screeningResult,consentStatus
+pat-001,site-a,ENROLLED,ELIGIBLE,ACTIVE
+pat-002,site-a,ENROLLED,ELIGIBLE,ACTIVE
+pat-003,site-b,ENROLLED,ELIGIBLE,ACTIVE
+pat-004,site-a,ENROLLED,ELIGIBLE,ACTIVE
+pat-005,site-c,ENROLLED,ELIGIBLE,ACTIVE

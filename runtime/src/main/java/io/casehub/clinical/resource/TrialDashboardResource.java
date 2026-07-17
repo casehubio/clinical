@@ -486,7 +486,7 @@ public class TrialDashboardResource {
 
         Map<UUID, Long> finalAeBySite = aeBySite;
         List<SiteRow> rows = sites.stream().map(s -> new SiteRow(
-                s.id, s.investigatorId,
+                s.id, s.investigatorId, s.investigatorId,
                 s.status != null ? s.status.name() : null,
                 enrolledBySite.getOrDefault(s.id, 0L),
                 finalAeBySite.getOrDefault(s.id, 0L),
@@ -715,9 +715,9 @@ public class TrialDashboardResource {
             Instant occurredAt, String digest, String summary
     ) {}
 
-    public record SiteRow(UUID id, String investigatorId, String status,
-                          long enrolledCount, long adverseEventCount,
-                          long deviationCount, int targetEnrollment) {}
+    public record SiteRow(UUID id, String siteName, String investigatorId, String status,
+                          long enrolledCount, long adverseEventCount, long deviationCount,
+                          int targetEnrollment) {}
 
     public record CommitmentLifecycleResponse(
             UUID deviationId,

@@ -12,13 +12,13 @@ export function operations(): Component {
   const trialDashboard = rows(
     columns([3, 3, 3, 3],
       [metric({ title: "Trial Phase", lookup: lookup(trialSummaryDs.id, groupBy(null, col("phase"))) })],
-      [metric({ title: "Total Enrolled", lookup: lookup(trialSummaryDs.id, groupBy(null, col("enrolledCount"))) })],
-      [metric({ title: "Adverse Events", lookup: lookup(trialSummaryDs.id, groupBy(null, col("activeAeCount"))) })],
-      [metric({ title: "Protocol Deviations", lookup: lookup(trialSummaryDs.id, groupBy(null, col("activeDeviationCount"))) })],
+      [metric({ title: "Total Enrolled", lookup: lookup(trialSummaryDs.id, groupBy(null, col("totalEnrolled"))) })],
+      [metric({ title: "Adverse Events", lookup: lookup(trialSummaryDs.id, groupBy(null, col("totalAdverseEvents"))) })],
+      [metric({ title: "Protocol Deviations", lookup: lookup(trialSummaryDs.id, groupBy(null, col("totalDeviations"))) })],
     ),
     barChart({
       title: "Enrollment by Site: Target vs Actual",
-      lookup: lookup(sitesDs.id, groupBy("siteName", col("siteName"), col("targetCount"), col("enrolledCount"))),
+      lookup: lookup(sitesDs.id, groupBy("siteName", col("siteName"), col("targetEnrollment"), col("enrolledCount"))),
     }),
     table({
       title: "Recent Activity",
@@ -26,7 +26,7 @@ export function operations(): Component {
       sortable: true,
       pageSize: 10,
       columns: [
-        { id: "timestamp" as never, name: "Time", expression: 'value ? $substring(value, 0, 16) : ""' },
+        { id: "occurredAt" as never, name: "Time", expression: 'value ? $substring(value, 0, 16) : ""' },
         { id: "entryType" as never, name: "Event Type", expression: 'value' },
         { id: "actorId" as never, name: "Actor", expression: 'value ? $substring(value, 0, 12) & "..." : ""' },
         { id: "subjectId" as never, name: "Subject", expression: 'value ? $substring(value, 0, 8) & "..." : ""' },
