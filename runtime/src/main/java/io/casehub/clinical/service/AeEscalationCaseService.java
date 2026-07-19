@@ -35,6 +35,8 @@ public class AeEscalationCaseService {
     @Inject AdverseEventEscalationPolicy policy;
     @Inject TrialSafetySignalService trialSafetySignalService;
     @Inject io.casehub.clinical.memory.ClinicalMemoryService memoryService;
+    @Inject io.casehub.clinical.cbr.AeEscalationPlanRetriever planRetriever;
+
 
     public void onAdverseEventReported(@ObservesAsync AdverseEventReportedEvent event) {
         try {
@@ -78,9 +80,15 @@ public class AeEscalationCaseService {
         var patientCtx = memoryService.queryPatientContext(ae.enrollmentId, ae.tenantId);
         var siteCtx    = memoryService.querySiteContext(event.siteId(), ae.tenantId);
         ctx.put("patientContext", patientCtx.toContextMap());
-        ctx.put("siteContext",    siteCtx.toContextMap());
+        ctx.put("siteContext", siteCtx.toContextMap());
         ctx.put("unexpected", ae.unexpected);
-        ctx.put("suspected",  ae.suspected);
+        ctx.put("suspected", ae.suspected);
+
+        io.casehub.clinical.cbr.EscalationPlanRecommendation plan = planRetriever.retrieve(ae);
+        if (plan.hasRecommendation()) {
+            ctx.put("escalationPlanRecommendation", plan.toContextMap());
+        }
+
         return ctx;
     }
 
