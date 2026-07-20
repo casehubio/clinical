@@ -1,10 +1,11 @@
 package io.casehub.clinical.demo;
 
-import static org.assertj.core.api.Assertions.assertThat;
+import org.junit.jupiter.api.Test;
 
 import java.nio.charset.StandardCharsets;
 import java.util.UUID;
-import org.junit.jupiter.api.Test;
+
+import static org.assertj.core.api.Assertions.assertThat;
 
 /**
  * Unit tests for DemoDataSeeder constants and deterministic UUID generation.
@@ -64,6 +65,18 @@ class DemoDataSeederTest {
 
         assertThat(patA).isNotEqualTo(patB);
         assertThat(patB).isNotEqualTo(patC);
+    }
+
+    @Test
+    void additional_patient_ids_are_deterministic() {
+        assertThat(DemoDataSeeder.PATIENT_A2_ID)
+                .isEqualTo(UUID.nameUUIDFromBytes("PATIENT-A-002".getBytes(StandardCharsets.UTF_8)));
+        assertThat(DemoDataSeeder.PATIENT_A3_ID)
+                .isEqualTo(UUID.nameUUIDFromBytes("PATIENT-A-003".getBytes(StandardCharsets.UTF_8)));
+        assertThat(DemoDataSeeder.PATIENT_B2_ID)
+                .isEqualTo(UUID.nameUUIDFromBytes("PATIENT-B-002".getBytes(StandardCharsets.UTF_8)));
+        assertThat(DemoDataSeeder.PATIENT_C2_ID)
+                .isEqualTo(UUID.nameUUIDFromBytes("PATIENT-C-002".getBytes(StandardCharsets.UTF_8)));
     }
 
     @Test

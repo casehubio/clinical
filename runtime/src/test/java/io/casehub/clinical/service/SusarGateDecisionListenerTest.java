@@ -42,7 +42,7 @@ class SusarGateDecisionListenerTest {
         UUID caseId = UUID.randomUUID();
         AdverseEvent ae = persistAe(caseId);
 
-        listener.onApproved(new ActionGateApprovedEvent(caseId, "default", 1L, null, "dr-smith"));
+        listener.onApproved(new ActionGateApprovedEvent(caseId, "default", 1L, null, "dr-smith", null));
 
         verify(ledgerWriter).writeEntry(
                 Mockito.argThat(a -> a.id.equals(ae.id)),

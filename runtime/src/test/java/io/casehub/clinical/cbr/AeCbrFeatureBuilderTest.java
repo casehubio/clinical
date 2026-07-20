@@ -31,7 +31,7 @@ class AeCbrFeatureBuilderTest {
 
         assertThat(features).hasSize(11);
         assertThat(features.get("grade")).isEqualTo(3);
-        assertThat(features.get("eventType")).isEqualTo("Neutropenia");
+        assertThat(features.get("eventType")).isEqualTo(java.util.List.of("Neutropenia"));
         assertThat(features.get("trialPhase")).isEqualTo("PHASE_III");
         assertThat(features.get("unexpected")).isEqualTo("true");
         assertThat(features.get("suspected")).isEqualTo("true");

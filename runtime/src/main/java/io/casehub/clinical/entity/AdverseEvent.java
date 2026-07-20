@@ -8,10 +8,16 @@ import io.casehub.clinical.api.model.RegulatorySubmissionStatus;
 import io.casehub.clinical.api.model.SusarOversightStatus;
 import io.casehub.platform.api.identity.CurrentPrincipal;
 import io.quarkus.hibernate.orm.panache.PanacheEntityBase;
-import jakarta.persistence.*;
+import jakarta.persistence.Column;
+import jakarta.persistence.Entity;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
+import jakarta.persistence.Id;
+import jakarta.persistence.Table;
+import org.hibernate.annotations.DynamicUpdate;
+
 import java.time.Instant;
 import java.util.UUID;
-import org.hibernate.annotations.DynamicUpdate;
 
 @Entity
 @Table(name = "adverse_event")
@@ -83,6 +89,12 @@ public class AdverseEvent extends PanacheEntityBase {
 
     @Column(name = "regulatory_submission_case_id")
     public UUID regulatorySubmissionCaseId;
+    @Column(name = "trajectory_match_count")
+    public int  trajectoryMatchCount;
+
+    @Column(name = "trajectory_predicted_outcome", length = 50)
+    public String trajectoryPredictedOutcome;
+
 
     public static AdverseEvent findByIdForTenant(UUID id, CurrentPrincipal principal) {
         if (principal.isCrossTenantAdmin()) return findById(id);

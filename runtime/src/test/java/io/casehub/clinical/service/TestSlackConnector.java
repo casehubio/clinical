@@ -34,8 +34,9 @@ public class TestSlackConnector implements Connector {
     public String id() { return "slack"; }
 
     @Override
-    public void send(ConnectorMessage message) {
-        if (shouldThrow) throw new RuntimeException("Connector failure");
+    public boolean send(ConnectorMessage message) {
+        if (shouldThrow) {throw new RuntimeException("Connector failure");}
         sent.add(message);
+        return true;
     }
 }

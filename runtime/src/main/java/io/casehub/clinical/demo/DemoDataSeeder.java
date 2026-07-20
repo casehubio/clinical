@@ -1,5 +1,7 @@
 package io.casehub.clinical.demo;
 
+import io.casehub.clinical.cbr.ClinicalCbrDomains;
+import io.casehub.clinical.cbr.ClinicalCbrService;
 import io.casehub.clinical.api.model.AeOutcome;
 import io.casehub.clinical.api.model.ConsentStatus;
 import io.casehub.clinical.api.model.CriterionResult;
@@ -20,6 +22,8 @@ import io.casehub.clinical.service.EligibilityScreeningService;
 import io.casehub.clinical.service.ProtocolAmendmentService;
 import io.casehub.clinical.service.ProtocolDeviationService;
 import io.casehub.clinical.service.TrialActivationService;
+import io.casehub.neocortex.memory.cbr.FeatureValue;
+import io.casehub.neocortex.memory.cbr.PlanCbrCase;
 import io.casehub.ledger.api.spi.LedgerEntryRepository;
 import io.casehub.ledger.runtime.service.LedgerVerificationService;
 import io.casehub.ledger.runtime.service.TrustScoreJob;
@@ -44,6 +48,7 @@ import org.jboss.logging.Logger;
 import java.nio.charset.StandardCharsets;
 import java.time.Duration;
 import java.time.Instant;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
@@ -82,6 +87,21 @@ public class DemoDataSeeder {
     static final UUID PATIENT_A1_ID = UUID.nameUUIDFromBytes("PATIENT-A-001".getBytes(StandardCharsets.UTF_8));
     static final UUID PATIENT_B1_ID = UUID.nameUUIDFromBytes("PATIENT-B-001".getBytes(StandardCharsets.UTF_8));
     static final UUID PATIENT_C1_ID = UUID.nameUUIDFromBytes("PATIENT-C-001".getBytes(StandardCharsets.UTF_8));
+    // Additional patients for enrollment trajectory — staggered dates across weeks
+    static final UUID PATIENT_A2_ID = UUID.nameUUIDFromBytes("PATIENT-A-002".getBytes(StandardCharsets.UTF_8));
+    static final UUID PATIENT_A3_ID = UUID.nameUUIDFromBytes("PATIENT-A-003".getBytes(StandardCharsets.UTF_8));
+    static final UUID PATIENT_A4_ID = UUID.nameUUIDFromBytes("PATIENT-A-004".getBytes(StandardCharsets.UTF_8));
+    static final UUID PATIENT_A5_ID = UUID.nameUUIDFromBytes("PATIENT-A-005".getBytes(StandardCharsets.UTF_8));
+    static final UUID PATIENT_A6_ID = UUID.nameUUIDFromBytes("PATIENT-A-006".getBytes(StandardCharsets.UTF_8));
+    static final UUID PATIENT_A7_ID = UUID.nameUUIDFromBytes("PATIENT-A-007".getBytes(StandardCharsets.UTF_8));
+    static final UUID PATIENT_A8_ID = UUID.nameUUIDFromBytes("PATIENT-A-008".getBytes(StandardCharsets.UTF_8));
+    static final UUID PATIENT_B2_ID = UUID.nameUUIDFromBytes("PATIENT-B-002".getBytes(StandardCharsets.UTF_8));
+    static final UUID PATIENT_B3_ID = UUID.nameUUIDFromBytes("PATIENT-B-003".getBytes(StandardCharsets.UTF_8));
+    static final UUID PATIENT_B4_ID = UUID.nameUUIDFromBytes("PATIENT-B-004".getBytes(StandardCharsets.UTF_8));
+    static final UUID PATIENT_B5_ID = UUID.nameUUIDFromBytes("PATIENT-B-005".getBytes(StandardCharsets.UTF_8));
+    static final UUID PATIENT_C2_ID = UUID.nameUUIDFromBytes("PATIENT-C-002".getBytes(StandardCharsets.UTF_8));
+    static final UUID PATIENT_C3_ID = UUID.nameUUIDFromBytes("PATIENT-C-003".getBytes(StandardCharsets.UTF_8));
+
 
     /** Ledger entries use "default" tenantId — documented in CLAUDE.md ecosystem conventions. */
     private static final String LEDGER_TENANT_ID = "default";
@@ -105,6 +125,9 @@ public class DemoDataSeeder {
     @Inject TrustScoreJob trustScoreJob;
     @Inject LedgerVerificationService ledgerVerificationService;
     @Inject LedgerEntryRepository ledgerEntryRepository;
+    @Inject
+            ClinicalCbrService    cbrService;
+
 
     void onStartup(@Observes StartupEvent event) {
         if (!seedEnabled) {
@@ -134,6 +157,7 @@ public class DemoDataSeeder {
     void seed() {        // Phase 1: Trial structure
         createTrialAndSites();
         createPatients();
+        createAdditionalPatients();
 
         // Phase 2: Activate trial (three-phase engine pattern)
         trialActivationService.activate(TRIAL_ID);
@@ -163,7 +187,15 @@ public class DemoDataSeeder {
 
         // Phase 7: Verify Merkle chains
         verifyMerkleChains();
-        LOG.info("Phase 7 complete: Merkle chains verified");}
+        LOG.info("Phase 7 complete: Merkle chains verified");
+
+        // Phase 8: Historical trajectory CBR cases for trajectory matching demo
+        try {
+            seedTrajectoryHistoricalCases();
+            LOG.info("Phase 8 complete: trajectory historical cases seeded");
+        } catch (Exception e) {
+            LOG.warn("Phase 8 partial: trajectory case seeding failed — trajectory matching may return empty", e);
+        }}
 
     // ── Phase 1: Trial structure ─────────────────────────────────────────────
 
@@ -201,14 +233,42 @@ public class DemoDataSeeder {
         addPatient(PATIENT_C1_ID, SITE_C_ID, "PATIENT-C-001");
     }
 
+    @Transactional(Transactional.TxType.REQUIRES_NEW)
+    void createAdditionalPatients() {
+        Instant now = Instant.now();
+        // Site A: 7 more patients — ramp-up pattern across weeks 1-5
+        addPatient(PATIENT_A2_ID, SITE_A_ID, "PATIENT-A-002", now.minus(Duration.ofDays(35)));
+        addPatient(PATIENT_A3_ID, SITE_A_ID, "PATIENT-A-003", now.minus(Duration.ofDays(31)));
+        addPatient(PATIENT_A4_ID, SITE_A_ID, "PATIENT-A-004", now.minus(Duration.ofDays(24)));
+        addPatient(PATIENT_A5_ID, SITE_A_ID, "PATIENT-A-005", now.minus(Duration.ofDays(20)));
+        addPatient(PATIENT_A6_ID, SITE_A_ID, "PATIENT-A-006", now.minus(Duration.ofDays(14)));
+        addPatient(PATIENT_A7_ID, SITE_A_ID, "PATIENT-A-007", now.minus(Duration.ofDays(9)));
+        addPatient(PATIENT_A8_ID, SITE_A_ID, "PATIENT-A-008", now.minus(Duration.ofDays(3)));
+
+        // Site B: 4 more patients — steady pattern across weeks 1-4
+        addPatient(PATIENT_B2_ID, SITE_B_ID, "PATIENT-B-002", now.minus(Duration.ofDays(28)));
+        addPatient(PATIENT_B3_ID, SITE_B_ID, "PATIENT-B-003", now.minus(Duration.ofDays(21)));
+        addPatient(PATIENT_B4_ID, SITE_B_ID, "PATIENT-B-004", now.minus(Duration.ofDays(14)));
+        addPatient(PATIENT_B5_ID, SITE_B_ID, "PATIENT-B-005", now.minus(Duration.ofDays(7)));
+
+        // Site C: 2 more patients — slow start
+        addPatient(PATIENT_C2_ID, SITE_C_ID, "PATIENT-C-002", now.minus(Duration.ofDays(21)));
+        addPatient(PATIENT_C3_ID, SITE_C_ID, "PATIENT-C-003", now.minus(Duration.ofDays(10)));
+    }
+
+
     private void addPatient(UUID enrollmentId, UUID siteId, String patientId) {
+        addPatient(enrollmentId, siteId, patientId, Instant.now());
+    }
+
+    private void addPatient(UUID enrollmentId, UUID siteId, String patientId, Instant enrolledAt) {
         PatientEnrollment enrollment = new PatientEnrollment();
-        enrollment.id = enrollmentId;
-        enrollment.siteId = siteId;
-        enrollment.patientId = patientId;
+        enrollment.id            = enrollmentId;
+        enrollment.siteId        = siteId;
+        enrollment.patientId     = patientId;
         enrollment.consentStatus = ConsentStatus.OBTAINED;
-        enrollment.enrolledAt = Instant.now();
-        enrollment.tenantId = principal.tenancyId();
+        enrollment.enrolledAt    = enrolledAt;
+        enrollment.tenantId      = principal.tenancyId();
         enrollment.persist();
     }
 
@@ -431,6 +491,76 @@ public class DemoDataSeeder {
     }
 
     // ── Polling utility ──────────────────────────────────────────────────────
+
+
+    void seedTrajectoryHistoricalCases() {
+        String tenantId = principal.tenancyId();
+
+        seedTrajectoryCase("THROMBOCYTOPENIA", 4, true, true,
+                           "COMPLETED", "SUSAR gate approved, IND filed",
+                           List.of(obs(0, 1, 0, 0), obs(3600, 1, 1, 0), obs(14400, 1, 2, 1), obs(28800, 2, 2, 2)),
+                           tenantId);
+
+        seedTrajectoryCase("HEPATOTOXICITY", 4, true, true,
+                           "COMPLETED", "Slow SUSAR resolution with DSMB escalation",
+                           List.of(obs(0, 1, 0, 0), obs(7200, 1, 1, 0), obs(43200, 1, 1, 1), obs(86400, 2, 2, 1), obs(172800, 2, 2, 2)),
+                           tenantId);
+
+        seedTrajectoryCase("NAUSEA", 3, true, false,
+                           "COMPLETED", "No SUSAR — resolved with standard escalation",
+                           List.of(obs(0, 1, 0, 0), obs(14400, 2, 0, 0)),
+                           tenantId);
+
+        seedTrajectoryCase("CARDIOTOXICITY", 4, true, true,
+                           "COMPLETED", "SUSAR criteria met, regulatory pending",
+                           List.of(obs(0, 1, 0, 0), obs(3600, 1, 1, 0), obs(43200, 2, 2, 1)),
+                           tenantId);
+
+        seedTrajectoryCase("FEBRILE_NEUTROPENIA", 4, true, true,
+                           "COMPLETED", "Rapid SUSAR pathway — all phases completed",
+                           List.of(obs(0, 1, 0, 0), obs(1800, 1, 1, 0), obs(7200, 1, 2, 1), obs(14400, 2, 2, 2)),
+                           tenantId);
+
+        LOG.infof("Seeded %d historical trajectory CBR cases", 5);
+    }
+
+    private void seedTrajectoryCase(String eventType, int grade, boolean unexpected, boolean suspected,
+                                    String outcome, String solution,
+                                    List<Map<String, FeatureValue>> trajectory, String tenantId) {
+        String entityId = "historical-" + eventType.toLowerCase() + "-g" + grade;
+
+        Map<String, Object> rawFeatures = new LinkedHashMap<>();
+        rawFeatures.put("grade", grade);
+        rawFeatures.put("eventType", List.of(eventType));
+        rawFeatures.put("trialPhase", "PHASE_III");
+        rawFeatures.put("unexpected", String.valueOf(unexpected));
+        rawFeatures.put("suspected", String.valueOf(suspected));
+        rawFeatures.put("treatmentArm", "UNASSIGNED");
+        rawFeatures.put("priorAeCount", "NONE");
+        rawFeatures.put("safetyReviewOutcome", "COMPLETED");
+        rawFeatures.put("dsmbEscalated", String.valueOf(grade >= 4 && suspected));
+        rawFeatures.put("indReportFiled", String.valueOf(suspected && unexpected));
+        rawFeatures.put("susarOversight", String.valueOf(suspected && unexpected));
+        rawFeatures.put("aeTrajectory", trajectory);
+
+        Map<String, FeatureValue> features = FeatureValue.toFeatureMap(rawFeatures);
+
+        PlanCbrCase cbrCase = new PlanCbrCase(
+                "Grade %d %s in PHASE_III trial, unexpected=%s, suspected=%s".formatted(grade, eventType, unexpected, suspected),
+                solution, outcome, 1.0, features, List.of());
+
+        QuarkusTransaction.requiringNew().run(() ->
+                                                      cbrService.storeIdempotent(cbrCase, "clinical-ae-trajectory", entityId,
+                                                                                 ClinicalCbrDomains.AE_TRAJECTORY, tenantId, null));
+    }
+
+    private static Map<String, FeatureValue> obs(long ts, int escalation, int susar, int regulatory) {
+        return Map.of(
+                "ts", FeatureValue.number(ts),
+                "escalation", FeatureValue.number(escalation),
+                "susar", FeatureValue.number(susar),
+                "regulatory", FeatureValue.number(regulatory));
+    }
 
     /**
      * Polls until the condition returns true, or throws after timeout.

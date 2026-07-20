@@ -63,8 +63,16 @@ public enum ClinicalActionType {
     public CandidateSetStrategy candidateGroups() { return candidateGroups; }
     public String reason()                { return reason; }
     public String scope()                 { return OVERSIGHT_SCOPE; }
-    /** Null — regulatory deadline policy is post-GA deployment config, not compile-time constant. */
-    public Duration expiresIn()           { return null; }
+
+    /**
+     * Null — regulatory deadline policy is post-GA deployment config, not compile-time constant.
+     */
+    public Duration expiresIn() {return null;}
+
+    /**
+     * Null — typed gate resolutions not yet defined for clinical action types.
+     */
+    public Class<?> resolutionType() {return null;}
 
     /** Returns the PlannedAction actionType string: {@code SUSAR_CRITERIA_DECISION → "susar.criteria.decision"}. */
     public String actionType() {

@@ -2,11 +2,12 @@ package io.casehub.clinical.routing;
 
 import io.casehub.api.spi.ActionRiskClassifier;
 import io.casehub.api.spi.ClassificationContext;
-import io.casehub.worker.api.PlannedAction;
 import io.casehub.api.spi.RiskClassifier;
 import io.casehub.api.spi.RiskDecision;
 import io.casehub.clinical.api.model.ClinicalActionType;
+import io.casehub.worker.api.PlannedAction;
 import jakarta.enterprise.context.ApplicationScoped;
+
 import java.util.Optional;
 
 /**
@@ -34,6 +35,6 @@ public class ClinicalActionRiskClassifier implements ActionRiskClassifier {
         final ClinicalActionType type = typeOpt.get();
         return new RiskDecision.GateRequired(
                 type.reason(), type.reversible(), type.candidateGroups(),
-                type.expiresIn(), type.scope());
+                type.expiresIn(), type.scope(), type.resolutionType());
     }
 }

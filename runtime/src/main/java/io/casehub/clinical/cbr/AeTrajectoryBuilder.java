@@ -37,7 +37,7 @@ public class AeTrajectoryBuilder {
 
     private List<Map<String, FeatureValue>> doBuild(AdverseEvent ae, String tenantId) {
         int escalation = ae.engineCaseId != null ? ordinal(AeEscalationStatus.REQUESTED) : ordinal(AeEscalationStatus.NONE);
-        int susar = ordinal(SusarOversightStatus.NONE);
+        int susar      = ordinal(SusarOversightStatus.NONE);
         int regulatory = ordinal(RegulatorySubmissionStatus.NONE);
 
         List<Observation> observations = new ArrayList<>();
@@ -51,7 +51,7 @@ public class AeTrajectoryBuilder {
 
         for (PlanItemRecord record : allRecords) {
             long seconds = Duration.between(ae.reportedAt, record.createdAt()).getSeconds();
-            if (seconds < 0) seconds = 0;
+            if (seconds < 0) {seconds = 0;}
 
             if (isSusarBinding(record.bindingName())) {
                 susar = record.status().isTerminal() ? ordinal(SusarOversightStatus.COMPLETED) : ordinal(SusarOversightStatus.REQUESTED);
@@ -68,11 +68,24 @@ public class AeTrajectoryBuilder {
         if (!observations.isEmpty()) {
             var last = observations.get(observations.size() - 1);
             last.escalation = ordinal(ae.escalationStatus);
-            last.susar = ordinal(ae.susarOversightStatus);
+            last.susar      = ordinal(ae.susarOversightStatus);
             last.regulatory = ordinal(ae.regulatorySubmissionStatus);
         }
 
-        return observations.stream().map(Observation::toFeatureMap).toList();
+        return coalesce(observations).stream().map(Observation::toFeatureMap).toList();}
+
+
+    private static List<Observation> coalesce(List<Observation> observations) {
+        if (observations.size() <= 1) {return observations;}
+        List<Observation> result = new ArrayList<>();
+        for (Observation obs : observations) {
+            if (!result.isEmpty() && result.get(result.size() - 1).secondsSinceReport == obs.secondsSinceReport) {
+                result.set(result.size() - 1, obs);
+            } else {
+                result.add(obs);
+            }
+        }
+        return result;
     }
 
     private void collectRecords(UUID caseId, String tenantId, List<PlanItemRecord> target) {

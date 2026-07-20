@@ -7,6 +7,7 @@ import io.casehub.clinical.entity.ClinicalTrial;
 import io.casehub.clinical.entity.PatientEnrollment;
 
 import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
 
 public final class AeCbrFeatureBuilder {
@@ -21,7 +22,7 @@ public final class AeCbrFeatureBuilder {
                                                      long priorAeCount) {
         Map<String, Object> features = new LinkedHashMap<>();
         features.put("grade", ae.grade != null ? ae.grade.ordinal() + 1 : 0);
-        features.put("eventType", ae.eventType != null ? ae.eventType : "UNKNOWN");
+        features.put("eventType", List.of(ae.eventType != null ? ae.eventType : "UNKNOWN"));
         features.put("trialPhase", trial != null && trial.phase != null ? trial.phase.name() : "UNKNOWN");
         features.put("unexpected", String.valueOf(ae.unexpected));
         features.put("suspected", String.valueOf(ae.suspected));
@@ -41,7 +42,7 @@ public final class AeCbrFeatureBuilder {
                                                           long priorAeCount) {
         Map<String, Object> features = new LinkedHashMap<>();
         features.put("grade", ae.grade != null ? ae.grade.ordinal() + 1 : 0);
-        features.put("eventType", ae.eventType != null ? ae.eventType : "UNKNOWN");
+        features.put("eventType", List.of(ae.eventType != null ? ae.eventType : "UNKNOWN"));
         features.put("trialPhase", trial != null && trial.phase != null ? trial.phase.name() : "UNKNOWN");
         features.put("unexpected", String.valueOf(ae.unexpected));
         features.put("suspected", String.valueOf(ae.suspected));

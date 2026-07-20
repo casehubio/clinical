@@ -14,11 +14,13 @@ import org.junit.jupiter.api.Test;
 
 import java.time.Instant;
 import java.util.List;
-import java.util.Map;
 import java.util.UUID;
 
-import static org.junit.jupiter.api.Assertions.*;
-import static org.mockito.Mockito.*;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
 class AeTrajectoryBuilderTest {
 
@@ -150,6 +152,34 @@ class AeTrajectoryBuilderTest {
         var lastObs = trajectory.get(trajectory.size() - 1);
         assertEquals(2.0, ((FeatureValue.NumberVal) lastObs.get("susar")).value());
     }
+
+    @Test
+    void duplicateTimestamps_coalesced_strictlyAscending() {
+        UUID         caseId      = UUID.randomUUID();
+        UUID         susarCaseId = UUID.randomUUID();
+        AdverseEvent ae          = buildAe(CtcaeGrade.GRADE_4, caseId, susarCaseId, null);
+        ae.escalationStatus     = AeEscalationStatus.COMPLETED;
+        ae.susarOversightStatus = SusarOversightStatus.COMPLETED;
+
+        Instant base = ae.reportedAt;
+        // All records at the same timestamp — simulates fast engine processing
+        when(planItemStore.findByCaseId(caseId, "tenant-1")).thenReturn(List.of(
+                planItem(caseId, "safety-review", TaskStatus.COMPLETED, base)
+                                                                               ));
+        when(planItemStore.findByCaseId(susarCaseId, "tenant-1")).thenReturn(List.of(
+                planItem(susarCaseId, "susar-assessment", TaskStatus.COMPLETED, base)
+                                                                                    ));
+
+        var trajectory = builder.buildTrajectory(ae, "tenant-1");
+
+        // Must have strictly ascending timestamps — no duplicates
+        for (int i = 1; i < trajectory.size(); i++) {
+            double prev = ((FeatureValue.NumberVal) trajectory.get(i - 1).get("ts")).value();
+            double curr = ((FeatureValue.NumberVal) trajectory.get(i).get("ts")).value();
+            assertTrue(curr > prev, "Timestamps must be strictly ascending, got " + prev + " then " + curr);
+        }
+    }
+
 
     private AdverseEvent buildAe(CtcaeGrade grade, UUID engineCaseId, UUID susarCaseId, UUID regCaseId) {
         AdverseEvent ae = new AdverseEvent();

@@ -59,7 +59,7 @@ class SusarOversightApprovedLifecycleTest {
         // Checkpoint 2: drive gate approval directly — tests the approved gate path in
         // SusarGateDecisionListener (ledger entry written, no case signals).
         // The gateId is not significant here — listener discriminates via DB lookup, not gateId.
-        gateDecisionListener.onApproved(new ActionGateApprovedEvent(caseId, "default", 1L, null, "dr-smith"));
+        gateDecisionListener.onApproved(new ActionGateApprovedEvent(caseId, "default", 1L, null, "dr-smith", null));
 
         // Checkpoint 3: drive the goal-reached observer directly — tests SusarOversightListener
         // (GoalReached → markCompleted → ae.susarOversightStatus = COMPLETED).

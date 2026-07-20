@@ -1,14 +1,15 @@
 package io.casehub.clinical.routing;
 
-import static org.assertj.core.api.Assertions.assertThat;
-
 import io.casehub.api.spi.ClassificationContext;
-import io.casehub.worker.api.PlannedAction;
 import io.casehub.api.spi.RiskDecision;
 import io.casehub.clinical.api.model.ClinicalActionType;
+import io.casehub.worker.api.PlannedAction;
+import org.junit.jupiter.api.Test;
+
 import java.util.Map;
 import java.util.UUID;
-import org.junit.jupiter.api.Test;
+
+import static org.assertj.core.api.Assertions.assertThat;
 
 class ClinicalActionRiskClassifierTest {
 
@@ -26,6 +27,7 @@ class ClinicalActionRiskClassifierTest {
         assertThat(gate.reversible()).isFalse();
         assertThat(gate.scope()).isEqualTo("casehubio/clinical/oversight");
         assertThat(gate.expiresIn()).isNull();
+        assertThat(gate.resolutionType()).isNull();
         assertThat(gate.reason()).isEqualTo(ClinicalActionType.SUSAR_CRITERIA_DECISION.reason());
     }
 

@@ -64,7 +64,7 @@ class SusarAgentAttestationWriterTest {
     @Transactional
     void approved_gate_writes_endorsed_with_human_attestor() {
         persistAe(susarCaseId);
-        writer.onApproved(new ActionGateApprovedEvent(susarCaseId, "default", 1L, null, "dr-smith"));
+        writer.onApproved(new ActionGateApprovedEvent(susarCaseId, "default", 1L, null, "dr-smith", null));
         verify(ledgerEntryRepository).saveAttestation(
                 argThat(a ->
                         a.ledgerEntryId.equals(workerEntryId)
@@ -107,7 +107,7 @@ class SusarAgentAttestationWriterTest {
     @Test
     @Transactional
     void non_susar_case_id_silently_skips_attestation() {
-        writer.onApproved(new ActionGateApprovedEvent(UUID.randomUUID(), "default", 1L, null, "dr-smith"));
+        writer.onApproved(new ActionGateApprovedEvent(UUID.randomUUID(), "default", 1L, null, "dr-smith", null));
         verify(ledgerEntryRepository, never()).saveAttestation(any(), any());
     }
 
@@ -118,7 +118,7 @@ class SusarAgentAttestationWriterTest {
         persistAe(caseId);
         when(caseLedgerEntryRepository.findWorkerDecisionsByCaseId(caseId))
                 .thenReturn(List.of());
-        writer.onApproved(new ActionGateApprovedEvent(caseId, "default", 1L, null, "dr-smith"));
+        writer.onApproved(new ActionGateApprovedEvent(caseId, "default", 1L, null, "dr-smith", null));
         verify(ledgerEntryRepository, never()).saveAttestation(any(), any());
     }
 

@@ -49,7 +49,7 @@ public class ClinicalCbrSchemaInitializer {
     static CbrFeatureSchema aeSchema() {
         return CbrFeatureSchema.of("clinical-ae",
                                    FeatureField.numeric("grade", 1, 5),
-                                   FeatureField.categorical("eventType"),
+                                   FeatureField.categoricalList("eventType"),
                                    FeatureField.categorical("trialPhase"),
                                    FeatureField.categorical("unexpected"),
                                    FeatureField.categorical("suspected"),
@@ -77,7 +77,7 @@ public class ClinicalCbrSchemaInitializer {
     public static CbrFeatureSchema aeTrajectorySchema() {
         return CbrFeatureSchema.of("clinical-ae-trajectory",
                                    FeatureField.numeric("grade", 1, 5),
-                                   FeatureField.categorical("eventType"),
+                                   FeatureField.categoricalList("eventType"),
                                    FeatureField.categorical("trialPhase"),
                                    FeatureField.categorical("unexpected"),
                                    FeatureField.categorical("suspected"),
