@@ -18,6 +18,9 @@ public final class ClinicalCbrDomains {
     public static final MemoryDomain AE = new MemoryDomain("clinical-ae");
     public static final MemoryDomain DEVIATION = new MemoryDomain("clinical-deviation");
     public static final MemoryDomain AMENDMENT = new MemoryDomain("clinical-amendment");
+    public static final MemoryDomain AE_TRAJECTORY = new MemoryDomain("clinical-ae-trajectory");
+    public static final MemoryDomain SITE_ENROLLMENT = new MemoryDomain("clinical-site-enrollment");
+
 
     private ClinicalCbrDomains() {}
 }

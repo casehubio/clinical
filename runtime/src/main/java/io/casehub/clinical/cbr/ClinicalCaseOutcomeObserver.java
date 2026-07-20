@@ -36,15 +36,19 @@ public class ClinicalCaseOutcomeObserver implements CaseOutcomeObserver {
     private final CbrCaseMemoryStore store;
     private final PlanItemStore planItemStore;
     private EntityResolver entityResolver;
+    private AeTrajectoryBuilder trajectoryBuilder;
+
 
     @Inject
     public ClinicalCaseOutcomeObserver(ClinicalCbrService cbrService,
-                                        CbrCaseMemoryStore store,
-                                        PlanItemStore planItemStore) {
-        this.cbrService = cbrService;
-        this.store = store;
-        this.planItemStore = planItemStore;
-        this.entityResolver = new PanacheEntityResolver();
+                                       CbrCaseMemoryStore store,
+                                       PlanItemStore planItemStore,
+                                       AeTrajectoryBuilder trajectoryBuilder) {
+        this.cbrService        = cbrService;
+        this.store             = store;
+        this.planItemStore     = planItemStore;
+        this.trajectoryBuilder = trajectoryBuilder;
+        this.entityResolver    = new PanacheEntityResolver();
     }
 
     void setEntityResolver(EntityResolver resolver) {
@@ -132,6 +136,24 @@ public class ClinicalCaseOutcomeObserver implements CaseOutcomeObserver {
 
         LOG.infof("Stored CBR case for AE %s: grade=%s, eventType=%s, planTraces=%d",
             aeId, ae.grade, ae.eventType, planTraces.size());
+
+        try {
+            List<Map<String, FeatureValue>> trajectory = trajectoryBuilder.buildTrajectory(ae, ae.tenantId);
+            if (!trajectory.isEmpty()) {
+                Map<String, Object> trajFeatures = new java.util.LinkedHashMap<>(features);
+                trajFeatures.put("aeTrajectory", trajectory);
+                var trajCbrCase = new PlanCbrCase(
+                    problem, solution, event.outcomeLabel(), 1.0,
+                    FeatureValue.toFeatureMap(trajFeatures), planTraces);
+                cbrService.storeIdempotent(
+                    trajCbrCase, "clinical-ae-trajectory", aeId + "-trajectory",
+                    ClinicalCbrDomains.AE_TRAJECTORY, ae.tenantId,
+                    event.caseId() != null ? event.caseId().toString() : null);
+                LOG.infof("Stored trajectory CBR case for AE %s: observations=%d", aeId, trajectory.size());
+            }
+        } catch (Exception e) {
+            LOG.warnf(e, "Trajectory CBR case storage failed for AE %s — point-in-time case was stored successfully", aeId);
+        }
     }
 
     private List<PlanTrace> buildPlanTraces(UUID caseId, String tenancyId) {

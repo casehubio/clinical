@@ -84,6 +84,11 @@ public class TrialDashboardResource {
     // --- Response records (nested per clinical convention) ---
     @Inject
     ClinicalCbrService                 cbrService;
+    @Inject
+    io.casehub.clinical.cbr.AeTrajectoryBuilder             aeTrajectoryBuilder;
+    @Inject
+    io.casehub.clinical.cbr.SiteEnrollmentTrajectoryBuilder siteEnrollmentTrajectoryBuilder;
+
 
     /**
      * Build a human-readable summary from ledger entry fields.
@@ -609,6 +614,143 @@ public class TrialDashboardResource {
 
         return Response.ok(response).build();
     }
+
+    record TrajectoryObservation(long secondsSinceReport, int escalation, int susar, int regulatory) {}
+
+    record DimensionTrend(double slope, double acceleration, int changePoints) {}
+
+    record TrajectoryTrendSummary(java.util.Map<String, DimensionTrend> dimensions) {}
+
+    record AeTrajectoryResponse(java.util.UUID aeId, java.util.List<TrajectoryObservation> observations,
+                                TrajectoryTrendSummary trends) {}
+
+    record TrajectoryMatch(String caseId, double score, String outcome,
+                           java.util.List<TrajectoryObservation> trajectoryObs) {}
+
+    record AeTrajectoryMatchResponse(java.util.List<TrajectoryMatch> matches, String traceId, String explanation) {}
+
+    record EnrollmentObservation(int weekNumber, int periodCount, int cumulativeCount) {}
+
+    record SiteEnrollmentTrajectoryResponse(java.util.List<EnrollmentObservation> observations,
+                                            TrajectoryTrendSummary trends) {}
+
+    @GET
+    @Path("/adverse-events/{aeId}/trajectory")
+    @jakarta.annotation.security.RolesAllowed({ClinicalGroups.SPONSOR, ClinicalGroups.INVESTIGATOR, ClinicalGroups.COORDINATOR, ClinicalGroups.MONITOR})
+    public Response aeTrajectory(@PathParam("trialId") java.util.UUID trialId, @PathParam("aeId") java.util.UUID aeId) {
+        io.casehub.clinical.entity.AdverseEvent ae = io.casehub.clinical.entity.AdverseEvent.findByIdForTenant(aeId, principal);
+        if (ae == null) {return Response.status(Response.Status.NOT_FOUND).build();}
+        var                    observations = aeTrajectoryBuilder.buildPartialTrajectory(ae, principal.tenancyId());
+        var                    obsResponses = observations.stream().map(this::toTrajectoryObs).toList();
+        TrajectoryTrendSummary trends       = buildAeTrends(observations);
+        return Response.ok(new AeTrajectoryResponse(aeId, obsResponses, trends)).build();
+    }
+
+    @GET
+    @Path("/adverse-events/{aeId}/trajectory/matches")
+    @jakarta.annotation.security.RolesAllowed({ClinicalGroups.SPONSOR, ClinicalGroups.INVESTIGATOR, ClinicalGroups.COORDINATOR, ClinicalGroups.MONITOR})
+    public Response aeTrajectoryMatches(@PathParam("trialId") java.util.UUID trialId,
+                                        @PathParam("aeId") java.util.UUID aeId,
+                                        @QueryParam("limit") @jakarta.ws.rs.DefaultValue("5") int limit,
+                                        @QueryParam("minScore") @jakarta.ws.rs.DefaultValue("0.4") double minScore) {
+        io.casehub.clinical.entity.AdverseEvent ae = io.casehub.clinical.entity.AdverseEvent.findByIdForTenant(aeId, principal);
+        if (ae == null) {return Response.status(Response.Status.NOT_FOUND).build();}
+        var                                                                 trajectory = aeTrajectoryBuilder.buildPartialTrajectory(ae, principal.tenancyId());
+        java.util.Map<String, io.casehub.neocortex.memory.cbr.FeatureValue> features   = new java.util.LinkedHashMap<>();
+        features.put("grade", io.casehub.neocortex.memory.cbr.FeatureValue.number(ae.grade != null ? ae.grade.ordinal() + 1 : 0));
+        features.put("trialPhase", io.casehub.neocortex.memory.cbr.FeatureValue.string("UNKNOWN"));
+        features.put("unexpected", io.casehub.neocortex.memory.cbr.FeatureValue.string(String.valueOf(ae.unexpected)));
+        features.put("suspected", io.casehub.neocortex.memory.cbr.FeatureValue.string(String.valueOf(ae.suspected)));
+        features.put("aeTrajectory", io.casehub.neocortex.memory.cbr.FeatureValue.structList(trajectory));
+        io.casehub.neocortex.memory.cbr.CbrQuery query = io.casehub.neocortex.memory.cbr.CbrQuery.of(
+                                                                   principal.tenancyId(), io.casehub.clinical.cbr.ClinicalCbrDomains.AE_TRAJECTORY,
+                                                                   io.casehub.platform.api.path.Path.root(), "clinical-ae-trajectory", features, limit)
+                                                                                                 .withMinSimilarity(minScore)
+                                                                                                 .withFilter("eventType", io.casehub.neocortex.memory.cbr.CbrFilter.contains(ae.eventType != null ? ae.eventType : "UNKNOWN"));
+        var result = cbrService.retrieveWithAudit(query, io.casehub.neocortex.memory.cbr.PlanCbrCase.class, ae.enrollmentId, io.casehub.clinical.api.ClinicalActors.CLINICAL_SERVICE);
+        var matches = result.cases().stream().map(sc -> {
+            io.casehub.neocortex.memory.cbr.FeatureValue trajVal   = sc.cbrCase().features().get("aeTrajectory");
+            java.util.List<TrajectoryObservation>        matchTraj = java.util.List.of();
+            if (trajVal instanceof io.casehub.neocortex.memory.cbr.FeatureValue.StructListVal sl) {
+                matchTraj = sl.items().stream().map(this::toTrajectoryObs).toList();
+            }
+            return new TrajectoryMatch(sc.caseId(), sc.score(), sc.cbrCase().outcome(), matchTraj);
+        }).toList();
+        return Response.ok(new AeTrajectoryMatchResponse(matches, result.traceId(), result.explanation())).build();
+    }
+
+    @GET
+    @Path("/sites/{siteId}/enrollment-trajectory")
+    @jakarta.annotation.security.RolesAllowed({ClinicalGroups.SPONSOR, ClinicalGroups.INVESTIGATOR, ClinicalGroups.COORDINATOR, ClinicalGroups.MONITOR})
+    public Response siteEnrollmentTrajectory(@PathParam("trialId") java.util.UUID trialId,
+                                             @PathParam("siteId") java.util.UUID siteId) {
+        io.casehub.clinical.entity.TrialSite site = io.casehub.clinical.entity.TrialSite.findByIdForTenant(siteId, principal);
+        if (site == null || !site.trialId.equals(trialId)) {return Response.status(Response.Status.NOT_FOUND).build();}
+        java.time.Instant earliest = io.casehub.clinical.entity.PatientEnrollment.<io.casehub.clinical.entity.PatientEnrollment>find(
+                                               "siteId = ?1 AND tenantId = ?2 AND enrolledAt IS NOT NULL ORDER BY enrolledAt ASC", siteId, principal.tenancyId())
+                                                                                 .firstResultOptional().map(e -> e.enrolledAt).orElse(null);
+        if (earliest == null) {
+            return Response.ok(new SiteEnrollmentTrajectoryResponse(java.util.List.of(), new TrajectoryTrendSummary(java.util.Map.of()))).build();
+        }
+        var                    trajectory   = siteEnrollmentTrajectoryBuilder.buildTrajectory(siteId, trialId, earliest, principal.tenancyId());
+        var                    obsResponses = trajectory.stream().map(this::toEnrollmentObs).toList();
+        TrajectoryTrendSummary trends       = buildEnrollmentTrends(trajectory);
+        return Response.ok(new SiteEnrollmentTrajectoryResponse(obsResponses, trends)).build();
+    }
+
+    private TrajectoryObservation toTrajectoryObs(java.util.Map<String, io.casehub.neocortex.memory.cbr.FeatureValue> obs) {
+        return new TrajectoryObservation(
+                (long) ((io.casehub.neocortex.memory.cbr.FeatureValue.NumberVal) obs.get("ts")).value(),
+                (int) ((io.casehub.neocortex.memory.cbr.FeatureValue.NumberVal) obs.get("escalation")).value(),
+                (int) ((io.casehub.neocortex.memory.cbr.FeatureValue.NumberVal) obs.get("susar")).value(),
+                (int) ((io.casehub.neocortex.memory.cbr.FeatureValue.NumberVal) obs.get("regulatory")).value());
+    }
+
+    private EnrollmentObservation toEnrollmentObs(java.util.Map<String, io.casehub.neocortex.memory.cbr.FeatureValue> obs) {
+        return new EnrollmentObservation(
+                (int) ((io.casehub.neocortex.memory.cbr.FeatureValue.NumberVal) obs.get("ts")).value(),
+                (int) ((io.casehub.neocortex.memory.cbr.FeatureValue.NumberVal) obs.get("periodCount")).value(),
+                (int) ((io.casehub.neocortex.memory.cbr.FeatureValue.NumberVal) obs.get("cumulativeCount")).value());
+    }
+
+    private TrajectoryTrendSummary buildAeTrends(java.util.List<java.util.Map<String, io.casehub.neocortex.memory.cbr.FeatureValue>> observations) {
+        if (observations.size() < 2) {return new TrajectoryTrendSummary(java.util.Map.of());}
+        var schema = io.casehub.clinical.cbr.ClinicalCbrSchemaInitializer.aeTrajectorySchema();
+        var tsField = schema.fields().stream()
+                            .filter(f -> f instanceof io.casehub.neocortex.memory.cbr.FeatureField.TimeSeries)
+                            .map(f -> (io.casehub.neocortex.memory.cbr.FeatureField.TimeSeries) f)
+                            .findFirst().orElse(null);
+        if (tsField == null) {return new TrajectoryTrendSummary(java.util.Map.of());}
+        var                                   profile = io.casehub.neocortex.memory.cbr.TrendAnalyzer.analyze(observations, tsField);
+        java.util.Map<String, DimensionTrend> dims    = new java.util.LinkedHashMap<>();
+        for (String dim : java.util.List.of("escalation", "susar", "regulatory")) {
+            dims.put(dim, new DimensionTrend(
+                    profile.metrics().getOrDefault("aeTrajectory." + dim + ".slope", 0.0),
+                    profile.metrics().getOrDefault("aeTrajectory." + dim + ".acceleration", 0.0),
+                    profile.metrics().getOrDefault("aeTrajectory." + dim + ".changePoints", 0.0).intValue()));
+        }
+        return new TrajectoryTrendSummary(dims);
+    }
+
+    private TrajectoryTrendSummary buildEnrollmentTrends(java.util.List<java.util.Map<String, io.casehub.neocortex.memory.cbr.FeatureValue>> observations) {
+        if (observations.size() < 2) {return new TrajectoryTrendSummary(java.util.Map.of());}
+        var schema = io.casehub.clinical.cbr.ClinicalCbrSchemaInitializer.siteEnrollmentSchema();
+        var tsField = schema.fields().stream()
+                            .filter(f -> f instanceof io.casehub.neocortex.memory.cbr.FeatureField.TimeSeries)
+                            .map(f -> (io.casehub.neocortex.memory.cbr.FeatureField.TimeSeries) f)
+                            .findFirst().orElse(null);
+        if (tsField == null) {return new TrajectoryTrendSummary(java.util.Map.of());}
+        var                                   profile = io.casehub.neocortex.memory.cbr.TrendAnalyzer.analyze(observations, tsField);
+        java.util.Map<String, DimensionTrend> dims    = new java.util.LinkedHashMap<>();
+        for (String dim : java.util.List.of("periodCount", "cumulativeCount")) {
+            dims.put(dim, new DimensionTrend(
+                    profile.metrics().getOrDefault("enrollmentRate." + dim + ".slope", 0.0),
+                    profile.metrics().getOrDefault("enrollmentRate." + dim + ".acceleration", 0.0),
+                    profile.metrics().getOrDefault("enrollmentRate." + dim + ".changePoints", 0.0).intValue()));
+        }
+        return new TrajectoryTrendSummary(dims);
+    }
+
 
     private AePrecedentResponse mapToAeResponse(ScoredCbrCase<PlanCbrCase> scored) {
         PlanCbrCase         c        = scored.cbrCase();

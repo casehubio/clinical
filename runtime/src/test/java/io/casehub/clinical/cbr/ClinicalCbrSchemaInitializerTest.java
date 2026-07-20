@@ -28,7 +28,7 @@ class ClinicalCbrSchemaInitializerTest {
     void onStartup_registersThreeSchemas() {
         initializer.onStartup(mock(StartupEvent.class));
 
-        verify(store, times(3)).registerSchema(any(CbrFeatureSchema.class));
+        verify(store, times(5)).registerSchema(any(CbrFeatureSchema.class));
     }
 
     @Test
@@ -36,7 +36,7 @@ class ClinicalCbrSchemaInitializerTest {
         final ArgumentCaptor<CbrFeatureSchema> captor = ArgumentCaptor.forClass(CbrFeatureSchema.class);
         initializer.onStartup(mock(StartupEvent.class));
 
-        verify(store, times(3)).registerSchema(captor.capture());
+        verify(store, times(5)).registerSchema(captor.capture());
 
         final var schemas = captor.getAllValues();
         final var aeSchema = schemas.stream()
@@ -64,7 +64,7 @@ class ClinicalCbrSchemaInitializerTest {
         final ArgumentCaptor<CbrFeatureSchema> captor = ArgumentCaptor.forClass(CbrFeatureSchema.class);
         initializer.onStartup(mock(StartupEvent.class));
 
-        verify(store, times(3)).registerSchema(captor.capture());
+        verify(store, times(5)).registerSchema(captor.capture());
 
         final var schemas = captor.getAllValues();
         final var deviationSchema = schemas.stream()
@@ -83,7 +83,7 @@ class ClinicalCbrSchemaInitializerTest {
         final ArgumentCaptor<CbrFeatureSchema> captor = ArgumentCaptor.forClass(CbrFeatureSchema.class);
         initializer.onStartup(mock(StartupEvent.class));
 
-        verify(store, times(3)).registerSchema(captor.capture());
+        verify(store, times(5)).registerSchema(captor.capture());
 
         final var schemas = captor.getAllValues();
         final var amendmentSchema = schemas.stream()
@@ -93,4 +93,51 @@ class ClinicalCbrSchemaInitializerTest {
 
         assertThat(amendmentSchema.fields()).isEmpty();
     }
+
+    @Test
+    void aeTrajectorySchema_hasTimeSeriesFieldWithDtwAndTrend() {
+        final ArgumentCaptor<CbrFeatureSchema> captor = ArgumentCaptor.forClass(CbrFeatureSchema.class);
+        initializer.onStartup(mock(StartupEvent.class));
+        verify(store, times(5)).registerSchema(captor.capture());
+
+        final var schema = captor.getAllValues().stream()
+                                 .filter(s -> "clinical-ae-trajectory".equals(s.caseType()))
+                                 .findFirst().orElseThrow();
+
+        assertThat(schema.fields().stream().map(f -> f.name()))
+                .contains("grade", "eventType", "aeTrajectory");
+
+        final var tsField = schema.fields().stream()
+                                  .filter(f -> f instanceof io.casehub.neocortex.memory.cbr.FeatureField.TimeSeries)
+                                  .map(f -> (io.casehub.neocortex.memory.cbr.FeatureField.TimeSeries) f)
+                                  .findFirst().orElseThrow();
+        assertThat(tsField.name()).isEqualTo("aeTrajectory");
+        assertThat(tsField.timestampField()).isEqualTo("ts");
+        assertThat(tsField.similaritySpec()).isInstanceOf(io.casehub.neocortex.memory.cbr.SimilaritySpec.DtwSpec.class);
+        assertThat(tsField.trendSpec()).isNotNull();
+        assertThat(tsField.trendSpec().types()).contains(
+                io.casehub.neocortex.memory.cbr.TrendType.SLOPE,
+                io.casehub.neocortex.memory.cbr.TrendType.ACCELERATION,
+                io.casehub.neocortex.memory.cbr.TrendType.CHANGE_POINTS);
+    }
+
+    @Test
+    void siteEnrollmentSchema_hasTimeSeriesFieldWithDtwAndTrend() {
+        final ArgumentCaptor<CbrFeatureSchema> captor = ArgumentCaptor.forClass(CbrFeatureSchema.class);
+        initializer.onStartup(mock(StartupEvent.class));
+        verify(store, times(5)).registerSchema(captor.capture());
+
+        final var schema = captor.getAllValues().stream()
+                                 .filter(s -> "clinical-site-enrollment".equals(s.caseType()))
+                                 .findFirst().orElseThrow();
+
+        final var tsField = schema.fields().stream()
+                                  .filter(f -> f instanceof io.casehub.neocortex.memory.cbr.FeatureField.TimeSeries)
+                                  .map(f -> (io.casehub.neocortex.memory.cbr.FeatureField.TimeSeries) f)
+                                  .findFirst().orElseThrow();
+        assertThat(tsField.name()).isEqualTo("enrollmentRate");
+        assertThat(tsField.timestampField()).isEqualTo("ts");
+        assertThat(tsField.similaritySpec()).isInstanceOf(io.casehub.neocortex.memory.cbr.SimilaritySpec.DtwSpec.class);
+    }
+
 }

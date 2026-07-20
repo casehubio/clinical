@@ -30,7 +30,8 @@ class ClinicalCaseOutcomeObserverTest {
         cbrService = mock(ClinicalCbrService.class);
         store = mock(CbrCaseMemoryStore.class);
         planItemStore = mock(PlanItemStore.class);
-        observer = new ClinicalCaseOutcomeObserver(cbrService, store, planItemStore);
+        AeTrajectoryBuilder trajectoryBuilder = mock(AeTrajectoryBuilder.class);
+        observer = new ClinicalCaseOutcomeObserver(cbrService, store, planItemStore, trajectoryBuilder);
     }
 
     @Test

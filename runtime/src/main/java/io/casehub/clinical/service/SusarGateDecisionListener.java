@@ -8,8 +8,9 @@ import io.casehub.engine.common.internal.event.ActionGateRejectedEvent;
 import io.quarkus.vertx.ConsumeEvent;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
-import java.time.Instant;
 import org.jboss.logging.Logger;
+
+import java.time.Instant;
 
 /**
  * Writes ledger entries for all three SUSAR oversight gate outcomes.
@@ -30,6 +31,9 @@ public class SusarGateDecisionListener {
 
     @Inject ClinicalSusarOversightCaseHub susarOversightCaseHub;
     @Inject SusarDecisionLedgerWriter ledgerWriter;
+    @Inject
+            io.casehub.clinical.cbr.AeTrajectoryAlertService aeTrajectoryAlertService;
+
 
     @ConsumeEvent(value = "casehub.action.gate.approved", blocking = true)
     public void onApproved(ActionGateApprovedEvent event) {
@@ -40,6 +44,7 @@ public class SusarGateDecisionListener {
         // which writes deferred worker output (susarAssessmentComplete: true) via
         // WorkflowExecutionCompletedHandler, satisfying the susar-complete goal.
         ledgerWriter.writeEntry(ae, "APPROVED", Instant.now(), event.approvedBy());
+        try { aeTrajectoryAlertService.evaluate(ae.id, ae.tenantId); } catch (Exception te) { LOG.warnf(te, "Trajectory alert evaluation failed for aeId=%s", ae.id); }
     }
 
     @ConsumeEvent(value = "casehub.action.gate.rejected", blocking = true)
@@ -50,6 +55,7 @@ public class SusarGateDecisionListener {
         susarOversightCaseHub.signal(event.caseId(), "susarAssessmentComplete", true);
         susarOversightCaseHub.signal(event.caseId(), "susarRequired", false);
         ledgerWriter.writeEntry(ae, "REJECTED", Instant.now(), event.rejectedBy());
+        try { aeTrajectoryAlertService.evaluate(ae.id, ae.tenantId); } catch (Exception te) { LOG.warnf(te, "Trajectory alert evaluation failed for aeId=%s", ae.id); }
     }
 
     @ConsumeEvent(value = "casehub.action.gate.expired", blocking = true)
@@ -60,5 +66,6 @@ public class SusarGateDecisionListener {
         susarOversightCaseHub.signal(event.caseId(), "susarAssessmentComplete", true);
         susarOversightCaseHub.signal(event.caseId(), "susarRequired", false);
         ledgerWriter.writeEntry(ae, "EXPIRED", Instant.now(), ClinicalActors.CLINICAL_SERVICE);
+        try { aeTrajectoryAlertService.evaluate(ae.id, ae.tenantId); } catch (Exception te) { LOG.warnf(te, "Trajectory alert evaluation failed for aeId=%s", ae.id); }
     }
 }

@@ -2,17 +2,18 @@ package io.casehub.clinical.service;
 
 import io.casehub.clinical.api.AeEscalationCompletedEvent;
 import io.casehub.clinical.api.model.CtcaeGrade;
-import io.casehub.engine.common.spi.event.CaseLifecycleEvent;
 import io.casehub.engine.common.spi.CaseInstanceRepository;
+import io.casehub.engine.common.spi.event.CaseLifecycleEvent;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.enterprise.event.Event;
 import jakarta.enterprise.event.ObservesAsync;
 import jakarta.inject.Inject;
+import org.jboss.logging.Logger;
+
 import java.time.Duration;
 import java.time.Instant;
 import java.util.Map;
 import java.util.UUID;
-import org.jboss.logging.Logger;
 
 /**
  * Observes case lifecycle events and handles AE escalation case completion.
@@ -37,6 +38,9 @@ public class AeEscalationListener {
     @Inject AeStatusUpdater statusUpdater;
     @Inject Event<AeEscalationCompletedEvent> completedEvents;
     @Inject io.casehub.clinical.memory.ClinicalMemoryService memoryService;
+    @Inject
+            io.casehub.clinical.cbr.AeTrajectoryAlertService aeTrajectoryAlertService;
+
 
     public void onCaseLifecycle(@ObservesAsync CaseLifecycleEvent event) {
         LOG.debugf("AeEscalationListener: received eventType=%s caseStatus=%s caseId=%s", event.eventType(), event.caseStatus(), event.caseId());
@@ -61,6 +65,7 @@ public class AeEscalationListener {
         // Returns false if already COMPLETED — GoalReached fires multiple times per case (idempotency guard).
         boolean firstCompletion = statusUpdater.markCompleted(aeId);
         if (!firstCompletion) return;
+        try { aeTrajectoryAlertService.evaluate(aeId, event.tenancyId()); } catch (Exception te) { LOG.warnf(te, "Trajectory alert evaluation failed for aeId=%s", aeId); }
 
         // Context resolution outside try block — if these throw, no REQUIRES_NEW has committed,
         // so there is no FDA gap. Exceptions propagate to the @ObservesAsync dispatcher, which logs them.

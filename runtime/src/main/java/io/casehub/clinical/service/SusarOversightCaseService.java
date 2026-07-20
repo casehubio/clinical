@@ -7,10 +7,11 @@ import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.enterprise.event.ObservesAsync;
 import jakarta.inject.Inject;
 import jakarta.transaction.Transactional;
+import org.jboss.logging.Logger;
+
 import java.util.HashMap;
 import java.util.Map;
 import java.util.UUID;
-import org.jboss.logging.Logger;
 
 /**
  * Observes AdverseEventReportedEvent concurrently with AeEscalationCaseService.
@@ -26,6 +27,9 @@ public class SusarOversightCaseService {
 
     @Inject ClinicalSusarOversightCaseHub susarOversightCaseHub;
     @Inject SusarEvaluatorFunction susarEvaluator;
+    @Inject
+            io.casehub.clinical.cbr.AeTrajectoryAlertService aeTrajectoryAlertService;
+
 
     public void onAdverseEventReported(@ObservesAsync AdverseEventReportedEvent event) {
         try {
@@ -33,6 +37,7 @@ public class SusarOversightCaseService {
             if (initialContext == null) return;
             UUID caseId = susarOversightCaseHub.startCase(initialContext).toCompletableFuture().join();
             persistCaseId(event.aeId(), caseId);
+            try { aeTrajectoryAlertService.evaluate(event.aeId(), event.tenantId()); } catch (Exception te) { LOG.warnf(te, "Trajectory alert re-evaluation failed for aeId=%s", event.aeId()); }
         } catch (Exception e) {
             LOG.errorf(e, "SusarOversightCaseService: oversight case failed for aeId=%s", event.aeId());
             try {

@@ -26,8 +26,17 @@ import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
-import jakarta.ws.rs.*;
-import jakarta.ws.rs.core.*;
+import jakarta.ws.rs.Consumes;
+import jakarta.ws.rs.GET;
+import jakarta.ws.rs.POST;
+import jakarta.ws.rs.Path;
+import jakarta.ws.rs.PathParam;
+import jakarta.ws.rs.Produces;
+import jakarta.ws.rs.core.Context;
+import jakarta.ws.rs.core.MediaType;
+import jakarta.ws.rs.core.Response;
+import jakarta.ws.rs.core.UriInfo;
+
 import java.net.URI;
 import java.time.Instant;
 import java.util.List;
@@ -45,6 +54,9 @@ public class PatientResource {
     @Inject LedgerVerificationService ledgerVerificationService;
     @Inject LedgerEntryRepository ledgerEntryRepository;
     @Inject CurrentPrincipal principal;
+    @Inject
+            io.casehub.clinical.cbr.SiteEnrollmentAlertService siteEnrollmentAlertService;
+
 
     public record EnrollPatientRequest(@NotBlank String patientId) {}
 
@@ -81,6 +93,7 @@ public class PatientResource {
         enrollment.consentStatus = ConsentStatus.PENDING;
         enrollment.enrollmentStatus = EnrollmentStatus.CANDIDATE;
         enrollment.persist();
+        try { siteEnrollmentAlertService.evaluate(siteId, site.trialId, enrollment.tenantId); } catch (Exception e) { /* advisory — enrollment completes regardless */ }
 
         URI location = uriInfo.getAbsolutePathBuilder().path(enrollment.id.toString()).build();
         return Response.created(location).build();

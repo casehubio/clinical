@@ -29,19 +29,22 @@ import java.util.UUID;
 public class AdverseEventService {
 
     @Inject
-    WorkItemService                    workItemService;
+    WorkItemService                                  workItemService;
     @Inject
-    AdverseEventLedgerWriter           ledgerWriter;
+    AdverseEventLedgerWriter                         ledgerWriter;
     @Inject
-    ObjectMapper                       objectMapper;
+    ObjectMapper                                     objectMapper;
     @Inject
-    AdverseEventEscalationPolicy       policy;
+    AdverseEventEscalationPolicy                     policy;
     @Inject
-    Event<AdverseEventReportedEvent>   reportedEvents;
+    Event<AdverseEventReportedEvent>                 reportedEvents;
     @Inject
-    ClinicalMemoryService              memoryService;
+    ClinicalMemoryService                            memoryService;
     @Inject
-    TransactionSynchronizationRegistry txSync;
+    TransactionSynchronizationRegistry               txSync;
+    @Inject
+    io.casehub.clinical.cbr.AeTrajectoryAlertService aeTrajectoryAlertService;
+
 
     @Transactional
     public void reportAdverseEvent(AdverseEvent ae) {
@@ -77,6 +80,9 @@ public class AdverseEventService {
         ae.persist();
         ledgerWriter.writeReportEntry(ae);
         memoryService.storeAeReport(ae.id, ae.enrollmentId, siteId, trialId, ae.grade, ae.tenantId);
+        try {aeTrajectoryAlertService.evaluate(ae.id, ae.tenantId);} catch (Exception e) {
+            org.jboss.logging.Logger.getLogger(AdverseEventService.class).warnf(e, "Trajectory alert evaluation failed for aeId=%s", ae.id);
+        }
 
         if (requirements.engineCaseRequired()) {
             var event = new AdverseEventReportedEvent(

@@ -36,6 +36,8 @@ public class AeEscalationCaseService {
     @Inject TrialSafetySignalService trialSafetySignalService;
     @Inject io.casehub.clinical.memory.ClinicalMemoryService memoryService;
     @Inject io.casehub.clinical.cbr.AeEscalationPlanRetriever planRetriever;
+    @Inject
+            io.casehub.clinical.cbr.AeTrajectoryAlertService  aeTrajectoryAlertService;
 
 
     public void onAdverseEventReported(@ObservesAsync AdverseEventReportedEvent event) {
@@ -44,6 +46,7 @@ public class AeEscalationCaseService {
             if (initialContext == null) return;
             UUID caseId = caseHub.startCase(initialContext).toCompletableFuture().join();
             persistCaseId(event.aeId(), caseId);
+            try { aeTrajectoryAlertService.evaluate(event.aeId(), event.tenantId()); } catch (Exception te) { LOG.warnf(te, "Trajectory alert re-evaluation failed for aeId=%s", event.aeId()); }
             if (SEVERE_GRADES.contains(event.grade())) {
                 trialSafetySignalService.signalGrade4Active(event.siteId());
             }
