@@ -134,4 +134,13 @@ public final class ClinicalComplianceSupplement {
         return s;
     }
 
+    public static ComplianceSupplement gradeChange() {
+        ComplianceSupplement s = new JpaComplianceSupplement();
+        s.planRef                = "ICH E6(R3) §5.17 — adverse event grade reassessment audit trail";
+        s.algorithmRef           = "AdverseEventService.regradeAdverseEvent (clinician-initiated grade change)";
+        s.humanOverrideAvailable = true;
+        return s;
+    }
+
+
 }

@@ -8,11 +8,12 @@ import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.enterprise.event.ObservesAsync;
 import jakarta.inject.Inject;
 import jakarta.transaction.Transactional;
+import org.jboss.logging.Logger;
+
 import java.time.Duration;
 import java.util.Map;
 import java.util.Objects;
 import java.util.UUID;
-import org.jboss.logging.Logger;
 
 /**
  * Observes AdverseEventReportedEvent concurrently with AeEscalationCaseService and
@@ -63,6 +64,26 @@ public class RegulatorySubmissionCaseService {
             }
         }
     }
+
+    public void reevaluateForRegrade(UUID aeId, UUID siteId, String tenantId) {
+        AdverseEvent ae = AdverseEvent.findById(aeId);
+        if (ae == null) {return;}
+        if (ae.regulatorySubmissionStatus != io.casehub.clinical.api.model.RegulatorySubmissionStatus.NONE) {return;}
+        if (!isIndReportable(ae.grade) || !ae.unexpected) {return;}
+
+        var event = new AdverseEventReportedEvent(
+                aeId, ae.enrollmentId, siteId, ae.grade, ae.reportedAt, tenantId);
+        try {
+            Map<String, Object> ctx = prepareAndMark(event);
+            if (ctx == null) {return;}
+            UUID caseId = regulatorySubmissionCaseHub.startCase(ctx).toCompletableFuture().join();
+            persistCaseId(aeId, caseId);
+        } catch (Exception e) {
+            LOG.errorf(e, "RegulatorySubmissionCaseService: regrade evaluation failed for aeId=%s", aeId);
+            resetToNone(aeId);
+        }
+    }
+
 
     @Transactional
     Map<String, Object> prepareAndMark(AdverseEventReportedEvent event) {

@@ -74,6 +74,12 @@ public class PatientResource {
         Boolean suspected
     ) {}
 
+    public record RegradeRequest(@NotNull CtcaeGrade grade, String reason) {}
+
+    public record GradeHistoryEntry(UUID id, String previousGrade, String newGrade,
+                                    Instant changedAt, String changedBy, String reason) {}
+
+
     @POST
     @Transactional
     @RolesAllowed({ClinicalGroups.INVESTIGATOR, ClinicalGroups.COORDINATOR})
@@ -193,6 +199,61 @@ public class PatientResource {
             return Response.status(Response.Status.NOT_FOUND).build();
         return Response.ok(ae).build();
     }
+
+    @POST
+    @Path("/{enrollmentId}/adverse-events/{aeId}/regrade")
+    @RolesAllowed({ClinicalGroups.INVESTIGATOR, ClinicalGroups.COORDINATOR})
+    @Transactional
+    public Response regradeAdverseEvent(
+            @PathParam("trialId") UUID trialId,
+            @PathParam("siteId") UUID siteId,
+            @PathParam("enrollmentId") UUID enrollmentId,
+            @PathParam("aeId") UUID aeId,
+            @Valid RegradeRequest req) {
+        PatientEnrollment enrollment = PatientEnrollment.findByIdForTenant(enrollmentId, principal);
+        if (enrollment == null || !enrollment.siteId.equals(siteId)) {
+            return Response.status(Response.Status.NOT_FOUND).build();
+        }
+        TrialSite site = TrialSite.findByIdForTenant(siteId, principal);
+        if (site == null || !site.trialId.equals(trialId)) {return Response.status(Response.Status.NOT_FOUND).build();}
+        AdverseEvent ae = AdverseEvent.findByIdForTenant(aeId, principal);
+        if (ae == null || !ae.enrollmentId.equals(enrollmentId)) {
+            return Response.status(Response.Status.NOT_FOUND).build();
+        }
+
+        adverseEventService.regradeAdverseEvent(aeId, req.grade(), principal.actorId(), req.reason());
+
+        ae = AdverseEvent.findById(aeId);
+        return Response.ok(ae).build();
+    }
+
+    @GET
+    @Path("/{enrollmentId}/adverse-events/{aeId}/grade-history")
+    @RolesAllowed({ClinicalGroups.INVESTIGATOR, ClinicalGroups.COORDINATOR})
+    public Response getGradeHistory(
+            @PathParam("trialId") UUID trialId,
+            @PathParam("siteId") UUID siteId,
+            @PathParam("enrollmentId") UUID enrollmentId,
+            @PathParam("aeId") UUID aeId) {
+        PatientEnrollment enrollment = PatientEnrollment.findByIdForTenant(enrollmentId, principal);
+        if (enrollment == null || !enrollment.siteId.equals(siteId)) {
+            return Response.status(Response.Status.NOT_FOUND).build();
+        }
+        TrialSite site = TrialSite.findByIdForTenant(siteId, principal);
+        if (site == null || !site.trialId.equals(trialId)) {return Response.status(Response.Status.NOT_FOUND).build();}
+        AdverseEvent ae = AdverseEvent.findByIdForTenant(aeId, principal);
+        if (ae == null || !ae.enrollmentId.equals(enrollmentId)) {
+            return Response.status(Response.Status.NOT_FOUND).build();
+        }
+
+        var history = io.casehub.clinical.entity.AeGradeChange.findByAdverseEventId(aeId).stream()
+                                                              .map(gc -> new GradeHistoryEntry(gc.id,
+                                                                                               gc.previousGrade != null ? gc.previousGrade.name() : null,
+                                                                                               gc.newGrade.name(), gc.changedAt, gc.changedBy, gc.reason))
+                                                              .toList();
+        return Response.ok(history).build();
+    }
+
 
     @GET
     @Path("/{enrollmentId}/ledger/verify")

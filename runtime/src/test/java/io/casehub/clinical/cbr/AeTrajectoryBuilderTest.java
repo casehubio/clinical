@@ -30,8 +30,8 @@ class AeTrajectoryBuilderTest {
     @BeforeEach
     void setUp() {
         planItemStore = mock(PlanItemStore.class);
-        builder = new AeTrajectoryBuilder(planItemStore);
-    }
+        builder       = new AeTrajectoryBuilder(planItemStore);
+        builder.setGradeHistoryFinder(id -> java.util.List.of());}
 
     @Test
     void noEngineCases_singleObservationFromEntity() {
@@ -180,6 +180,66 @@ class AeTrajectoryBuilderTest {
         }
     }
 
+
+    @Test
+    void noGradeHistory_usesCurrentGrade() {
+        AdverseEvent ae         = buildAe(CtcaeGrade.GRADE_2, null, null, null);
+        var          trajectory = builder.buildTrajectory(ae, "tenant-1");
+        assertEquals(1, trajectory.size());
+        assertEquals(2.0, ((FeatureValue.NumberVal) trajectory.get(0).get("grade")).value());
+    }
+
+    @Test
+    void withGradeHistory_firstObservationUsesInitialGrade() {
+        AdverseEvent ae  = buildAe(CtcaeGrade.GRADE_3, null, null, null);
+        var          gc1 = gradeChange(ae.id, null, CtcaeGrade.GRADE_1, ae.reportedAt);
+        var gc2 = gradeChange(ae.id, CtcaeGrade.GRADE_1, CtcaeGrade.GRADE_3,
+                              ae.reportedAt.plusSeconds(172800));
+        builder.setGradeHistoryFinder(id -> List.of(gc1, gc2));
+
+        var trajectory = builder.buildTrajectory(ae, "tenant-1");
+        assertTrue(trajectory.size() >= 2);
+        assertEquals(1.0, ((FeatureValue.NumberVal) trajectory.get(0).get("grade")).value());
+        assertEquals(3.0, ((FeatureValue.NumberVal) trajectory.get(trajectory.size() - 1).get("grade")).value());
+    }
+
+    @Test
+    void gradeChangeMergedWithPlanItems_sortedByTimestamp() {
+        UUID         caseId = UUID.randomUUID();
+        AdverseEvent ae     = buildAe(CtcaeGrade.GRADE_3, caseId, null, null);
+        ae.escalationStatus = AeEscalationStatus.REQUESTED;
+
+        var gc1 = gradeChange(ae.id, null, CtcaeGrade.GRADE_1, ae.reportedAt);
+        var gc2 = gradeChange(ae.id, CtcaeGrade.GRADE_1, CtcaeGrade.GRADE_3,
+                              ae.reportedAt.plusSeconds(7200));
+        builder.setGradeHistoryFinder(id -> List.of(gc1, gc2));
+
+        when(planItemStore.findByCaseId(caseId, "tenant-1"))
+                .thenReturn(List.of(
+                        planItem(caseId, "safety-review", TaskStatus.PENDING, ae.reportedAt.plusSeconds(3600))));
+
+        var trajectory = builder.buildTrajectory(ae, "tenant-1");
+        assertTrue(trajectory.size() >= 3);
+        assertEquals(1.0, ((FeatureValue.NumberVal) trajectory.get(0).get("grade")).value());
+        var secondObs = trajectory.get(1);
+        assertEquals(3600.0, ((FeatureValue.NumberVal) secondObs.get("ts")).value());
+        assertEquals(1.0, ((FeatureValue.NumberVal) secondObs.get("grade")).value());
+        var thirdObs = trajectory.get(2);
+        assertEquals(7200.0, ((FeatureValue.NumberVal) thirdObs.get("ts")).value());
+        assertEquals(3.0, ((FeatureValue.NumberVal) thirdObs.get("grade")).value());
+    }
+
+    private io.casehub.clinical.entity.AeGradeChange gradeChange(UUID aeId, CtcaeGrade prev,
+                                                                 CtcaeGrade next, Instant at) {
+        var gc = new io.casehub.clinical.entity.AeGradeChange();
+        gc.id             = UUID.randomUUID();
+        gc.adverseEventId = aeId;
+        gc.previousGrade  = prev;
+        gc.newGrade       = next;
+        gc.changedAt      = at;
+        gc.changedBy      = "test";
+        return gc;
+    }
 
     private AdverseEvent buildAe(CtcaeGrade grade, UUID engineCaseId, UUID susarCaseId, UUID regCaseId) {
         AdverseEvent ae = new AdverseEvent();

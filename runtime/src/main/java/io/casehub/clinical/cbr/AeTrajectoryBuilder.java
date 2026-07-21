@@ -21,6 +21,12 @@ import java.util.UUID;
 public class AeTrajectoryBuilder {
 
     private final PlanItemStore planItemStore;
+    private       java.util.function.Function<UUID, java.util.List<io.casehub.clinical.entity.AeGradeChange>> gradeHistoryFinder = io.casehub.clinical.entity.AeGradeChange::findByAdverseEventId;
+
+    void setGradeHistoryFinder(java.util.function.Function<UUID, java.util.List<io.casehub.clinical.entity.AeGradeChange>> finder) {
+        this.gradeHistoryFinder = finder;
+    }
+
 
     @Inject
     public AeTrajectoryBuilder(PlanItemStore planItemStore) {
@@ -40,29 +46,53 @@ public class AeTrajectoryBuilder {
         int susar      = ordinal(SusarOversightStatus.NONE);
         int regulatory = ordinal(RegulatorySubmissionStatus.NONE);
 
+        var gradeHistory = gradeHistoryFinder.apply(ae.id);
+        int currentGrade = !gradeHistory.isEmpty()
+                           ? gradeHistory.get(0).newGrade.ordinal() + 1
+                           : (ae.grade != null ? ae.grade.ordinal() + 1 : 1);
+
         List<Observation> observations = new ArrayList<>();
-        observations.add(new Observation(0, escalation, susar, regulatory));
+        observations.add(new Observation(0, escalation, susar, regulatory, currentGrade));
 
         List<PlanItemRecord> allRecords = new ArrayList<>();
         collectRecords(ae.engineCaseId, tenantId, allRecords);
         collectRecords(ae.susarOversightCaseId, tenantId, allRecords);
         collectRecords(ae.regulatorySubmissionCaseId, tenantId, allRecords);
-        allRecords.sort(Comparator.comparing(PlanItemRecord::createdAt));
 
-        for (PlanItemRecord record : allRecords) {
+        record TimelineEvent(long seconds, boolean isGradeChange,
+                             io.casehub.clinical.entity.AeGradeChange gradeChange,
+                             PlanItemRecord planItem) {}
+
+        List<TimelineEvent> timeline = new ArrayList<>();
+        for (var gc : gradeHistory) {
+            if (gc.previousGrade == null) {continue;}
+            long seconds = Duration.between(ae.reportedAt, gc.changedAt).getSeconds();
+            if (seconds < 0) {seconds = 0;}
+            timeline.add(new TimelineEvent(seconds, true, gc, null));
+        }
+        for (var record : allRecords) {
             long seconds = Duration.between(ae.reportedAt, record.createdAt()).getSeconds();
             if (seconds < 0) {seconds = 0;}
+            timeline.add(new TimelineEvent(seconds, false, null, record));
+        }
+        timeline.sort(Comparator.comparingLong(TimelineEvent::seconds)
+                                .thenComparing(e -> !e.isGradeChange()));
 
-            if (isSusarBinding(record.bindingName())) {
-                susar = record.status().isTerminal() ? ordinal(SusarOversightStatus.COMPLETED) : ordinal(SusarOversightStatus.REQUESTED);
-            } else if (isRegulatoryBinding(record.bindingName())) {
-                regulatory = record.status().isTerminal() ? ordinal(RegulatorySubmissionStatus.FILED) : ordinal(RegulatorySubmissionStatus.PENDING);
+        for (var event : timeline) {
+            if (event.isGradeChange()) {
+                currentGrade = event.gradeChange().newGrade.ordinal() + 1;
+            } else {
+                var record = event.planItem();
+                if (isSusarBinding(record.bindingName())) {
+                    susar = record.status().isTerminal() ? ordinal(SusarOversightStatus.COMPLETED) : ordinal(SusarOversightStatus.REQUESTED);
+                } else if (isRegulatoryBinding(record.bindingName())) {
+                    regulatory = record.status().isTerminal() ? ordinal(RegulatorySubmissionStatus.FILED) : ordinal(RegulatorySubmissionStatus.PENDING);
+                }
+                if (record.status().isTerminal() && isEscalationBinding(record.bindingName())) {
+                    escalation = ordinal(AeEscalationStatus.COMPLETED);
+                }
             }
-            if (record.status().isTerminal() && isEscalationBinding(record.bindingName())) {
-                escalation = ordinal(AeEscalationStatus.COMPLETED);
-            }
-
-            observations.add(new Observation(seconds, escalation, susar, regulatory));
+            observations.add(new Observation(event.seconds(), escalation, susar, regulatory, currentGrade));
         }
 
         if (!observations.isEmpty()) {
@@ -70,9 +100,11 @@ public class AeTrajectoryBuilder {
             last.escalation = ordinal(ae.escalationStatus);
             last.susar      = ordinal(ae.susarOversightStatus);
             last.regulatory = ordinal(ae.regulatorySubmissionStatus);
+            last.grade      = ae.grade != null ? ae.grade.ordinal() + 1 : currentGrade;
         }
 
-        return coalesce(observations).stream().map(Observation::toFeatureMap).toList();}
+        return coalesce(observations).stream().map(Observation::toFeatureMap).toList();
+    }
 
 
     private static List<Observation> coalesce(List<Observation> observations) {
@@ -135,23 +167,26 @@ public class AeTrajectoryBuilder {
 
     private static class Observation {
         long secondsSinceReport;
-        int escalation;
-        int susar;
-        int regulatory;
+        int  escalation;
+        int  susar;
+        int  regulatory;
+        int  grade;
 
-        Observation(long secondsSinceReport, int escalation, int susar, int regulatory) {
+        Observation(long secondsSinceReport, int escalation, int susar, int regulatory, int grade) {
             this.secondsSinceReport = secondsSinceReport;
-            this.escalation = escalation;
-            this.susar = susar;
-            this.regulatory = regulatory;
+            this.escalation         = escalation;
+            this.susar              = susar;
+            this.regulatory         = regulatory;
+            this.grade              = grade;
         }
 
         Map<String, FeatureValue> toFeatureMap() {
             return Map.of(
-                "ts", FeatureValue.number(secondsSinceReport),
-                "escalation", FeatureValue.number(escalation),
-                "susar", FeatureValue.number(susar),
-                "regulatory", FeatureValue.number(regulatory));
+                    "ts", FeatureValue.number(secondsSinceReport),
+                    "escalation", FeatureValue.number(escalation),
+                    "susar", FeatureValue.number(susar),
+                    "regulatory", FeatureValue.number(regulatory),
+                    "grade", FeatureValue.number(grade));
         }
     }
 }

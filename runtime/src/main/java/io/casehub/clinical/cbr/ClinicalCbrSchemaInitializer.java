@@ -8,12 +8,13 @@ import io.casehub.neocortex.memory.cbr.TrendSpec;
 import io.casehub.neocortex.memory.cbr.TrendType;
 import io.casehub.neocortex.memory.cbr.WarpingConstraint;
 import io.quarkus.runtime.StartupEvent;
-import java.time.temporal.ChronoUnit;
-import java.util.Set;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.enterprise.event.Observes;
 import jakarta.inject.Inject;
 import org.jboss.logging.Logger;
+
+import java.time.temporal.ChronoUnit;
+import java.util.Set;
 
 /**
  * Registers CBR feature schemas at application startup.
@@ -87,7 +88,8 @@ public class ClinicalCbrSchemaInitializer {
                                                            FeatureField.numeric("ts", 0, 7776000),
                                                            FeatureField.numeric("escalation", 0, 3),
                                                            FeatureField.numeric("susar", 0, 3),
-                                                           FeatureField.numeric("regulatory", 0, 3)));
+                                                           FeatureField.numeric("regulatory", 0, 3),
+                                                           FeatureField.numeric("grade", 1, 5)));
     }
 
     public static CbrFeatureSchema siteEnrollmentSchema() {

@@ -60,6 +60,75 @@ public class AeEscalationCaseService {
         }
     }
 
+    public void startEscalationForRegrade(UUID aeId, UUID enrollmentId, UUID siteId,
+                                          io.casehub.clinical.api.model.CtcaeGrade grade, String tenantId) {
+        try {
+            Map<String, Object> initialContext = prepareAndMarkForRegrade(aeId, enrollmentId, siteId, grade, tenantId);
+            if (initialContext == null) {return;}
+            UUID caseId = caseHub.startCase(initialContext).toCompletableFuture().join();
+            persistCaseId(aeId, caseId);
+            try {aeTrajectoryAlertService.evaluate(aeId, tenantId);} catch (Exception te) {
+                LOG.warnf(te, "Trajectory alert re-evaluation failed for aeId=%s", aeId);
+            }
+            if (SEVERE_GRADES.contains(grade)) {
+                trialSafetySignalService.signalGrade4Active(siteId);
+            }
+        } catch (Exception e) {
+            LOG.errorf(e, "AeEscalationCaseService: regrade escalation failed for aeId=%s — marking FAILED", aeId);
+            try {markFailed(aeId);} catch (Exception ex) {
+                LOG.errorf(ex, "AeEscalationCaseService: markFailed also failed for aeId=%s", aeId);
+            }
+        }
+    }
+
+    @Transactional
+    Map<String, Object> prepareAndMarkForRegrade(UUID aeId, UUID enrollmentId, UUID siteId,
+                                                 io.casehub.clinical.api.model.CtcaeGrade grade, String tenantId) {
+        AdverseEvent ae = AdverseEvent.findById(aeId);
+        if (ae == null) {
+            LOG.warnf("AE not found for regrade escalation aeId=%s", aeId);
+            return null;
+        }
+        if (ae.engineCaseId != null) {
+            if (SEVERE_GRADES.contains(grade)) {
+                trialSafetySignalService.signalGrade4Active(siteId);
+            }
+            return null;
+        }
+        if (ae.workItemId != null) {
+            LOG.infof("Cancelling Grade 1/2 WorkItem %s for aeId=%s — engine case taking over", ae.workItemId, aeId);
+            ae.workItemId = null;
+        }
+        ae.escalationStatus = AeEscalationStatus.REQUESTED;
+
+        AdverseEventEscalationRequirements requirements = policy.evaluate(
+                new AdverseEventContext(aeId, enrollmentId, siteId, grade));
+
+        Map<String, Object> ctx = new HashMap<>();
+        ctx.put("aeId", aeId.toString());
+        ctx.put("enrollmentId", enrollmentId.toString());
+        ctx.put("siteId", siteId != null ? siteId.toString() : "");
+        ctx.put("grade", grade.name());
+        ctx.put("requiresSeniorMonitor", requirements.requiresSeniorMonitor());
+        ctx.put("requiresDsmbEscalation", requirements.requiresDsmbEscalation());
+        ctx.put("tenantId", tenantId);
+        var patientCtx = memoryService.queryPatientContext(enrollmentId, tenantId);
+        ctx.put("patientContext", patientCtx.toContextMap());
+        if (siteId != null) {
+            var siteCtx = memoryService.querySiteContext(siteId, tenantId);
+            ctx.put("siteContext", siteCtx.toContextMap());
+        }
+        ctx.put("unexpected", ae.unexpected);
+        ctx.put("suspected", ae.suspected);
+
+        var plan = planRetriever.retrieve(ae);
+        if (plan.hasRecommendation()) {
+            ctx.put("escalationPlanRecommendation", plan.toContextMap());
+        }
+        return ctx;
+    }
+
+
     @Transactional
     Map<String, Object> prepareAndMarkRequested(AdverseEventReportedEvent event) {
         AdverseEvent ae = AdverseEvent.findById(event.aeId());

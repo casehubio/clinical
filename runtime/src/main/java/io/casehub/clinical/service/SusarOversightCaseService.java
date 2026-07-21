@@ -48,6 +48,26 @@ public class SusarOversightCaseService {
         }
     }
 
+    public void reevaluateForRegrade(UUID aeId, UUID siteId, String tenantId) {
+        AdverseEvent ae = AdverseEvent.findById(aeId);
+        if (ae == null) {return;}
+        if (ae.susarOversightStatus != SusarOversightStatus.NONE) {return;}
+        if (!ae.unexpected || !ae.suspected) {return;}
+
+        var event = new AdverseEventReportedEvent(
+                aeId, ae.enrollmentId, siteId, ae.grade, ae.reportedAt, tenantId);
+        try {
+            Map<String, Object> ctx = prepareAndMark(event);
+            if (ctx == null) {return;}
+            UUID caseId = susarOversightCaseHub.startCase(ctx).toCompletableFuture().join();
+            persistCaseId(aeId, caseId);
+        } catch (Exception e) {
+            LOG.errorf(e, "SusarOversightCaseService: regrade evaluation failed for aeId=%s", aeId);
+            markFailed(aeId);
+        }
+    }
+
+
     @Transactional
     Map<String, Object> prepareAndMark(AdverseEventReportedEvent event) {
         AdverseEvent ae = AdverseEvent.findById(event.aeId());

@@ -219,6 +219,11 @@ public class TrialDashboardResource {
                     slaRemaining = formatDuration(remaining) + " remaining";
                 }
             }
+            var gradeHistory = io.casehub.clinical.entity.AeGradeChange.findByAdverseEventId(ae.id).stream()
+                .map(gc -> new GradeChangeRow(
+                    gc.previousGrade != null ? gc.previousGrade.name() : null,
+                    gc.newGrade.name(), gc.changedAt, gc.changedBy))
+                .toList();
             return new AdverseEventRow(
                     ae.id, ae.enrollmentId, enrollmentToSite.get(ae.enrollmentId),
                     siteIdToName.get(enrollmentToSite.get(ae.enrollmentId)),
@@ -229,7 +234,8 @@ public class TrialDashboardResource {
                     ae.escalationStatus != null ? ae.escalationStatus.name() : null,
                     ae.regulatorySubmissionStatus != null ? ae.regulatorySubmissionStatus.name() : null,
                     slaRemaining,
-                    slaHours
+                    slaHours,
+                    gradeHistory
             );
         }).toList();
 
@@ -826,8 +832,11 @@ public class TrialDashboardResource {
             String patientId, String grade, String eventType,
             Instant reportedAt, Instant slaDeadline, String escalationStatus,
             String regulatorySubmissionStatus, String slaTimeRemaining,
-            Double slaTimeRemainingHours
+            Double slaTimeRemainingHours,
+            List<GradeChangeRow> gradeHistory
     ) {}
+
+    public record GradeChangeRow(String previousGrade, String newGrade, Instant changedAt, String changedBy) {}
 
     public record DeviationRow(
             UUID id, UUID siteId, String siteName, String deviationType,

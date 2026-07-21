@@ -44,6 +44,10 @@ public class AdverseEventService {
     TransactionSynchronizationRegistry               txSync;
     @Inject
     io.casehub.clinical.cbr.AeTrajectoryAlertService aeTrajectoryAlertService;
+    @Inject
+    AeGradeChangeLedgerWriter                        gradeChangeLedgerWriter;
+    @Inject
+    Event<io.casehub.clinical.api.AeGradeChangedEvent> gradeChangedEvents;
 
 
     @Transactional
@@ -84,6 +88,16 @@ public class AdverseEventService {
             org.jboss.logging.Logger.getLogger(AdverseEventService.class).warnf(e, "Trajectory alert evaluation failed for aeId=%s", ae.id);
         }
 
+        io.casehub.clinical.entity.AeGradeChange initial = new io.casehub.clinical.entity.AeGradeChange();
+        initial.id             = UUID.randomUUID();
+        initial.adverseEventId = ae.id;
+        initial.previousGrade  = null;
+        initial.newGrade       = ae.grade;
+        initial.changedAt      = ae.reportedAt;
+        initial.changedBy      = "system";
+        initial.reason         = "Initial report";
+        initial.persist();
+
         if (requirements.engineCaseRequired()) {
             var event = new AdverseEventReportedEvent(
                     ae.id, ae.enrollmentId, siteId, ae.grade, ae.reportedAt, ae.tenantId);
@@ -100,6 +114,60 @@ public class AdverseEventService {
             });
         }
     }
+
+    @Transactional
+    public void regradeAdverseEvent(UUID aeId, io.casehub.clinical.api.model.CtcaeGrade newGrade, String changedBy, String reason) {
+        AdverseEvent ae = AdverseEvent.findById(aeId);
+        if (ae == null) {return;}
+        if (newGrade == ae.grade) {return;}
+
+        io.casehub.clinical.api.model.CtcaeGrade previousGrade = ae.grade;
+
+        io.casehub.clinical.entity.AeGradeChange change = new io.casehub.clinical.entity.AeGradeChange();
+        change.id             = UUID.randomUUID();
+        change.adverseEventId = aeId;
+        change.previousGrade  = previousGrade;
+        change.newGrade       = newGrade;
+        change.changedAt      = Instant.now();
+        change.changedBy      = changedBy;
+        change.reason         = reason;
+        change.persist();
+
+        ae.grade = newGrade;
+
+        if (newGrade.ordinal() > previousGrade.ordinal()) {
+            Instant newDeadline = Instant.now().plus(newGrade.sla().orElseThrow());
+            if (newDeadline.isBefore(ae.slaDeadline)) {
+                ae.slaDeadline = newDeadline;
+            }
+        }
+
+        gradeChangeLedgerWriter.writeGradeChangeEntry(ae, previousGrade, reason);
+
+        PatientEnrollment enrollment = PatientEnrollment.findById(ae.enrollmentId);
+        UUID              siteId     = enrollment != null ? enrollment.siteId : null;
+        TrialSite         site       = siteId != null ? TrialSite.findById(siteId) : null;
+        UUID              trialId    = site != null ? site.trialId : null;
+
+        memoryService.storeAeRegrade(aeId, ae.enrollmentId, siteId, trialId,
+                                     previousGrade, newGrade, ae.tenantId);
+
+        var event = new io.casehub.clinical.api.AeGradeChangedEvent(
+                aeId, ae.enrollmentId, siteId, previousGrade, newGrade,
+                change.changedAt, changedBy, ae.tenantId);
+        txSync.registerInterposedSynchronization(new Synchronization() {
+            @Override
+            public void beforeCompletion() {}
+
+            @Override
+            public void afterCompletion(int status) {
+                if (status == Status.STATUS_COMMITTED) {
+                    gradeChangedEvents.fireAsync(event);
+                }
+            }
+        });
+    }
+
 
     private WorkItemPriority priority(AdverseEvent ae) {
         return switch (ae.grade) {

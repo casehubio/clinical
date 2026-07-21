@@ -65,6 +65,43 @@ public class ClinicalMemoryService {
         }
     }
 
+    public void storeAeRegrade(final UUID aeId, final UUID enrollmentId, final UUID siteId,
+                               final UUID trialId, final CtcaeGrade previousGrade,
+                               final CtcaeGrade newGrade, final String tenantId) {
+        final Map<String, String> attrs = Map.of(
+                MemoryAttributeKeys.ACTOR_ID, ACTOR,
+                MemoryAttributeKeys.OUTCOME, "REGRADED",
+                ClinicalMemoryAttributes.GRADE, newGrade.name());
+        final String text = "AE " + aeId + " regraded " + previousGrade.name() + " → " + newGrade.name()
+                            + " for enrollment " + enrollmentId + " at site " + siteId;
+
+        try {
+            store.store(new MemoryInput("patient:" + enrollmentId, ClinicalMemoryDomains.PATIENT,
+                                        tenantId, null, text, attrs));
+        } catch (Exception e) {
+            LOG.warnf(e, "ClinicalMemoryService: storeAeRegrade failed for aeId=%s — ignored", aeId);
+        }
+        try {
+            store.store(new MemoryInput("site:" + siteId, ClinicalMemoryDomains.SITE,
+                                        tenantId, null, text, attrs));
+        } catch (Exception e) {
+            LOG.warnf(e, "ClinicalMemoryService: storeAeRegrade (site) failed for siteId=%s — ignored", siteId);
+        }
+        if (trialId != null && siteId != null) {
+            try {
+                store.store(new MemoryInput("trial:" + trialId, ClinicalMemoryDomains.DRUG,
+                                            tenantId, null, text,
+                                            Map.of(MemoryAttributeKeys.ACTOR_ID, ACTOR,
+                                                   MemoryAttributeKeys.OUTCOME, "REGRADED",
+                                                   ClinicalMemoryAttributes.GRADE, newGrade.name(),
+                                                   ClinicalMemoryAttributes.SITE_ID, siteId.toString())));
+            } catch (Exception e) {
+                LOG.warnf(e, "ClinicalMemoryService: storeAeRegrade (drug) failed for trialId=%s — ignored", trialId);
+            }
+        }
+    }
+
+
     public void storeAeOutcome(final UUID aeId, final UUID enrollmentId, final CtcaeGrade grade,
                                final String safetyReview, final boolean dsmbEscalated,
                                final String tenantId) {
