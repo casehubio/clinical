@@ -40,7 +40,7 @@ public class SusarCriteriaEvaluator implements SusarEvaluatorFunction {
      */
     @Override
     @Transactional
-    public WorkerResult apply(final Map<String, Object> context) {
+    public WorkerResult<Map<String, Object>> apply(final Map<String, Object> context) {
         final String aeIdStr = (String) context.get("aeId");
         if (aeIdStr == null) {
             return noGate();
@@ -72,7 +72,7 @@ public class SusarCriteriaEvaluator implements SusarEvaluatorFunction {
         return noGate();
     }
 
-    private static WorkerResult noGate() {
+    private static WorkerResult<Map<String, Object>> noGate() {
         return WorkerResult.of(Map.of("susarRequired", false, "susarAssessmentComplete", true));
     }
 }

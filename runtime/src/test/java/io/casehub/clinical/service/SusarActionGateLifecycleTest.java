@@ -33,7 +33,7 @@ class SusarActionGateLifecycleTest {
     @Transactional
     void grade4_unexpected_suspected_returns_planned_action() {
         UUID aeId = persistAe(CtcaeGrade.GRADE_4, true, true);
-        WorkerResult result = evaluator.apply(Map.of("aeId", aeId.toString()));
+        var result = evaluator.apply(Map.of("aeId", aeId.toString()));
         var action = ((WorkerOutcome.Success) result.outcome()).plannedAction();
         assertThat(action).isNotNull();
         assertThat(action.actionType())
@@ -46,7 +46,7 @@ class SusarActionGateLifecycleTest {
     @Transactional
     void grade5_unexpected_suspected_returns_planned_action() {
         UUID aeId = persistAe(CtcaeGrade.GRADE_5, true, true);
-        WorkerResult result = evaluator.apply(Map.of("aeId", aeId.toString()));
+        var result = evaluator.apply(Map.of("aeId", aeId.toString()));
         assertThat(((WorkerOutcome.Success) result.outcome()).plannedAction()).isNotNull();
         assertThat(result.output()).containsEntry("susarRequired", true);
     }
@@ -55,7 +55,7 @@ class SusarActionGateLifecycleTest {
     @Transactional
     void grade4_not_unexpected_returns_no_gate() {
         UUID aeId = persistAe(CtcaeGrade.GRADE_4, false, true);
-        WorkerResult result = evaluator.apply(Map.of("aeId", aeId.toString()));
+        var result = evaluator.apply(Map.of("aeId", aeId.toString()));
         assertThat(((WorkerOutcome.Success) result.outcome()).plannedAction()).isNull();
         assertThat(result.output()).containsEntry("susarRequired", false);
     }
@@ -64,7 +64,7 @@ class SusarActionGateLifecycleTest {
     @Transactional
     void grade3_unexpected_returns_no_gate() {
         UUID aeId = persistAe(CtcaeGrade.GRADE_3, true, true);
-        WorkerResult result = evaluator.apply(Map.of("aeId", aeId.toString()));
+        var result = evaluator.apply(Map.of("aeId", aeId.toString()));
         assertThat(((WorkerOutcome.Success) result.outcome()).plannedAction()).isNull();
     }
 
@@ -72,19 +72,19 @@ class SusarActionGateLifecycleTest {
     @Transactional
     void grade4_suspected_false_returns_no_gate() {
         UUID aeId = persistAe(CtcaeGrade.GRADE_4, true, false);
-        WorkerResult result = evaluator.apply(Map.of("aeId", aeId.toString()));
+        var result = evaluator.apply(Map.of("aeId", aeId.toString()));
         assertThat(((WorkerOutcome.Success) result.outcome()).plannedAction()).isNull();
     }
 
     @Test
     void missing_aeId_returns_no_gate() {
-        WorkerResult result = evaluator.apply(Map.of());
+        var result = evaluator.apply(Map.of());
         assertThat(((WorkerOutcome.Success) result.outcome()).plannedAction()).isNull();
     }
 
     @Test
     void valid_uuid_not_in_db_returns_no_gate() {
-        WorkerResult result = evaluator.apply(Map.of("aeId", UUID.randomUUID().toString()));
+        var result = evaluator.apply(Map.of("aeId", UUID.randomUUID().toString()));
         assertThat(((WorkerOutcome.Success) result.outcome()).plannedAction()).isNull();
     }
 

@@ -758,6 +758,11 @@ public class TrialDashboardResource {
     }
 
 
+    private static String extractFirst(Object value, String fallback) {
+        if (value instanceof List<?> list && !list.isEmpty()) {return String.valueOf(list.getFirst());}
+        return value != null ? String.valueOf(value) : fallback;
+    }
+
     private AePrecedentResponse mapToAeResponse(ScoredCbrCase<PlanCbrCase> scored) {
         PlanCbrCase         c        = scored.cbrCase();
         Map<String, Object> features = FeatureValue.toRawMap(c.features());
@@ -774,7 +779,7 @@ public class TrialDashboardResource {
         return new AePrecedentResponse(
                 scored.score(),
                 gradeStr,
-                String.valueOf(features.getOrDefault("eventType", "UNKNOWN")),
+                extractFirst(features.get("eventType"), "UNKNOWN"),
                 String.valueOf(features.getOrDefault("trialPhase", "UNKNOWN")),
                 "true".equals(String.valueOf(features.get("unexpected"))),
                 "true".equals(String.valueOf(features.get("suspected"))),

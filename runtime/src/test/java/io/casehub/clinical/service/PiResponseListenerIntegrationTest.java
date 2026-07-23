@@ -27,11 +27,13 @@ import java.time.Duration;
 @QuarkusTest
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
 @TestMethodOrder(MethodOrderer.OrderAnnotation.class)
+@io.quarkus.test.security.TestSecurity(user = "test-actor", roles = {io.casehub.clinical.api.ClinicalGroups.SPONSOR, io.casehub.clinical.api.ClinicalGroups.INVESTIGATOR, io.casehub.clinical.api.ClinicalGroups.COORDINATOR})
 class PiResponseListenerIntegrationTest {
 
     @Inject ProtocolDeviationService deviationService;
     @Inject ChannelService channelService;
     @Inject ChannelGateway channelGateway;
+    @Inject io.casehub.platform.testing.FixedCurrentPrincipal principal;
 
     private UUID siteId;
     private UUID minorDeviationId;
@@ -45,9 +47,11 @@ class PiResponseListenerIntegrationTest {
         ClinicalTrial trial = new ClinicalTrial();
         trial.id = trialId; trial.protocolId = "INT-" + trialId; trial.phase = TrialPhase.PHASE_II;
         trial.sponsor = "S"; trial.targetEnrollment = 10; trial.status = TrialStatus.ACTIVE;
+        trial.tenantId = principal.tenancyId();
         trial.persist();
         TrialSite site = new TrialSite();
         site.id = siteId; site.trialId = trialId; site.investigatorId = "pi-int";
+        site.tenantId = principal.tenancyId();
         site.persist();
     }
 

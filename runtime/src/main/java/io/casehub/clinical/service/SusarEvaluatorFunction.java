@@ -12,4 +12,4 @@ import java.util.function.Function;
  * a future ML-based evaluator implements this interface as {@code @ApplicationScoped}
  * (without {@code @DefaultBean}) and displaces the default automatically.
  */
-public interface SusarEvaluatorFunction extends Function<Map<String, Object>, WorkerResult> {}
+public interface SusarEvaluatorFunction extends Function<Map<String, Object>, WorkerResult<Map<String, Object>>> {}

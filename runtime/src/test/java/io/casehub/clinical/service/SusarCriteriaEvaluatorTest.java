@@ -22,7 +22,7 @@ class SusarCriteriaEvaluatorTest {
 
     @Test
     void null_aeId_returns_no_gate_with_assessment_complete() {
-        WorkerResult result = evaluator.apply(Map.of());
+        var result = evaluator.apply(Map.of());
         assertThat(((WorkerOutcome.Success) result.outcome()).plannedAction()).isNull();
         assertThat(result.output()).containsEntry("susarRequired", false);
         assertThat(result.output()).containsEntry("susarAssessmentComplete", true);
@@ -30,7 +30,7 @@ class SusarCriteriaEvaluatorTest {
 
     @Test
     void malformed_aeId_returns_no_gate() {
-        WorkerResult result = evaluator.apply(Map.of("aeId", "not-a-uuid"));
+        var result = evaluator.apply(Map.of("aeId", "not-a-uuid"));
         assertThat(((WorkerOutcome.Success) result.outcome()).plannedAction()).isNull();
         assertThat(result.output()).containsEntry("susarRequired", false);
         assertThat(result.output()).containsEntry("susarAssessmentComplete", true);

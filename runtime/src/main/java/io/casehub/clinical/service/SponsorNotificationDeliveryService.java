@@ -78,7 +78,7 @@ class SponsorNotificationDeliveryService {
         final int attemptNumber = n.attempts + 1;
 
         final SponsorNotificationRetryPolicy policy = preferenceProvider
-                .resolve(SettingsScope.of("casehubio", "clinical"))
+                .resolve(SettingsScope.of("casehubio", io.casehub.platform.api.path.Path.of("clinical")))
                 .getOrDefault(SponsorNotificationRetryPolicy.KEY);
         final int maxAttempts = policy.maxAttempts();
 

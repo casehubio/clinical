@@ -172,7 +172,7 @@ class PrecedentEndpointTest {
                     1.0,
                     FeatureValue.toFeatureMap(Map.ofEntries(
                             Map.entry("grade", 3),
-                            Map.entry("eventType", "Neutropenia"),
+                            Map.entry("eventType", List.of("Neutropenia")),
                             Map.entry("trialPhase", "PHASE_III"),
                             Map.entry("unexpected", "true"),
                             Map.entry("suspected", "true"),

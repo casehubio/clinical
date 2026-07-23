@@ -36,7 +36,7 @@ class CbrRetrievalAuditIntegrationTest {
     void retrieveWithAudit_producesTraceIdAndExplanation() {
         var cbrCase = new PlanCbrCase(
             "Grade 3 Neutropenia", "Safety review: CONTINUE", "COMPLETED", 1.0,
-            FeatureValue.toFeatureMap(Map.of("grade", 3, "eventType", "Neutropenia")),
+            FeatureValue.toFeatureMap(Map.of("grade", 3, "eventType", List.of("Neutropenia"))),
             List.of());
 
         store.store(cbrCase, "clinical-ae", "ae-" + UUID.randomUUID(),
@@ -44,7 +44,7 @@ class CbrRetrievalAuditIntegrationTest {
 
         CbrQuery query = CbrQuery.of(principal.tenancyId(), ClinicalCbrDomains.AE,
             Path.root(), "clinical-ae",
-            FeatureValue.toFeatureMap(Map.of("grade", 3, "eventType", "Neutropenia")), 10)
+            FeatureValue.toFeatureMap(Map.of("grade", 3, "eventType", List.of("Neutropenia"))), 10)
             .withVectorWeight(0.0);
 
         var result = cbrService.retrieveWithAudit(query, PlanCbrCase.class,
