@@ -81,4 +81,17 @@ public record SponsorNotificationRetryPolicy(
                         return new SponsorNotificationRetryPolicy(
                                 maxAttempts, Duration.ofMinutes(intervalMinutes), multiplier, maxInterval);
                     });
+
+    @Override
+    public String toSerializedValue() {
+        final StringBuilder sb = new StringBuilder();
+        sb.append(maxAttempts).append(',').append(retryInterval.toMinutes());
+        if (backoffMultiplier != 1.0 || maxInterval != null) {
+            sb.append(',').append(backoffMultiplier);
+        }
+        if (maxInterval != null) {
+            sb.append(',').append(maxInterval.toMinutes());
+        }
+        return sb.toString();
+    }
 }
