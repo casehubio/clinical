@@ -40,7 +40,7 @@ class RegulatorySubmissionCaseServiceTest {
     @BeforeEach
     void stubCaseHub() {
         when(regulatorySubmissionCaseHub.startCase(any()))
-                .thenReturn(CompletableFuture.completedFuture(UUID.randomUUID()));
+                .thenReturn(UUID.randomUUID());
     }
 
     @Test
@@ -133,7 +133,7 @@ class RegulatorySubmissionCaseServiceTest {
 
         // Cause startCase() to throw
         when(regulatorySubmissionCaseHub.startCase(any()))
-                .thenReturn(CompletableFuture.failedFuture(new RuntimeException("engine unavailable")));
+                .thenThrow(new RuntimeException("engine unavailable"));
 
         service.onAdverseEventReported(event);
 

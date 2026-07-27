@@ -47,7 +47,7 @@ class CbrRetrievalLedgerWriterTest {
             Path.root(), "clinical-ae", Map.of("grade", FeatureValue.of(3)), 10);
 
         var trace = new CbrRetrievalTrace("trace-abc", query, List.of(
-            new CbrRetrievalTrace.TracedCase("case-1", 0.92, false, Map.of(), 0.85)
+            new CbrRetrievalTrace.TracedCase("case-1", 0.92, false, Map.of(), 0.85, null, null, null)
         ), Instant.now());
 
         UUID subjectId = UUID.randomUUID();

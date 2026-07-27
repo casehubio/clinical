@@ -70,7 +70,7 @@ class AeEscalationPlanRetrieverIntegrationTest {
                 "suspected", "false", "treatmentArm", "UNASSIGNED",
                 "priorAeCount", "NONE");
         var cbrCase = new PlanCbrCase("Grade 3 hepatotoxicity", "Safety review completed",
-                "COMPLETED", 1.0, FeatureValue.toFeatureMap(features), List.of(trace));
+                "COMPLETED", 1.0, FeatureValue.toFeatureMap(features), List.of(trace), null, null);
 
         cbrService.storeIdempotent(cbrCase, "clinical-ae", "past-ae-1",
                 ClinicalCbrDomains.AE, "test-tenant", null);

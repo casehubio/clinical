@@ -37,7 +37,7 @@ class CbrRetrievalAuditIntegrationTest {
         var cbrCase = new PlanCbrCase(
             "Grade 3 Neutropenia", "Safety review: CONTINUE", "COMPLETED", 1.0,
             FeatureValue.toFeatureMap(Map.of("grade", 3, "eventType", List.of("Neutropenia"))),
-            List.of());
+            List.of(), null, null);
 
         store.store(cbrCase, "clinical-ae", "ae-" + UUID.randomUUID(),
             ClinicalCbrDomains.AE, principal.tenancyId(), null, Path.root());

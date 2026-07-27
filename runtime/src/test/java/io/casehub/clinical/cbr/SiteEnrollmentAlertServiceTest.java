@@ -107,7 +107,7 @@ class SiteEnrollmentAlertServiceTest {
     }
 
     private ScoredCbrCase<PlanCbrCase> scoredCase(String outcome, double score) {
-        var cbrCase = new PlanCbrCase("problem", "solution", outcome, 1.0, Map.of(), List.of());
+        var cbrCase = new PlanCbrCase("problem", "solution", outcome, 1.0, Map.of(), List.of(), null, null);
         return new ScoredCbrCase<>(cbrCase, UUID.randomUUID().toString(), score);
     }
 }

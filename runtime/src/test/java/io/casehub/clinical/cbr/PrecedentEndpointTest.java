@@ -183,7 +183,7 @@ class PrecedentEndpointTest {
                             Map.entry("indReportFiled", "true"),
                             Map.entry("susarOversight", "true")
                                                            )),
-                    traces
+                    traces, null, null
             );
 
             cbrService.storeIdempotent(
@@ -216,7 +216,7 @@ class PrecedentEndpointTest {
                     "piDecision", "APPROVED",
                     "irbDecision", "N/A"
                 )),
-                planTrace
+                planTrace, null, null
             );
 
             cbrService.storeIdempotent(
@@ -237,7 +237,7 @@ class PrecedentEndpointTest {
                 "Add imaging endpoint to protocol",
                 "Advisor recommended: APPROVE_WITH_CONDITIONS",
                 "APPROVED",
-                1.0
+                1.0, null, null
             );
 
             cbrService.storeIdempotent(

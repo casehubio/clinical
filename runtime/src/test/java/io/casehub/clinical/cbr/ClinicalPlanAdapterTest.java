@@ -14,7 +14,7 @@ class ClinicalPlanAdapterTest {
 
     private ScoredCbrCase<PlanCbrCase> buildCase(Map<String, FeatureValue> features,
                                                   List<PlanTrace> traces) {
-        var cbrCase = new PlanCbrCase("problem", "solution", "COMPLETED", 1.0, features, traces);
+        var cbrCase = new PlanCbrCase("problem", "solution", "COMPLETED", 1.0, features, traces, null, null);
         return new ScoredCbrCase<>(cbrCase, "case-1", 0.87);
     }
 
