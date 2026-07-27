@@ -65,7 +65,8 @@ public class TrialCompletionSiteTrajectoryWriter {
         String solution = "Enrollment: " + trajectory.size() + " weeks tracked";
 
         var cbrCase = new PlanCbrCase(problem, solution, "COMPLETED", 1.0,
-                FeatureValue.toFeatureMap(features), List.of());
+                FeatureValue.toFeatureMap(features), List.of(),
+                null, null);
 
         cbrService.storeIdempotent(cbrCase, "clinical-site-enrollment", site.id.toString(),
                 ClinicalCbrDomains.SITE_ENROLLMENT, tenantId, null);

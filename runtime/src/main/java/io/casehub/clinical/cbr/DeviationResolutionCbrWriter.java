@@ -156,7 +156,9 @@ public class DeviationResolutionCbrWriter {
             "RESOLVED",
             1.0,
             FeatureValue.toFeatureMap(features),
-            trace
+            trace,
+            null,
+            null
         );
 
         cbrService.storeIdempotent(

@@ -110,7 +110,8 @@ public class SiteEnrollmentTrajectoryJob {
             "Site enrollment at week %d of %s trial, target=%d, enrolled=%d (%.1f%%)".formatted(
                 weeksSinceStart, trialPhase, targetEnrollment, currentCount, progress * 100),
             "Enrollment trajectory snapshot — periodic recording",
-            "IN_PROGRESS", 1.0, features, List.of());
+            "IN_PROGRESS", 1.0, features, List.of(),
+            null, null);
 
         cbrService.storeIdempotent(cbrCase, "clinical-site-enrollment", entityId,
             ClinicalCbrDomains.SITE_ENROLLMENT, tenantId, null);

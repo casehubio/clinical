@@ -547,7 +547,8 @@ public class DemoDataSeeder {
 
         PlanCbrCase cbrCase = new PlanCbrCase(
                 "Grade %d %s in PHASE_III trial, unexpected=%s, suspected=%s".formatted(grade, eventType, unexpected, suspected),
-                solution, outcome, 1.0, features, List.of());
+                solution, outcome, 1.0, features, List.of(),
+                null, null);
 
         QuarkusTransaction.requiringNew().run(() ->
                                                       cbrService.storeIdempotent(cbrCase, "clinical-ae-trajectory", entityId,

@@ -127,7 +127,8 @@ public class ClinicalCaseOutcomeObserver implements CaseOutcomeObserver {
 
         var cbrCase = new PlanCbrCase(
             problem, solution, event.outcomeLabel(), 1.0,
-            FeatureValue.toFeatureMap(features), planTraces);
+            FeatureValue.toFeatureMap(features), planTraces,
+            null, null);
 
         cbrService.storeIdempotent(
             cbrCase, "clinical-ae", aeId.toString(),
@@ -144,7 +145,8 @@ public class ClinicalCaseOutcomeObserver implements CaseOutcomeObserver {
                 trajFeatures.put("aeTrajectory", trajectory);
                 var trajCbrCase = new PlanCbrCase(
                     problem, solution, event.outcomeLabel(), 1.0,
-                    FeatureValue.toFeatureMap(trajFeatures), planTraces);
+                    FeatureValue.toFeatureMap(trajFeatures), planTraces,
+                    null, null);
                 cbrService.storeIdempotent(
                     trajCbrCase, "clinical-ae-trajectory", aeId + "-trajectory",
                     ClinicalCbrDomains.AE_TRAJECTORY, ae.tenantId,

@@ -57,7 +57,9 @@ public class AmendmentResolutionCbrWriter {
                 amendment.proposedChange,
                 solution,
                 event.terminalStatus().name(),
-                1.0
+                1.0,
+                null,
+                null
             );
 
             String caseId = amendment.engineCaseId != null
