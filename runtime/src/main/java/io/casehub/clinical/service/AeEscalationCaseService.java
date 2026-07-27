@@ -44,7 +44,7 @@ public class AeEscalationCaseService {
         try {
             Map<String, Object> initialContext = prepareAndMarkRequested(event);
             if (initialContext == null) return;
-            UUID caseId = caseHub.startCase(initialContext).toCompletableFuture().join();
+            UUID caseId = caseHub.startCase(initialContext);
             persistCaseId(event.aeId(), caseId);
             try { aeTrajectoryAlertService.evaluate(event.aeId(), event.tenantId()); } catch (Exception te) { LOG.warnf(te, "Trajectory alert re-evaluation failed for aeId=%s", event.aeId()); }
             if (SEVERE_GRADES.contains(event.grade())) {
@@ -65,7 +65,7 @@ public class AeEscalationCaseService {
         try {
             Map<String, Object> initialContext = prepareAndMarkForRegrade(aeId, enrollmentId, siteId, grade, tenantId);
             if (initialContext == null) {return;}
-            UUID caseId = caseHub.startCase(initialContext).toCompletableFuture().join();
+            UUID caseId = caseHub.startCase(initialContext);
             persistCaseId(aeId, caseId);
             try {aeTrajectoryAlertService.evaluate(aeId, tenantId);} catch (Exception te) {
                 LOG.warnf(te, "Trajectory alert re-evaluation failed for aeId=%s", aeId);

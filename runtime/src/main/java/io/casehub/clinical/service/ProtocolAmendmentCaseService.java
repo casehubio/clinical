@@ -42,7 +42,7 @@ public class ProtocolAmendmentCaseService {
             Map<String, Object> ctx = prepareAndMark(event);
             if (ctx == null) return;
             // Phase 2 — startCase outside any TX boundary
-            UUID caseId = caseHub.startCase(ctx).toCompletableFuture().join();
+            UUID caseId = caseHub.startCase(ctx);
             // Phase 3 — persist caseId
             persistCaseId(event.amendmentId(), caseId);
         } catch (Exception e) {

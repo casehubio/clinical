@@ -53,7 +53,7 @@ public class RegulatorySubmissionCaseService {
         try {
             Map<String, Object> initialContext = prepareAndMark(event);
             if (initialContext == null) return;
-            UUID caseId = regulatorySubmissionCaseHub.startCase(initialContext).toCompletableFuture().join();
+            UUID caseId = regulatorySubmissionCaseHub.startCase(initialContext);
             persistCaseId(event.aeId(), caseId);
         } catch (Exception e) {
             LOG.errorf(e, "RegulatorySubmissionCaseService: case start failed for aeId=%s", event.aeId());
@@ -76,7 +76,7 @@ public class RegulatorySubmissionCaseService {
         try {
             Map<String, Object> ctx = prepareAndMark(event);
             if (ctx == null) {return;}
-            UUID caseId = regulatorySubmissionCaseHub.startCase(ctx).toCompletableFuture().join();
+            UUID caseId = regulatorySubmissionCaseHub.startCase(ctx);
             persistCaseId(aeId, caseId);
         } catch (Exception e) {
             LOG.errorf(e, "RegulatorySubmissionCaseService: regrade evaluation failed for aeId=%s", aeId);

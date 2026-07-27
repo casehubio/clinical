@@ -37,7 +37,7 @@ public class TrialActivationService {
 
     public void activate(UUID trialId) {
         Map<String, Object> initialContext = markActive(trialId);
-        UUID caseId = caseHub.startCase(initialContext).toCompletableFuture().join();
+        UUID caseId = caseHub.startCase(initialContext);
         persistCaseId(trialId, caseId);
     }
 

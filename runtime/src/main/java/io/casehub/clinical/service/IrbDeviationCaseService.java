@@ -43,7 +43,7 @@ public class IrbDeviationCaseService {
 
         try {
             Map<String, Object> initialContext = prepareAndCreateApproval(event);
-            UUID caseId = caseHub.startCase(initialContext).toCompletableFuture().join();
+            UUID caseId = caseHub.startCase(initialContext);
             persistDeviationCaseId(event.deviationId(), caseId);
         } catch (Exception e) {
             LOG.errorf(e, "IrbDeviationCaseService: IRB case start failed for deviationId=%s", event.deviationId());

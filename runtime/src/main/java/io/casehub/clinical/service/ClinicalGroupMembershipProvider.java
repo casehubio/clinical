@@ -18,7 +18,7 @@ import java.util.Set;
 public class ClinicalGroupMembershipProvider implements GroupMembershipProvider {
 
     @Override
-    public Set<GroupMember> membersOf(String groupName) {
+    public Set<GroupMember> membersOf(String groupName, String tenancyId) {
         return Set.of();
     }
 }

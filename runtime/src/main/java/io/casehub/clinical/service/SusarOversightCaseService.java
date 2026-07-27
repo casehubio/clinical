@@ -35,7 +35,7 @@ public class SusarOversightCaseService {
         try {
             Map<String, Object> initialContext = prepareAndMark(event);
             if (initialContext == null) return;
-            UUID caseId = susarOversightCaseHub.startCase(initialContext).toCompletableFuture().join();
+            UUID caseId = susarOversightCaseHub.startCase(initialContext);
             persistCaseId(event.aeId(), caseId);
             try { aeTrajectoryAlertService.evaluate(event.aeId(), event.tenantId()); } catch (Exception te) { LOG.warnf(te, "Trajectory alert re-evaluation failed for aeId=%s", event.aeId()); }
         } catch (Exception e) {
@@ -59,7 +59,7 @@ public class SusarOversightCaseService {
         try {
             Map<String, Object> ctx = prepareAndMark(event);
             if (ctx == null) {return;}
-            UUID caseId = susarOversightCaseHub.startCase(ctx).toCompletableFuture().join();
+            UUID caseId = susarOversightCaseHub.startCase(ctx);
             persistCaseId(aeId, caseId);
         } catch (Exception e) {
             LOG.errorf(e, "SusarOversightCaseService: regrade evaluation failed for aeId=%s", aeId);
