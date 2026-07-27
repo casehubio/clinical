@@ -487,6 +487,20 @@ In test `application.properties`:
 - `actionButton()` and `alert()` helpers in `webui/src/helpers.ts` create native `action-button` and `alert` web components — prefer over `html()` with inline scripts
 - Custom web components in `webui/src/components/` (`ClinicalPiApproval`, `ClinicalSusarGate`, `ClinicalMerkleVerify`) — light DOM, attribute-driven, registered in `index.ts` before `loadSite()`. Use for interactive elements that need pre-fetch, response display, or GET actions (capabilities `actionButton()` lacks)
 
+## Frontend Dependencies
+
+This project consumes frontend packages from casehub-pages and blocks-ui via **Maven SNAPSHOT** artifacts (WebJar pattern).
+See [casehub-pages ADR-0001](https://github.com/casehubio/casehub-pages/blob/main/docs/adr/0001-cross-repo-frontend-dependency-management.md).
+
+| Source | Mechanism |
+|--------|-----------|
+| casehub-pages | Maven SNAPSHOT (`META-INF/resources/`) |
+| blocks-ui | Maven SNAPSHOT (`META-INF/resources/`) |
+
+**Local development:** after changing pages or blocks-ui, run `yarn build && mvn install` in the source repo to publish the SNAPSHOT to `~/.m2`.
+
+**Do not use npm `file:` references for cross-repo dependencies** — they break in CI. See ADR-0001.
+
 ## Build Commands
 
 ```bash
