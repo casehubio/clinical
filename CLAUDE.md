@@ -300,7 +300,7 @@ Trial-level binding fires on aggregated context from all site sub-cases — no s
 | EU AI Act Art.12 ComplianceSupplement | casehub-ledger ✅ |
 | HITL WorkItem → case signal (IRB gate) | work#136 ✅ closed; `WorkItemLifecycleAdapter` in engine/work-adapter ✅ — IRB gate unblocked |
 | Trust-weighted safety agent routing | P1.3 TrustWeightedSelectionStrategy wired in engine |
-| LLM protocol amendment supervisor | LlmPlanningStrategy SPI (engine) |
+| LLM protocol amendment supervisor | AgentProvider SPI (platform-agent-api); `LlmProtocolAmendmentAdvisor` wired (clinical#86) |
 
 ### Foundation Layers
 
@@ -315,7 +315,7 @@ Layer 5: + casehub-engine — IRB gate as engine PlanItem; CRITICAL deviation pa
 Layer 6: trial-level blackboard aggregation — DSMB rollup via cross-site signal detection ✅ (Epic 3)
 Layer 7: trust routing — ClinicalTrustRoutingPolicyProvider, SusarAgentAttestationWriter (LedgerAttestation), RegulatorySubmissionCaseService (IND 21 CFR 312.32), AeEscalationCompletedEvent.unexpected ✅ (casehubio/clinical#8, 2026-06-15)
 Layer 8: ActionRiskClassifier oversight gate + GDPR consent withdrawal — ClinicalActionRiskClassifier, SusarCriteriaEvaluator, SusarGateDecisionListener, ConsentWithdrawalService, ClinicalComplianceSupplement (EU AI Act Art.12) ✅ (casehubio/clinical#47, #76, #77, #7, 2026-06-13)
-Layer 9: Showcase — eligibility screening (EligibilityScreeningService, eligibility-screening.yaml, IRB gate), protocol amendment (ProtocolAmendmentAdvisor SPI, protocol-amendment.yaml, LLM supervisor slot clinical#86) ✅ (casehubio/clinical#10, 2026-06-18)
+Layer 9: Showcase — eligibility screening (EligibilityScreeningService, eligibility-screening.yaml, IRB gate), protocol amendment (ProtocolAmendmentAdvisor SPI, protocol-amendment.yaml, LlmProtocolAmendmentAdvisor via AgentProvider clinical#86) ✅ (casehubio/clinical#10, 2026-06-18)
 Layer 10: IND deadline enforcement — regulatory-submission.yaml capability→humanTask with expiresAtExpression engine SPI (ExpressionEngine.extractString, HumanTaskTarget.expiresAtExpression, engine#549), ClinicalIndReportingBreachPolicy (stateless two-tier SlaBreachPolicy), RegulatorySubmissionCompleted/BreachListener, IndReportFiled/BreachLedgerEntry, V2026/V2027 ✅ (casehubio/clinical#83, 2026-06-22)
 ```
 
@@ -415,7 +415,11 @@ H2 and production JDBC both require this. Without it, Agroal throws "Failed to e
 
 **OIDC + `@RolesAllowed` (clinical#88):** `casehub-platform-oidc` on classpath; `quarkus-test-security` (test scope). `ClinicalGroups` constants in `api/` — `SPONSOR`, `INVESTIGATOR`, `COORDINATOR`, `MONITOR`. All 20 REST endpoints carry `@RolesAllowed`. `quarkus.security.deny-unannotated-members=true` catches unannotated methods on annotated classes (`DenyUnannotatedPredicate` scope — new classes with zero annotations are NOT covered). Dev mode: `auth.enabled-in-dev-mode=false` disables enforcement. Tests: `@TestSecurity(user = "test-actor", roles = {SPONSOR, INVESTIGATOR, COORDINATOR})` on all HTTP test classes; `FixedCurrentPrincipal` continues to handle business logic identity. `RbacBoundaryTest` uses direct Panache entity creation in `@BeforeEach` (method-level `@TestSecurity` applies to entire test lifecycle including `@BeforeEach`). `MissingTenancyException` mapped to HTTP 400 via `MissingTenancyExceptionMapper` (clinical#89).
 
-**qhorus#153 shipped — `@ObservesAsync MessageReceivedEvent` is active.** `PiResponseListener.onMessage()` now fires via the full CDI event chain. `PiResponseListenerIntegrationTest` is enabled and running. **pi-oversight channels must include `EVENT` in `allowedTypes`** — `receiveHumanMessage` dispatches an internal EVENT-type message as part of CDI delivery; omitting EVENT causes `MessageTypeViolationException`. See `ProtocolDeviationService.CHANNEL_ALLOWED_TYPES`.
+**qhorus MessageObserver SPI (clinical#140):** `PiResponseListener` implements `MessageObserver` (qhorus SPI) — NOT `@ObservesAsync`. The qhorus `MessageObserverDispatcher` calls `observer.onMessage()` on beans implementing `MessageObserver`, not via CDI async events. Uses `@Transactional(TxType.REQUIRES_NEW)` because the dispatcher fires in `afterCompletion` where no JTA transaction is active. **pi-oversight channels must include `EVENT` in `allowedTypes`** — `receiveHumanMessage` dispatches an internal EVENT-type message as part of CDI delivery; omitting EVENT causes `MessageTypeViolationException`. See `ProtocolDeviationService.CHANNEL_ALLOWED_TYPES`.
+
+**`casehub-platform-agent-api` dependency scope (clinical#86):** The parent POM manages this artifact with `runtime` scope. Adding it without explicit `<scope>compile</scope>` silently inherits `runtime` — classes invisible at compile time. Always use explicit `<scope>compile</scope>` when promoting a managed runtime dependency. (GE-20260801-a8ec17)
+
+**Engine Quartz worker thread transaction context (clinical#86):** Worker functions registered via `Worker.builder().function()` execute on Quartz scheduler threads with no JTA transaction or CDI request context. Panache Active Record calls fail. Wrap in `QuarkusTransaction.requiringNew().call(...)`. (GE-20260801-3bee47)
 
 **`ChannelService.create()` — use `ChannelCreateRequest` for `allowedTypes`:** The 9-argument overload with a trailing `String allowedTypes` was removed in a qhorus SNAPSHOT. Use `ChannelCreateRequest` instead: `channelService.create(new ChannelCreateRequest(name, desc, semantic, null, null, null, null, null, ALLOWED_TYPES_SET, null, null, null, null, null))` where `ALLOWED_TYPES_SET` is `Set<MessageType>`. `ProtocolDeviationService.CHANNEL_ALLOWED_TYPES` is now `Set<MessageType>` (not `String`). The old form is a compile-time error on newer qhorus SNAPSHOTs.
 

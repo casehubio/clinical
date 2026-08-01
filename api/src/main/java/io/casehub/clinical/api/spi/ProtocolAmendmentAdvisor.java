@@ -11,8 +11,8 @@ package io.casehub.clinical.api.spi;
  * {@code @ApplicationScoped} bean without {@code @DefaultBean} — CDI priority resolution
  * displaces the default automatically.
  *
- * <p>LLM supervisor integration pending casehubio/engine#101 (LlmPlanningStrategy SPI).
- * Tracked: casehubio/clinical#86.
+ * <p>LLM-backed implementation: {@code LlmProtocolAmendmentAdvisor} uses {@code AgentProvider}
+ * to delegate to an LLM for context-aware recommendations (casehubio/clinical#86).
  */
 public interface ProtocolAmendmentAdvisor {
     AmendmentRecommendation advise(ProtocolAmendmentContext context);

@@ -9,8 +9,8 @@ import jakarta.enterprise.context.ApplicationScoped;
 /**
  * Stub implementation — always recommends PROCEED.
  *
- * <p>Replace with LlmPlanningStrategy integration when casehubio/engine#101 lands.
- * Tracked: casehubio/clinical#86.
+ * <p>Displaced by {@code LlmProtocolAmendmentAdvisor} when {@code AgentProvider} is
+ * on the classpath (casehubio/clinical#86).
  *
  * <p>CDI displacement: an {@code @ApplicationScoped} bean without {@code @DefaultBean}
  * implementing {@link ProtocolAmendmentAdvisor} automatically displaces this stub.
