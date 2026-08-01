@@ -258,7 +258,7 @@ class AeTrajectoryBuilderTest {
     }
 
     private PlanItemRecord planItem(UUID caseId, String binding, TaskStatus status, Instant createdAt) {
-        return new PlanItemRecord(caseId, UUID.randomUUID().toString(), binding, status, createdAt,
+        return PlanItemRecord.primitive(caseId, UUID.randomUUID().toString(), binding, status, createdAt,
             null, null, "tenant-1", null, null, null);
     }
 }

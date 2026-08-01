@@ -16,7 +16,7 @@ class ClinicalRoutingFeatureExtractorTest {
     private final ClinicalRoutingFeatureExtractor extractor = new ClinicalRoutingFeatureExtractor();
 
     private AgentRoutingContext contextWith(ObjectNode caseContext) {
-        return new AgentRoutingContext(UUID.randomUUID(), "safety-monitoring", caseContext, "tenant-1", List.of());
+        return new AgentRoutingContext(UUID.randomUUID(), "safety-monitoring", caseContext, "tenant-1", List.of(), null, null);
     }
 
     @Test
@@ -70,13 +70,13 @@ class ClinicalRoutingFeatureExtractorTest {
 
     @Test
     void extractFeatures_nullNode_returnsEmpty() {
-        var ctx = new AgentRoutingContext(UUID.randomUUID(), "safety-monitoring", NullNode.instance, "t", List.of());
+        var ctx = new AgentRoutingContext(UUID.randomUUID(), "safety-monitoring", NullNode.instance, "t", List.of(), null, null);
         assertThat(extractor.extractFeatures(ctx)).isEmpty();
     }
 
     @Test
     void extractProblem_nullNode_returnsNull() {
-        var ctx = new AgentRoutingContext(UUID.randomUUID(), "safety-monitoring", NullNode.instance, "t", List.of());
+        var ctx = new AgentRoutingContext(UUID.randomUUID(), "safety-monitoring", NullNode.instance, "t", List.of(), null, null);
         assertThat(extractor.extractProblem(ctx)).isNull();
     }
 

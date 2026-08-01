@@ -64,7 +64,7 @@ class ClinicalCaseOutcomeObserverTest {
         snapshot.put("dsmbEscalation", "true");
 
         List<PlanItemRecord> planItems = List.of(
-            new PlanItemRecord(caseId, "pi-1", "safety-review", TaskStatus.COMPLETED,
+            PlanItemRecord.primitive(caseId, "pi-1", "safety-review", TaskStatus.COMPLETED,
                 Instant.now(), TargetType.HUMAN_TASK, null, "test-tenant", null, "officer-alpha", null)
         );
         when(planItemStore.findByCaseId(caseId, "test-tenant")).thenReturn(planItems);
@@ -233,9 +233,9 @@ class ClinicalCaseOutcomeObserverTest {
         observer.setEntityResolver(new TestEntityResolver(ae, null, null, 0));
 
         List<PlanItemRecord> planItems = List.of(
-            new PlanItemRecord(caseId, "pi-1", "unknown-binding", TaskStatus.COMPLETED,
+            PlanItemRecord.primitive(caseId, "pi-1", "unknown-binding", TaskStatus.COMPLETED,
                 Instant.now(), TargetType.HUMAN_TASK, null, "test-tenant", null, "worker-x", null),
-            new PlanItemRecord(caseId, "pi-2", "safety-review", TaskStatus.COMPLETED,
+            PlanItemRecord.primitive(caseId, "pi-2", "safety-review", TaskStatus.COMPLETED,
                 Instant.now(), TargetType.HUMAN_TASK, null, "test-tenant", null, "officer-beta", null)
         );
         when(planItemStore.findByCaseId(caseId, "test-tenant")).thenReturn(planItems);

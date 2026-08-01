@@ -35,6 +35,6 @@ public class ClinicalActionRiskClassifier implements ActionRiskClassifier {
         final ClinicalActionType type = typeOpt.get();
         return new RiskDecision.GateRequired(
                 type.reason(), type.reversible(), type.candidateGroups(),
-                type.expiresIn(), type.scope(), type.resolutionType());
+                type.expiresIn(), type.scope(), type.resolutionType(), null);
     }
 }
