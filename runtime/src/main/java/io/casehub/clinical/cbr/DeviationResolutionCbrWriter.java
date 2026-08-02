@@ -48,6 +48,9 @@ public class DeviationResolutionCbrWriter {
     @Inject
     ClinicalCbrService cbrService;
 
+    @Inject
+    ClinicalScopeResolver scopeResolver;
+
     /**
      * Consumes {@link ProtocolDeviationResolvedEvent} and stores a plan CBR case.
      * <p>
@@ -96,6 +99,13 @@ public class DeviationResolutionCbrWriter {
             LOG.warnf("Deviation not found: %s", deviationId);
             return;
         }
+
+        java.util.Optional<io.casehub.platform.api.path.Path> scopeOpt = scopeResolver.forDeviation(deviation);
+        if (scopeOpt.isEmpty()) {
+            LOG.warnf("Cannot resolve scope for deviation %s — skipping CBR storage", deviationId);
+            return;
+        }
+        io.casehub.platform.api.path.Path scope = scopeOpt.get();
 
         IrbApproval irbApproval = IrbApproval.find("deviationId", deviationId).firstResult();
 
@@ -167,7 +177,8 @@ public class DeviationResolutionCbrWriter {
             deviationId.toString(),
             ClinicalCbrDomains.DEVIATION,
             deviation.tenantId,
-            deviation.engineCaseId != null ? deviation.engineCaseId.toString() : null
+            deviation.engineCaseId != null ? deviation.engineCaseId.toString() : null,
+            scope
         );
 
         LOG.infof("Stored CBR case for deviation %s: type=%s, severity=%s, piDecision=%s, irbDecision=%s",

@@ -85,6 +85,8 @@ public class TrialDashboardResource {
     @Inject
     ClinicalCbrService                 cbrService;
     @Inject
+    io.casehub.clinical.cbr.ClinicalScopeResolver scopeResolver;
+    @Inject
     io.casehub.clinical.cbr.AeTrajectoryBuilder             aeTrajectoryBuilder;
     @Inject
     io.casehub.clinical.cbr.SiteEnrollmentTrajectoryBuilder siteEnrollmentTrajectoryBuilder;
@@ -532,8 +534,10 @@ public class TrialDashboardResource {
 
         Map<String, Object> features = AeCbrFeatureBuilder.buildQueryFeatures(ae, enrollment, trial, priorAeCount);
 
+        io.casehub.platform.api.path.Path queryScope = scopeResolver.forAdverseEvent(ae)
+            .orElse(io.casehub.platform.api.path.Path.root());
         CbrQuery query = CbrQuery.of(principal.tenancyId(), ClinicalCbrDomains.AE,
-                                     io.casehub.platform.api.path.Path.root(), "clinical-ae", FeatureValue.toFeatureMap(features), 10)
+                                     queryScope, "clinical-ae", FeatureValue.toFeatureMap(features), 10)
                                  .withMinSimilarity(0.3)
                                  .withVectorWeight(0.0)
                                  .withWeight("grade", 3.0)
@@ -575,8 +579,10 @@ public class TrialDashboardResource {
                                              );
 
         // Build query with outcome features weighted 0.0
+        io.casehub.platform.api.path.Path devQueryScope = scopeResolver.forDeviation(deviation)
+            .orElse(io.casehub.platform.api.path.Path.root());
         CbrQuery query = CbrQuery.of(principal.tenancyId(), ClinicalCbrDomains.DEVIATION,
-                                     io.casehub.platform.api.path.Path.root(), "clinical-deviation", FeatureValue.toFeatureMap(features), 10)
+                                     devQueryScope, "clinical-deviation", FeatureValue.toFeatureMap(features), 10)
                                  .withMinSimilarity(0.3)
                                  .withVectorWeight(0.0)
                                  .withWeight("piDecision", 0.0)
@@ -668,9 +674,11 @@ public class TrialDashboardResource {
         features.put("unexpected", io.casehub.neocortex.memory.cbr.FeatureValue.string(String.valueOf(ae.unexpected)));
         features.put("suspected", io.casehub.neocortex.memory.cbr.FeatureValue.string(String.valueOf(ae.suspected)));
         features.put("aeTrajectory", io.casehub.neocortex.memory.cbr.FeatureValue.structList(trajectory));
+        io.casehub.platform.api.path.Path trajQueryScope = scopeResolver.forAdverseEvent(ae)
+            .orElse(io.casehub.platform.api.path.Path.root());
         io.casehub.neocortex.memory.cbr.CbrQuery query = io.casehub.neocortex.memory.cbr.CbrQuery.of(
                                                                    principal.tenancyId(), io.casehub.clinical.cbr.ClinicalCbrDomains.AE_TRAJECTORY,
-                                                                   io.casehub.platform.api.path.Path.root(), "clinical-ae-trajectory", features, limit)
+                                                                   trajQueryScope, "clinical-ae-trajectory", features, limit)
                                                                                                  .withMinSimilarity(minScore)
                                                                                                  .withFilter("eventType", io.casehub.neocortex.memory.cbr.CbrFilter.contains(ae.eventType != null ? ae.eventType : "UNKNOWN"));
         var result = cbrService.retrieveWithAudit(query, io.casehub.neocortex.memory.cbr.PlanCbrCase.class, ae.enrollmentId, io.casehub.clinical.api.ClinicalActors.CLINICAL_SERVICE);

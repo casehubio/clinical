@@ -35,6 +35,7 @@ public class ClinicalCaseOutcomeObserver implements CaseOutcomeObserver {
     private final ClinicalCbrService cbrService;
     private final CbrCaseMemoryStore store;
     private final PlanItemStore planItemStore;
+    private final ClinicalScopeResolver scopeResolver;
     private EntityResolver entityResolver;
     private AeTrajectoryBuilder trajectoryBuilder;
 
@@ -43,11 +44,13 @@ public class ClinicalCaseOutcomeObserver implements CaseOutcomeObserver {
     public ClinicalCaseOutcomeObserver(ClinicalCbrService cbrService,
                                        CbrCaseMemoryStore store,
                                        PlanItemStore planItemStore,
-                                       AeTrajectoryBuilder trajectoryBuilder) {
+                                       AeTrajectoryBuilder trajectoryBuilder,
+                                       ClinicalScopeResolver scopeResolver) {
         this.cbrService        = cbrService;
         this.store             = store;
         this.planItemStore     = planItemStore;
         this.trajectoryBuilder = trajectoryBuilder;
+        this.scopeResolver     = scopeResolver;
         this.entityResolver    = new PanacheEntityResolver();
     }
 
@@ -102,6 +105,13 @@ public class ClinicalCaseOutcomeObserver implements CaseOutcomeObserver {
             return;
         }
 
+        java.util.Optional<io.casehub.platform.api.path.Path> scopeOpt = scopeResolver.forAdverseEvent(ae);
+        if (scopeOpt.isEmpty()) {
+            LOG.warnf("Cannot resolve scope for AE %s — skipping CBR storage", aeId);
+            return;
+        }
+        io.casehub.platform.api.path.Path scope = scopeOpt.get();
+
         PatientEnrollment enrollment = ae.enrollmentId != null
             ? entityResolver.findEnrollment(ae.enrollmentId) : null;
         TrialSite site = enrollment != null && enrollment.siteId != null
@@ -133,7 +143,8 @@ public class ClinicalCaseOutcomeObserver implements CaseOutcomeObserver {
         cbrService.storeIdempotent(
             cbrCase, "clinical-ae", aeId.toString(),
             ClinicalCbrDomains.AE, ae.tenantId,
-            event.caseId() != null ? event.caseId().toString() : null);
+            event.caseId() != null ? event.caseId().toString() : null,
+            scope);
 
         LOG.infof("Stored CBR case for AE %s: grade=%s, eventType=%s, planTraces=%d",
             aeId, ae.grade, ae.eventType, planTraces.size());
@@ -150,7 +161,8 @@ public class ClinicalCaseOutcomeObserver implements CaseOutcomeObserver {
                 cbrService.storeIdempotent(
                     trajCbrCase, "clinical-ae-trajectory", aeId + "-trajectory",
                     ClinicalCbrDomains.AE_TRAJECTORY, ae.tenantId,
-                    event.caseId() != null ? event.caseId().toString() : null);
+                    event.caseId() != null ? event.caseId().toString() : null,
+                    scope);
                 LOG.infof("Stored trajectory CBR case for AE %s: observations=%d", aeId, trajectory.size());
             }
         } catch (Exception e) {

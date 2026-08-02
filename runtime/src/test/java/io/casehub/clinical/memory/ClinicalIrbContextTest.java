@@ -83,6 +83,6 @@ class ClinicalIrbContextTest {
             Map.of(MemoryAttributeKeys.OUTCOME, outcome,
                 ClinicalMemoryAttributes.SITE_ID, siteId.toString(),
                 MemoryAttributeKeys.ACTOR_ID, "clinical-service"),
-            Instant.now());
+            Instant.now(), null);
     }
 }

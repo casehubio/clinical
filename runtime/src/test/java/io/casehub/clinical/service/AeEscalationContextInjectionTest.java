@@ -80,7 +80,7 @@ class AeEscalationContextInjectionTest {
             "Grade 3 AE report",
             Map.of(MemoryAttributeKeys.ACTOR_ID, "clinical-service",
                    ClinicalMemoryAttributes.GRADE, "GRADE_3",
-                   MemoryAttributeKeys.OUTCOME, "REPORTED")));
+                   MemoryAttributeKeys.OUTCOME, "REPORTED"), null));
 
         var event = new AdverseEventReportedEvent(aeId, enrollmentId, siteId,
             CtcaeGrade.GRADE_3, Instant.now(), TEST_TENANT);
@@ -108,7 +108,7 @@ class AeEscalationContextInjectionTest {
             "Grade 4 AE report",
             Map.of(MemoryAttributeKeys.ACTOR_ID, "clinical-service",
                    ClinicalMemoryAttributes.GRADE, "GRADE_4",
-                   MemoryAttributeKeys.OUTCOME, "REPORTED")));
+                   MemoryAttributeKeys.OUTCOME, "REPORTED"), null));
 
         var event = new AdverseEventReportedEvent(aeId, enrollmentId, siteId,
             CtcaeGrade.GRADE_4, Instant.now(), TEST_TENANT);

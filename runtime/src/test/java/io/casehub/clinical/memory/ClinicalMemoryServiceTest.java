@@ -179,7 +179,7 @@ class ClinicalMemoryServiceTest {
             Map.of(ClinicalMemoryAttributes.GRADE, "GRADE_3",
                 MemoryAttributeKeys.OUTCOME, "REPORTED",
                 MemoryAttributeKeys.ACTOR_ID, "clinical-service"),
-            Instant.now());
+            Instant.now(), null);
         when(store.query(any(MemoryQuery.class))).thenReturn(List.of(m));
 
         ClinicalPatientContext ctx = service.queryPatientContext(enrollmentId, "tenant-1");
@@ -205,7 +205,7 @@ class ClinicalMemoryServiceTest {
         Memory m = new Memory(UUID.randomUUID().toString(), "site:" + siteId,
             ClinicalMemoryDomains.SITE, "tenant-1", null, "EXPIRED deviation",
             Map.of(MemoryAttributeKeys.OUTCOME, "TIMELINE_BREACH", MemoryAttributeKeys.ACTOR_ID, "clinical-service"),
-            Instant.now());
+            Instant.now(), null);
         when(store.query(any(MemoryQuery.class))).thenReturn(List.of(m));
 
         ClinicalSiteContext ctx = service.querySiteContext(siteId, "tenant-1");
@@ -251,7 +251,7 @@ class ClinicalMemoryServiceTest {
                 ClinicalMemoryAttributes.SITE_ID, siteId.toString(),
                 MemoryAttributeKeys.OUTCOME, "REPORTED",
                 MemoryAttributeKeys.ACTOR_ID, "clinical-service"),
-            Instant.now());
+            Instant.now(), null);
         when(store.query(any(MemoryQuery.class))).thenReturn(List.of(m));
 
         ClinicalDrugContext ctx = service.queryDrugContext(trialId, "tenant-1");
@@ -316,7 +316,7 @@ class ClinicalMemoryServiceTest {
             Map.of(MemoryAttributeKeys.OUTCOME, "APPROVED",
                 ClinicalMemoryAttributes.SITE_ID, siteId.toString(),
                 MemoryAttributeKeys.ACTOR_ID, "clinical-service"),
-            Instant.now());
+            Instant.now(), null);
         when(store.query(any(MemoryQuery.class))).thenReturn(List.of(m));
 
         ClinicalIrbContext ctx = service.queryIrbContext("CONSENT_VIOLATION", "tenant-1");

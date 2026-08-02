@@ -82,11 +82,12 @@ public class ProtocolAmendmentResource {
             return Response.status(Response.Status.NOT_FOUND).build();
         }
 
-        // Query with empty features (Phase 1 - no text embeddings yet)
+        // Query at trial scope where amendment cases are stored
+        io.casehub.platform.api.path.Path queryScope = io.casehub.platform.api.path.Path.of(trialId.toString());
         CbrQuery query = CbrQuery.of(
                 principal.tenancyId(),
                 ClinicalCbrDomains.AMENDMENT,
-                io.casehub.platform.api.path.Path.root(), "clinical-amendment",
+                queryScope, "clinical-amendment",
                 Map.of(),  // Empty features for textual cases
                 10
                                     ).withVectorWeight(0.0);

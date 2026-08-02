@@ -27,6 +27,7 @@ class AmendmentResolutionCbrWriterTest {
 
     @Inject AmendmentResolutionCbrWriter writer;
     @InjectMock ClinicalCbrService cbrService;
+    @InjectMock ClinicalScopeResolver scopeResolver;
 
     UUID amendmentId;
     UUID trialId;
@@ -51,7 +52,8 @@ class AmendmentResolutionCbrWriterTest {
         amendment.proposedAt = Instant.now();
         amendment.persist();
 
-        when(cbrService.storeIdempotent(any(), anyString(), anyString(), any(), anyString(), anyString()))
+        when(scopeResolver.forAmendment(any())).thenReturn(java.util.Optional.of(io.casehub.platform.api.path.Path.of("trial-1")));
+        when(cbrService.storeIdempotent(any(), anyString(), anyString(), any(), anyString(), anyString(), any()))
             .thenReturn("cbr-case-id-123");
     }
 
@@ -73,7 +75,8 @@ class AmendmentResolutionCbrWriterTest {
             eq(amendmentId.toString()),
             eq(ClinicalCbrDomains.AMENDMENT),
             eq("default"),
-            eq(engineCaseId.toString())
+            eq(engineCaseId.toString()),
+            any()
         );
 
         TextualCbrCase stored = caseCaptor.getValue();
@@ -99,7 +102,7 @@ class AmendmentResolutionCbrWriterTest {
         ArgumentCaptor<TextualCbrCase> caseCaptor = ArgumentCaptor.forClass(TextualCbrCase.class);
         verify(cbrService).storeIdempotent(
             caseCaptor.capture(),
-            anyString(), anyString(), any(), anyString(), anyString()
+            anyString(), anyString(), any(), anyString(), anyString(), any()
         );
 
         TextualCbrCase stored = caseCaptor.getValue();
@@ -123,7 +126,7 @@ class AmendmentResolutionCbrWriterTest {
         ArgumentCaptor<TextualCbrCase> caseCaptor = ArgumentCaptor.forClass(TextualCbrCase.class);
         verify(cbrService).storeIdempotent(
             caseCaptor.capture(),
-            anyString(), anyString(), any(), anyString(), anyString()
+            anyString(), anyString(), any(), anyString(), anyString(), any()
         );
 
         TextualCbrCase stored = caseCaptor.getValue();
@@ -145,7 +148,7 @@ class AmendmentResolutionCbrWriterTest {
         ArgumentCaptor<TextualCbrCase> caseCaptor = ArgumentCaptor.forClass(TextualCbrCase.class);
         verify(cbrService).storeIdempotent(
             caseCaptor.capture(),
-            anyString(), anyString(), any(), anyString(), anyString()
+            anyString(), anyString(), any(), anyString(), anyString(), any()
         );
 
         TextualCbrCase stored = caseCaptor.getValue();
@@ -171,7 +174,8 @@ class AmendmentResolutionCbrWriterTest {
             eq(amendmentId.toString()),
             eq(ClinicalCbrDomains.AMENDMENT),
             eq("default"),
-            isNull()
+            isNull(),
+            any()
         );
     }
 

@@ -33,6 +33,7 @@ public class SiteEnrollmentAlertService {
     private final SiteEnrollmentTrajectoryBuilder trajectoryBuilder;
     private final ClinicalCbrService cbrService;
     private final Event<SiteEnrollmentAlertEvent> alertEvents;
+    private final ClinicalCbrConfig cbrConfig;
     private Function<UUID, ClinicalTrial> trialFinder = id -> ClinicalTrial.findById(id);
     private BiFunction<UUID, String, Instant> earliestEnrollmentFinder = SiteEnrollmentAlertService::defaultEarliestEnrollment;
 
@@ -48,10 +49,12 @@ public class SiteEnrollmentAlertService {
     @Inject
     public SiteEnrollmentAlertService(SiteEnrollmentTrajectoryBuilder trajectoryBuilder,
                                        ClinicalCbrService cbrService,
-                                       Event<SiteEnrollmentAlertEvent> alertEvents) {
+                                       Event<SiteEnrollmentAlertEvent> alertEvents,
+                                       ClinicalCbrConfig cbrConfig) {
         this.trajectoryBuilder = trajectoryBuilder;
         this.cbrService = cbrService;
         this.alertEvents = alertEvents;
+        this.cbrConfig = cbrConfig;
     }
 
     void setTrialFinder(Function<UUID, ClinicalTrial> finder) {
@@ -80,9 +83,12 @@ public class SiteEnrollmentAlertService {
             features.put("trialPhase", FeatureValue.string(trial.phase != null ? trial.phase.name() : "UNKNOWN"));
             features.put("enrollmentRate", FeatureValue.structList(trajectory));
 
-            CbrQuery query = CbrQuery.of(tenantId, ClinicalCbrDomains.SITE_ENROLLMENT, Path.root(),
+            io.casehub.platform.api.path.Path scope = io.casehub.platform.api.path.Path.of(trialId.toString(), siteId.toString());
+            CbrQuery query = CbrQuery.of(tenantId, ClinicalCbrDomains.SITE_ENROLLMENT, scope,
                             "clinical-site-enrollment", features, 10)
-                    .withMinSimilarity(minSimilarity);
+                    .withMinSimilarity(minSimilarity)
+                    .withScopeDecay(cbrConfig.siteEnrollmentScopeDecay())
+                    .withTemporalDecay(cbrConfig.siteEnrollmentTemporalDecay());
 
             AuditedRetrievalResult<PlanCbrCase> result = cbrService.retrieveWithAudit(
                     query, PlanCbrCase.class, siteId, ClinicalActors.CLINICAL_SERVICE);

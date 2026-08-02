@@ -77,6 +77,6 @@ class ClinicalSiteContextTest {
             null,
             "Site compliance event",
             Map.of(MemoryAttributeKeys.OUTCOME, outcome, MemoryAttributeKeys.ACTOR_ID, "clinical-service"),
-            Instant.now());
+            Instant.now(), null);
     }
 }

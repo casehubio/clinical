@@ -192,7 +192,8 @@ class PrecedentEndpointTest {
                     "ae-precedent-" + i,
                     ClinicalCbrDomains.AE,
                     principal.tenancyId(),
-                    null
+                    null,
+                    io.casehub.platform.api.path.Path.of(trialId.toString(), siteId.toString(), "PAT-001")
                                       );
         }
     }
@@ -225,7 +226,8 @@ class PrecedentEndpointTest {
                 "deviation-precedent-" + i,
                 ClinicalCbrDomains.DEVIATION,
                 principal.tenancyId(),
-                null
+                null,
+                io.casehub.platform.api.path.Path.of(trialId.toString(), siteId.toString())
             );
         }
     }
@@ -246,7 +248,8 @@ class PrecedentEndpointTest {
                 "amendment-precedent-" + i,
                 ClinicalCbrDomains.AMENDMENT,
                 principal.tenancyId(),
-                null
+                null,
+                io.casehub.platform.api.path.Path.of(trialId.toString())
             );
         }
     }

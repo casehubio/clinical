@@ -31,6 +31,8 @@ public class AeTrajectoryAlertService {
     private final AeTrajectoryBuilder trajectoryBuilder;
     private final ClinicalCbrService cbrService;
     private final Event<AeTrajectoryAlertEvent> alertEvents;
+    private final ClinicalScopeResolver scopeResolver;
+    private final ClinicalCbrConfig cbrConfig;
     private Function<UUID, AdverseEvent> entityFinder = id -> AdverseEvent.findById(id);
 
     @ConfigProperty(name = "casehub.clinical.trajectory.alert.min-matches", defaultValue = "2")
@@ -45,10 +47,14 @@ public class AeTrajectoryAlertService {
     @Inject
     public AeTrajectoryAlertService(AeTrajectoryBuilder trajectoryBuilder,
                                      ClinicalCbrService cbrService,
-                                     Event<AeTrajectoryAlertEvent> alertEvents) {
+                                     Event<AeTrajectoryAlertEvent> alertEvents,
+                                     ClinicalScopeResolver scopeResolver,
+                                     ClinicalCbrConfig cbrConfig) {
         this.trajectoryBuilder = trajectoryBuilder;
         this.cbrService = cbrService;
         this.alertEvents = alertEvents;
+        this.scopeResolver = scopeResolver;
+        this.cbrConfig = cbrConfig;
     }
 
     void setEntityFinder(Function<UUID, AdverseEvent> finder) {
@@ -71,9 +77,12 @@ public class AeTrajectoryAlertService {
             features.put("suspected", FeatureValue.string(String.valueOf(ae.suspected)));
             features.put("aeTrajectory", FeatureValue.structList(trajectory));
 
-            CbrQuery query = CbrQuery.of(tenantId, ClinicalCbrDomains.AE_TRAJECTORY, Path.root(),
+            io.casehub.platform.api.path.Path scope = scopeResolver.forAdverseEvent(ae).orElse(Path.root());
+            CbrQuery query = CbrQuery.of(tenantId, ClinicalCbrDomains.AE_TRAJECTORY, scope,
                             "clinical-ae-trajectory", features, 10)
                     .withMinSimilarity(minSimilarity)
+                    .withScopeDecay(cbrConfig.aeScopeDecay())
+                    .withTemporalDecay(cbrConfig.aeTrajectoryTemporalDecay())
                     .withFilter("eventType", CbrFilter.contains(ae.eventType != null ? ae.eventType : "UNKNOWN"));
 
             AuditedRetrievalResult<PlanCbrCase> result = cbrService.retrieveWithAudit(

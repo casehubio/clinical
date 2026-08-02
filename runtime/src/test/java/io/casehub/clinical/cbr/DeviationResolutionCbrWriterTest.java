@@ -44,6 +44,9 @@ class DeviationResolutionCbrWriterTest {
     @InjectMock
     ClinicalCbrService cbrService;
 
+    @InjectMock
+    ClinicalScopeResolver scopeResolver;
+
     @Inject
     FixedCurrentPrincipal principal;
 
@@ -54,7 +57,8 @@ class DeviationResolutionCbrWriterTest {
         ProtocolDeviation.deleteAll();
         IrbApproval.deleteAll();
 
-        when(cbrService.storeIdempotent(any(), any(), any(), any(), any(), any()))
+        when(scopeResolver.forDeviation(any())).thenReturn(java.util.Optional.of(io.casehub.platform.api.path.Path.of("trial-1", "site-1")));
+        when(cbrService.storeIdempotent(any(), any(), any(), any(), any(), any(), any()))
             .thenReturn("mock-cbr-id");
     }
 
@@ -99,7 +103,8 @@ class DeviationResolutionCbrWriterTest {
             eq(deviationId.toString()),
             eq(ClinicalCbrDomains.DEVIATION),
             eq(tenantId),
-            eq(deviation.engineCaseId.toString())
+            eq(deviation.engineCaseId.toString()),
+            any()
         );
 
         PlanCbrCase stored = caseCaptor.getValue();
@@ -177,7 +182,8 @@ class DeviationResolutionCbrWriterTest {
             eq(deviationId.toString()),
             eq(ClinicalCbrDomains.DEVIATION),
             eq(tenantId),
-            eq(deviation.engineCaseId.toString())
+            eq(deviation.engineCaseId.toString()),
+            any()
         );
 
         PlanCbrCase stored = caseCaptor.getValue();
@@ -241,7 +247,8 @@ class DeviationResolutionCbrWriterTest {
             eq(deviationId.toString()),
             eq(ClinicalCbrDomains.DEVIATION),
             eq(tenantId),
-            eq(deviation.engineCaseId.toString())
+            eq(deviation.engineCaseId.toString()),
+            any()
         );
 
         PlanCbrCase stored = caseCaptor.getValue();
@@ -280,7 +287,7 @@ class DeviationResolutionCbrWriterTest {
         writer.onProtocolDeviationResolved(event);
 
         // Then: no store called
-        verify(cbrService, never()).storeIdempotent(any(), any(), any(), any(), any(), any());
+        verify(cbrService, never()).storeIdempotent(any(), any(), any(), any(), any(), any(), any());
     }
 
     @Test
@@ -323,7 +330,8 @@ class DeviationResolutionCbrWriterTest {
             eq(deviationId.toString()),
             eq(ClinicalCbrDomains.DEVIATION),
             eq(tenantId),
-            eq(null)  // No engine case ID
+            eq(null),  // No engine case ID
+            any()
         );
     }
 }

@@ -33,9 +33,10 @@ public class ClinicalCbrService {
 
     public String storeIdempotent(final CbrCase cbrCase, final String caseType,
                                   final String entityId, final MemoryDomain domain,
-                                  final String tenantId, final String caseId) {
+                                  final String tenantId, final String caseId,
+                                  final io.casehub.platform.api.path.Path scope) {
         store.eraseEntity(entityId, tenantId);
-        return store.store(cbrCase, caseType, entityId, domain, tenantId, caseId, io.casehub.platform.api.path.Path.root());
+        return store.store(cbrCase, caseType, entityId, domain, tenantId, caseId, scope);
     }
 
     public <C extends CbrCase> List<ScoredCbrCase<C>> retrieveSimilar(final CbrQuery query,

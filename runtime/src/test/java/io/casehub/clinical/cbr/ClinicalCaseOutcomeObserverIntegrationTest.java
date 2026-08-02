@@ -117,7 +117,7 @@ class ClinicalCaseOutcomeObserverIntegrationTest {
         observer.onOutcome(event);
 
         CbrQuery query = CbrQuery.of(principal.tenancyId(), ClinicalCbrDomains.AE,
-            io.casehub.platform.api.path.Path.root(), "clinical-ae", Map.of(), 10);
+            io.casehub.platform.api.path.Path.of(trialId.toString(), siteId.toString(), "PAT-CBR"), "clinical-ae", Map.of(), 10);
         List<ScoredCbrCase<PlanCbrCase>> results = cbrService.retrieveSimilar(query, PlanCbrCase.class);
 
         assertThat(results).isNotEmpty();
@@ -147,7 +147,7 @@ class ClinicalCaseOutcomeObserverIntegrationTest {
         observer.onOutcome(event);
 
         CbrQuery query = CbrQuery.of(principal.tenancyId(), ClinicalCbrDomains.AE,
-                                     io.casehub.platform.api.path.Path.root(), "clinical-ae", Map.of(), 10)
+                                     io.casehub.platform.api.path.Path.of(trialId.toString(), siteId.toString(), "PAT-CBR"), "clinical-ae", Map.of(), 10)
                                  .withNotBefore(before);
         List<ScoredCbrCase<PlanCbrCase>> results = cbrService.retrieveSimilar(query, PlanCbrCase.class);
         assertThat(results).isEmpty();

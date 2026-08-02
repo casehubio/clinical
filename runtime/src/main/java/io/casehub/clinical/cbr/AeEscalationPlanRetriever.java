@@ -21,6 +21,8 @@ public class AeEscalationPlanRetriever {
 
     private final ClinicalCbrService cbrService;
     private final PlanAdapter planAdapter;
+    private final ClinicalScopeResolver scopeResolver;
+    private final ClinicalCbrConfig cbrConfig;
     private EntityResolver entityResolver;
 
     @ConfigProperty(name = "casehub.clinical.cbr.escalation-plan.top-k", defaultValue = "5")
@@ -30,9 +32,12 @@ public class AeEscalationPlanRetriever {
     double minSimilarity;
 
     @Inject
-    public AeEscalationPlanRetriever(ClinicalCbrService cbrService, PlanAdapter planAdapter) {
+    public AeEscalationPlanRetriever(ClinicalCbrService cbrService, PlanAdapter planAdapter,
+                                      ClinicalScopeResolver scopeResolver, ClinicalCbrConfig cbrConfig) {
         this.cbrService = cbrService;
         this.planAdapter = planAdapter;
+        this.scopeResolver = scopeResolver;
+        this.cbrConfig = cbrConfig;
         this.entityResolver = new PanacheEntityResolver();
     }
 
@@ -55,9 +60,12 @@ public class AeEscalationPlanRetriever {
                     ae, enrollment, trial, priorAeCount);
             Map<String, FeatureValue> featureMap = FeatureValue.toFeatureMap(rawFeatures);
 
-            CbrQuery query = CbrQuery.of(ae.tenantId, ClinicalCbrDomains.AE, Path.root(),
+            Path scope = scopeResolver.forAdverseEvent(ae).orElse(Path.root());
+            CbrQuery query = CbrQuery.of(ae.tenantId, ClinicalCbrDomains.AE, scope,
                             "clinical-ae", featureMap, topK)
-                    .withMinSimilarity(minSimilarity);
+                    .withMinSimilarity(minSimilarity)
+                    .withScopeDecay(cbrConfig.aeScopeDecay())
+                    .withTemporalDecay(cbrConfig.aeTemporalDecay());
 
             AuditedRetrievalResult<PlanCbrCase> result = cbrService.retrieveWithAudit(
                     query, PlanCbrCase.class, ae.id, "system:ae-escalation");

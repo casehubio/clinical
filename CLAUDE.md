@@ -451,6 +451,10 @@ H2 and production JDBC both require this. Without it, Agroal throws "Failed to e
 
 **`SiteEnrollmentTrajectoryJob` scheduler exclusion in tests:** Same pattern as `SponsorNotificationRetryJob` — excluded via `quarkus.arc.exclude-types` in test `application.properties`. The job snapshots enrollment trajectories as CBR cases on a configurable interval (`casehub.clinical.enrollment-trajectory.snapshot-interval`, default 24h).
 
+**`TrialSafetyAggregationJob` scheduler exclusion in tests:** Same pattern — excluded via `quarkus.arc.exclude-types` in test `application.properties`. The job scans AE entities per site to detect grade-threshold and cross-site-cluster safety signals on a configurable interval (`casehub.clinical.trial-safety.interval`, default 24h).
+
+**`CbrRetentionPurgeJob` scheduler exclusion in tests:** Same pattern — excluded via `quarkus.arc.exclude-types` in test `application.properties`. The job runs weekly (configurable via `casehub.clinical.cbr.retention.interval`, default 168h) and purges CBR cases per domain based on `max-age-days` and `max-cases` config properties.
+
 **CBR `eventType` field is `categoricalList` not `categorical`:** `ClinicalCbrSchemaInitializer` registers `eventType` as `FeatureField.categoricalList("eventType")`. Feature builders (`AeCbrFeatureBuilder`, `DemoDataSeeder.seedTrajectoryCase`) must store it as `List.of(value)`, not plain `String`. `AeTrajectoryAlertService` and `TrialDashboardResource` query with `CbrFilter.contains()` which requires `CategoricalList`. (GE-20260721-621a64)
 
 **Engine CDI wiring (Layer 5+):** When adding `casehub-engine` to the classpath, also add `casehub-platform` and `casehub-platform-expression` — without them, engine beans (`JQEvaluator`, event handlers) cannot resolve their injection points and CDI startup fails.

@@ -66,7 +66,7 @@ class AmendmentResolutionCbrWriterIntegrationTest {
         var query = CbrQuery.of(
             "default",
             ClinicalCbrDomains.AMENDMENT,
-            io.casehub.platform.api.path.Path.root(), "clinical-amendment",
+            io.casehub.platform.api.path.Path.of(trialId.toString()), "clinical-amendment",
             Map.of(),
             10
         ).withProblem("Extend enrollment period by 6 months");
@@ -97,7 +97,7 @@ class AmendmentResolutionCbrWriterIntegrationTest {
         var query = CbrQuery.of(
             "default",
             ClinicalCbrDomains.AMENDMENT,
-            io.casehub.platform.api.path.Path.root(), "clinical-amendment",
+            io.casehub.platform.api.path.Path.of(trialId.toString()), "clinical-amendment",
             Map.of(),
             10
         ).withProblem("Extend enrollment period by 6 months");

@@ -68,7 +68,8 @@ public class TrialCompletionSiteTrajectoryWriter {
                 FeatureValue.toFeatureMap(features), List.of(),
                 null, null);
 
+        io.casehub.platform.api.path.Path scope = io.casehub.platform.api.path.Path.of(trial.id.toString(), site.id.toString());
         cbrService.storeIdempotent(cbrCase, "clinical-site-enrollment", site.id.toString(),
-                ClinicalCbrDomains.SITE_ENROLLMENT, tenantId, null);
+                ClinicalCbrDomains.SITE_ENROLLMENT, tenantId, null, scope);
     }
 }

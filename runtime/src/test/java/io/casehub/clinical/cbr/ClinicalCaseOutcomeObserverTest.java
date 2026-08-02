@@ -23,6 +23,7 @@ class ClinicalCaseOutcomeObserverTest {
     private ClinicalCbrService cbrService;
     private CbrCaseMemoryStore store;
     private PlanItemStore planItemStore;
+    private ClinicalScopeResolver scopeResolver;
     private ClinicalCaseOutcomeObserver observer;
 
     @BeforeEach
@@ -30,8 +31,10 @@ class ClinicalCaseOutcomeObserverTest {
         cbrService = mock(ClinicalCbrService.class);
         store = mock(CbrCaseMemoryStore.class);
         planItemStore = mock(PlanItemStore.class);
+        scopeResolver = mock(ClinicalScopeResolver.class);
+        when(scopeResolver.forAdverseEvent(any())).thenReturn(java.util.Optional.of(io.casehub.platform.api.path.Path.of("trial-1", "site-1", "patient-1")));
         AeTrajectoryBuilder trajectoryBuilder = mock(AeTrajectoryBuilder.class);
-        observer = new ClinicalCaseOutcomeObserver(cbrService, store, planItemStore, trajectoryBuilder);
+        observer = new ClinicalCaseOutcomeObserver(cbrService, store, planItemStore, trajectoryBuilder, scopeResolver);
     }
 
     @Test
@@ -77,7 +80,7 @@ class ClinicalCaseOutcomeObserverTest {
         ArgumentCaptor<CbrCase> caseCaptor = ArgumentCaptor.forClass(CbrCase.class);
         verify(cbrService).storeIdempotent(
             caseCaptor.capture(), eq("clinical-ae"), eq(aeId.toString()),
-            eq(ClinicalCbrDomains.AE), eq("test-tenant"), eq(caseId.toString()));
+            eq(ClinicalCbrDomains.AE), eq("test-tenant"), eq(caseId.toString()), any());
 
         CbrCase stored = caseCaptor.getValue();
         assertThat(stored).isInstanceOf(PlanCbrCase.class);
@@ -130,7 +133,7 @@ class ClinicalCaseOutcomeObserverTest {
 
         observer.onOutcome(event);
 
-        verify(cbrService, never()).storeIdempotent(any(), any(), any(), any(), any(), any());
+        verify(cbrService, never()).storeIdempotent(any(), any(), any(), any(), any(), any(), any());
         verify(store).recordOutcome(eq(deviationId.toString()), eq("test-tenant"), any(CbrOutcome.class));
     }
 
@@ -147,7 +150,7 @@ class ClinicalCaseOutcomeObserverTest {
 
         observer.onOutcome(event);
 
-        verify(cbrService, never()).storeIdempotent(any(), any(), any(), any(), any(), any());
+        verify(cbrService, never()).storeIdempotent(any(), any(), any(), any(), any(), any(), any());
         verify(store).recordOutcome(eq(amendmentId.toString()), eq("test-tenant"), any(CbrOutcome.class));
     }
 
@@ -162,7 +165,7 @@ class ClinicalCaseOutcomeObserverTest {
 
         observer.onOutcome(event);
 
-        verify(cbrService, never()).storeIdempotent(any(), any(), any(), any(), any(), any());
+        verify(cbrService, never()).storeIdempotent(any(), any(), any(), any(), any(), any(), any());
         verify(store, never()).recordOutcome(any(), any(), any());
     }
 
@@ -181,7 +184,7 @@ class ClinicalCaseOutcomeObserverTest {
 
         observer.onOutcome(event);
 
-        verify(cbrService, never()).storeIdempotent(any(), any(), any(), any(), any(), any());
+        verify(cbrService, never()).storeIdempotent(any(), any(), any(), any(), any(), any(), any());
         verify(store).recordOutcome(eq(aeId.toString()), eq("test-tenant"), any(CbrOutcome.class));
     }
 
@@ -211,7 +214,7 @@ class ClinicalCaseOutcomeObserverTest {
         observer.onOutcome(event);
 
         ArgumentCaptor<CbrCase> caseCaptor = ArgumentCaptor.forClass(CbrCase.class);
-        verify(cbrService).storeIdempotent(caseCaptor.capture(), any(), any(), any(), any(), any());
+        verify(cbrService).storeIdempotent(caseCaptor.capture(), any(), any(), any(), any(), any(), any());
         PlanCbrCase plan = (PlanCbrCase) caseCaptor.getValue();
         assertThat(plan.planTrace()).isEmpty();
     }
@@ -249,7 +252,7 @@ class ClinicalCaseOutcomeObserverTest {
         observer.onOutcome(event);
 
         ArgumentCaptor<CbrCase> caseCaptor = ArgumentCaptor.forClass(CbrCase.class);
-        verify(cbrService).storeIdempotent(caseCaptor.capture(), any(), any(), any(), any(), any());
+        verify(cbrService).storeIdempotent(caseCaptor.capture(), any(), any(), any(), any(), any(), any());
         PlanCbrCase plan = (PlanCbrCase) caseCaptor.getValue();
         assertThat(plan.planTrace()).hasSize(1);
         assertThat(plan.planTrace().get(0).bindingName()).isEqualTo("safety-review");

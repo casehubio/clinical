@@ -552,7 +552,8 @@ public class DemoDataSeeder {
 
         QuarkusTransaction.requiringNew().run(() ->
                                                       cbrService.storeIdempotent(cbrCase, "clinical-ae-trajectory", entityId,
-                                                                                 ClinicalCbrDomains.AE_TRAJECTORY, tenantId, null));
+                                                                                 ClinicalCbrDomains.AE_TRAJECTORY, tenantId, null,
+                                                                                 io.casehub.platform.api.path.Path.root()));
     }
 
     private static Map<String, FeatureValue> obs(long ts, int escalation, int susar, int regulatory) {

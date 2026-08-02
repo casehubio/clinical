@@ -3,13 +3,16 @@ package io.casehub.clinical.service;
 import io.casehub.clinical.api.model.ConsentStatus;
 import io.casehub.clinical.api.model.EnrollmentStatus;
 import io.casehub.clinical.entity.PatientEnrollment;
+import io.casehub.clinical.entity.TrialSite;
 import io.casehub.clinical.ledger.ConsentWithdrawalLedgerEntry;
 import io.casehub.ledger.api.model.ErasureReason;
 import io.casehub.ledger.api.model.LedgerEntryType;
 import io.casehub.ledger.runtime.privacy.LedgerErasureService;
 import io.casehub.ledger.api.spi.LedgerEntryRepository;
 import io.casehub.platform.api.identity.ActorType;
+import io.casehub.platform.api.path.Path;
 import io.casehub.neocortex.memory.CaseMemoryStore;
+import io.casehub.neocortex.memory.cbr.CbrCaseMemoryStore;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 import jakarta.transaction.Transactional;
@@ -48,6 +51,7 @@ public class ConsentWithdrawalService {
     @Inject LedgerEntryRepository ledgerEntryRepository;
     @Inject LedgerErasureService ledgerErasureService;
     @Inject CaseMemoryStore memoryStore;
+    @Inject CbrCaseMemoryStore cbrCaseMemoryStore;
     @Inject Clock clock;
 
     @Transactional
@@ -59,6 +63,22 @@ public class ConsentWithdrawalService {
         }
         if (enrollment.consentStatus == ConsentStatus.WITHDRAWN) {
             return WithdrawalResult.ALREADY_WITHDRAWN;
+        }
+
+        // CBR scope-based erasure — must execute before patientId pseudonymization
+        // because the scope path uses the original patientId
+        String originalPatientId = enrollment.patientId;
+        try {
+            TrialSite site = TrialSite.findById(enrollment.siteId);
+            if (site != null) {
+                int cbrErased = cbrCaseMemoryStore.eraseByScope(
+                    Path.of(site.trialId.toString(), enrollment.siteId.toString(), originalPatientId),
+                    tenantId);
+                LOG.infof("ConsentWithdrawalService: erased %d CBR cases for patient scope", cbrErased);
+            }
+        } catch (Exception e) {
+            LOG.warnf(e, "ConsentWithdrawalService: CBR scope erasure failed for enrollmentId=%s — ignored",
+                    enrollmentId);
         }
 
         Instant now = clock.instant();

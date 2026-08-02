@@ -96,6 +96,6 @@ class ClinicalDrugContextTest {
                 ClinicalMemoryAttributes.SITE_ID, siteId.toString(),
                 MemoryAttributeKeys.OUTCOME, "REPORTED",
                 MemoryAttributeKeys.ACTOR_ID, "clinical-service"),
-            Instant.now());
+            Instant.now(), null);
     }
 }

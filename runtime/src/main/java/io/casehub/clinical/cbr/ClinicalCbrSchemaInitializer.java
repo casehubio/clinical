@@ -45,6 +45,7 @@ public class ClinicalCbrSchemaInitializer {
         store.registerSchema(amendmentSchema());
         store.registerSchema(aeTrajectorySchema());
         store.registerSchema(siteEnrollmentSchema());
+        store.registerSchema(trialSafetySchema());
     }
 
     static CbrFeatureSchema aeSchema() {
@@ -102,5 +103,17 @@ public class ClinicalCbrSchemaInitializer {
                                                            FeatureField.numeric("cumulativeCount", 0, 10000),
                                                            FeatureField.numeric("periodCount", 0, 500)));
     }
+
+    public static CbrFeatureSchema trialSafetySchema() {
+        return CbrFeatureSchema.of("clinical-trial-safety",
+                                   FeatureField.categorical("trialPhase"),
+                                   FeatureField.numeric("aggregationPeriodDays", 1, 365),
+                                   FeatureField.numeric("siteCount", 1, 1000),
+                                   FeatureField.numeric("affectedSiteCount", 1, 1000),
+                                   FeatureField.numeric("dominantGrade", 1, 5),
+                                   FeatureField.categoricalList("dominantEventType"),
+                                   FeatureField.categorical("signalType"));
+    }
+
 
 }

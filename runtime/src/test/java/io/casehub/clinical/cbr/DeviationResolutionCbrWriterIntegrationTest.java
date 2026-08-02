@@ -7,8 +7,13 @@ import io.casehub.clinical.api.model.DeviationSeverity;
 import io.casehub.clinical.api.model.EscalationRequirement;
 import io.casehub.clinical.api.model.IrbDecision;
 import io.casehub.clinical.api.model.PiApprovalStatus;
+import io.casehub.clinical.api.model.SiteStatus;
+import io.casehub.clinical.api.model.TrialPhase;
+import io.casehub.clinical.api.model.TrialStatus;
+import io.casehub.clinical.entity.ClinicalTrial;
 import io.casehub.clinical.entity.IrbApproval;
 import io.casehub.clinical.entity.ProtocolDeviation;
+import io.casehub.clinical.entity.TrialSite;
 import io.casehub.neocortex.memory.cbr.CbrCaseMemoryStore;
 import io.casehub.neocortex.memory.cbr.CbrQuery;
 import io.casehub.neocortex.memory.cbr.FeatureValue;
@@ -52,9 +57,38 @@ class DeviationResolutionCbrWriterIntegrationTest {
         // Clean up any existing data
         ProtocolDeviation.deleteAll();
         IrbApproval.deleteAll();
+        TrialSite.deleteAll();
+        ClinicalTrial.deleteAll();
 
         // Clean up in-memory CBR store (no exposed clear method, but can work around via domain isolation)
         // Note: InMemoryCbrStore doesn't expose clear(), so rely on tenantId isolation
+    }
+
+    /**
+     * Creates a ClinicalTrial and TrialSite so that ClinicalScopeResolver can resolve
+     * the scope path for deviations (requires TrialSite lookup to get trialId).
+     */
+    private UUID persistTrialAndSite(UUID siteId, String tenantId) {
+        UUID trialId = UUID.randomUUID();
+        ClinicalTrial trial = new ClinicalTrial();
+        trial.id = trialId;
+        trial.tenantId = tenantId;
+        trial.protocolId = "TEST-001";
+        trial.phase = TrialPhase.PHASE_III;
+        trial.sponsor = "Test Sponsor";
+        trial.targetEnrollment = 100;
+        trial.status = TrialStatus.ACTIVE;
+        trial.persist();
+
+        TrialSite site = new TrialSite();
+        site.id = siteId;
+        site.tenantId = tenantId;
+        site.trialId = trialId;
+        site.investigatorId = "dr-test";
+        site.status = SiteStatus.ACTIVE;
+        site.targetEnrollment = 50;
+        site.persist();
+        return trialId;
     }
 
     @Test
@@ -65,6 +99,8 @@ class DeviationResolutionCbrWriterIntegrationTest {
         UUID siteId = UUID.randomUUID();
         UUID engineCaseId = UUID.randomUUID();
         String tenantId = principal.tenancyId();
+
+        UUID trialId = persistTrialAndSite(siteId, tenantId);
 
         var deviation = new ProtocolDeviation();
         deviation.id = deviationId;
@@ -91,11 +127,11 @@ class DeviationResolutionCbrWriterIntegrationTest {
         // When: writer processes event
         writer.onProtocolDeviationResolved(event);
 
-        // Then: CBR case is retrievable
+        // Then: CBR case is retrievable (query at site scope where writer stores)
         var query = CbrQuery.of(
             tenantId,
             ClinicalCbrDomains.DEVIATION,
-            io.casehub.platform.api.path.Path.root(), "clinical-deviation",
+            io.casehub.platform.api.path.Path.of(trialId.toString(), siteId.toString()), "clinical-deviation",
             FeatureValue.toFeatureMap(Map.of("deviationType", "CONSENT_TIMING_DELAY", "severity", "MINOR")),
             10
         );
@@ -127,6 +163,8 @@ class DeviationResolutionCbrWriterIntegrationTest {
         UUID siteId = UUID.randomUUID();
         UUID engineCaseId = UUID.randomUUID();
         String tenantId = principal.tenancyId();
+
+        UUID trialId = persistTrialAndSite(siteId, tenantId);
 
         var deviation = new ProtocolDeviation();
         deviation.id = deviationId;
@@ -179,7 +217,7 @@ class DeviationResolutionCbrWriterIntegrationTest {
         var query = CbrQuery.of(
             tenantId,
             ClinicalCbrDomains.DEVIATION,
-            io.casehub.platform.api.path.Path.root(), "clinical-deviation",
+            io.casehub.platform.api.path.Path.of(trialId.toString(), siteId.toString()), "clinical-deviation",
             FeatureValue.toFeatureMap(Map.of("deviationType", "INFORMED_CONSENT_VIOLATION")),
             10
         );
@@ -212,6 +250,8 @@ class DeviationResolutionCbrWriterIntegrationTest {
         UUID siteId = UUID.randomUUID();
         String tenantId = principal.tenancyId();
 
+        UUID trialId = persistTrialAndSite(siteId, tenantId);
+
         var deviation = new ProtocolDeviation();
         deviation.id = deviationId;
         deviation.tenantId = tenantId;
@@ -241,7 +281,7 @@ class DeviationResolutionCbrWriterIntegrationTest {
         var query = CbrQuery.of(
             tenantId,
             ClinicalCbrDomains.DEVIATION,
-            io.casehub.platform.api.path.Path.root(), "clinical-deviation",
+            io.casehub.platform.api.path.Path.of(trialId.toString(), siteId.toString()), "clinical-deviation",
             FeatureValue.toFeatureMap(Map.of("severity", "MAJOR")),
             10
         );

@@ -35,7 +35,8 @@ class SiteEnrollmentAlertServiceTest {
         trajectoryBuilder = mock(SiteEnrollmentTrajectoryBuilder.class);
         cbrService = mock(ClinicalCbrService.class);
         alertEvents = mock(Event.class);
-        service = new SiteEnrollmentAlertService(trajectoryBuilder, cbrService, alertEvents);
+        ClinicalCbrConfig config = mock(ClinicalCbrConfig.class);
+        service = new SiteEnrollmentAlertService(trajectoryBuilder, cbrService, alertEvents, config);
         service.minMatches = 2;
         service.minSimilarity = 0.5;
         service.minProbability = 0.6;

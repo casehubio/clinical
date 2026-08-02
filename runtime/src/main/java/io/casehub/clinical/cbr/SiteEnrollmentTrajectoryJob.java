@@ -37,15 +37,18 @@ public class SiteEnrollmentTrajectoryJob {
 
     private final SiteEnrollmentTrajectoryBuilder trajectoryBuilder;
     private final ClinicalCbrService cbrService;
+    private final ClinicalScopeResolver scopeResolver;
 
     @ConfigProperty(name = "casehub.clinical.enrollment-trajectory.tenant-id", defaultValue = "default")
     String tenantId;
 
     @Inject
     public SiteEnrollmentTrajectoryJob(SiteEnrollmentTrajectoryBuilder trajectoryBuilder,
-                                        ClinicalCbrService cbrService) {
+                                        ClinicalCbrService cbrService,
+                                        ClinicalScopeResolver scopeResolver) {
         this.trajectoryBuilder = trajectoryBuilder;
         this.cbrService = cbrService;
+        this.scopeResolver = scopeResolver;
     }
 
     @Scheduled(every = "${casehub.clinical.enrollment-trajectory.snapshot-interval:24h}",
@@ -113,8 +116,9 @@ public class SiteEnrollmentTrajectoryJob {
             "IN_PROGRESS", 1.0, features, List.of(),
             null, null);
 
+        io.casehub.platform.api.path.Path scope = io.casehub.platform.api.path.Path.of(trialId.toString(), siteId.toString());
         cbrService.storeIdempotent(cbrCase, "clinical-site-enrollment", entityId,
-            ClinicalCbrDomains.SITE_ENROLLMENT, tenantId, null);
+            ClinicalCbrDomains.SITE_ENROLLMENT, tenantId, null, scope);
     }
 
     private record SiteContext(Instant earliest, int targetEnrollment, String trialPhase) {}

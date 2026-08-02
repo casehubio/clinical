@@ -73,7 +73,8 @@ class AeEscalationPlanRetrieverIntegrationTest {
                 "COMPLETED", 1.0, FeatureValue.toFeatureMap(features), List.of(trace), null, null);
 
         cbrService.storeIdempotent(cbrCase, "clinical-ae", "past-ae-1",
-                ClinicalCbrDomains.AE, "test-tenant", null);
+                ClinicalCbrDomains.AE, "test-tenant", null,
+                io.casehub.platform.api.path.Path.of("trial-1", "site-1", "patient-1"));
 
         AdverseEvent ae = new AdverseEvent();
         ae.id = UUID.randomUUID();

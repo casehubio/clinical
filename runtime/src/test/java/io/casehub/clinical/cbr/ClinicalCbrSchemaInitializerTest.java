@@ -28,7 +28,7 @@ class ClinicalCbrSchemaInitializerTest {
     void onStartup_registersThreeSchemas() {
         initializer.onStartup(mock(StartupEvent.class));
 
-        verify(store, times(5)).registerSchema(any(CbrFeatureSchema.class));
+        verify(store, times(6)).registerSchema(any(CbrFeatureSchema.class));
     }
 
     @Test
@@ -36,7 +36,7 @@ class ClinicalCbrSchemaInitializerTest {
         final ArgumentCaptor<CbrFeatureSchema> captor = ArgumentCaptor.forClass(CbrFeatureSchema.class);
         initializer.onStartup(mock(StartupEvent.class));
 
-        verify(store, times(5)).registerSchema(captor.capture());
+        verify(store, times(6)).registerSchema(captor.capture());
 
         final var schemas = captor.getAllValues();
         final var aeSchema = schemas.stream()
@@ -64,7 +64,7 @@ class ClinicalCbrSchemaInitializerTest {
         final ArgumentCaptor<CbrFeatureSchema> captor = ArgumentCaptor.forClass(CbrFeatureSchema.class);
         initializer.onStartup(mock(StartupEvent.class));
 
-        verify(store, times(5)).registerSchema(captor.capture());
+        verify(store, times(6)).registerSchema(captor.capture());
 
         final var schemas = captor.getAllValues();
         final var deviationSchema = schemas.stream()
@@ -83,7 +83,7 @@ class ClinicalCbrSchemaInitializerTest {
         final ArgumentCaptor<CbrFeatureSchema> captor = ArgumentCaptor.forClass(CbrFeatureSchema.class);
         initializer.onStartup(mock(StartupEvent.class));
 
-        verify(store, times(5)).registerSchema(captor.capture());
+        verify(store, times(6)).registerSchema(captor.capture());
 
         final var schemas = captor.getAllValues();
         final var amendmentSchema = schemas.stream()
@@ -98,7 +98,7 @@ class ClinicalCbrSchemaInitializerTest {
     void aeTrajectorySchema_hasTimeSeriesFieldWithDtwAndTrend() {
         final ArgumentCaptor<CbrFeatureSchema> captor = ArgumentCaptor.forClass(CbrFeatureSchema.class);
         initializer.onStartup(mock(StartupEvent.class));
-        verify(store, times(5)).registerSchema(captor.capture());
+        verify(store, times(6)).registerSchema(captor.capture());
 
         final var schema = captor.getAllValues().stream()
                                  .filter(s -> "clinical-ae-trajectory".equals(s.caseType()))
@@ -125,7 +125,7 @@ class ClinicalCbrSchemaInitializerTest {
     void siteEnrollmentSchema_hasTimeSeriesFieldWithDtwAndTrend() {
         final ArgumentCaptor<CbrFeatureSchema> captor = ArgumentCaptor.forClass(CbrFeatureSchema.class);
         initializer.onStartup(mock(StartupEvent.class));
-        verify(store, times(5)).registerSchema(captor.capture());
+        verify(store, times(6)).registerSchema(captor.capture());
 
         final var schema = captor.getAllValues().stream()
                                  .filter(s -> "clinical-site-enrollment".equals(s.caseType()))
@@ -139,5 +139,23 @@ class ClinicalCbrSchemaInitializerTest {
         assertThat(tsField.timestampField()).isEqualTo("ts");
         assertThat(tsField.similaritySpec()).isInstanceOf(io.casehub.neocortex.memory.cbr.SimilaritySpec.DtwSpec.class);
     }
+
+    @Test
+    void trialSafetySchema_hasCorrectFieldsAndCaseType() {
+        final ArgumentCaptor<CbrFeatureSchema> captor = ArgumentCaptor.forClass(CbrFeatureSchema.class);
+        initializer.onStartup(mock(StartupEvent.class));
+        verify(store, times(6)).registerSchema(captor.capture());
+
+        final var schema = captor.getAllValues().stream()
+                                 .filter(s -> "clinical-trial-safety".equals(s.caseType()))
+                                 .findFirst().orElseThrow();
+
+        assertThat(schema.fields()).hasSize(7);
+        assertThat(schema.fields().stream().map(f -> f.name()))
+                .containsExactlyInAnyOrder("trialPhase", "aggregationPeriodDays", "siteCount",
+                                           "affectedSiteCount", "dominantGrade", "dominantEventType",
+                                           "signalType");
+    }
+
 
 }

@@ -31,6 +31,9 @@ public class AmendmentResolutionCbrWriter {
     @Inject
     ClinicalCbrService cbrService;
 
+    @Inject
+    ClinicalScopeResolver scopeResolver;
+
     /**
      * Observes {@link ProtocolAmendmentResolvedEvent} and stores a CBR precedent.
      * <p>
@@ -48,6 +51,13 @@ public class AmendmentResolutionCbrWriter {
                 LOG.warnf("Amendment %s not found — cannot store CBR case", event.amendmentId());
                 return;
             }
+
+            java.util.Optional<io.casehub.platform.api.path.Path> scopeOpt = scopeResolver.forAmendment(amendment);
+            if (scopeOpt.isEmpty()) {
+                LOG.warnf("Cannot resolve scope for amendment %s — skipping CBR storage", event.amendmentId());
+                return;
+            }
+            io.casehub.platform.api.path.Path scope = scopeOpt.get();
 
             String solution = event.recommendation() != null
                 ? event.recommendation().name()
@@ -72,7 +82,8 @@ public class AmendmentResolutionCbrWriter {
                 event.amendmentId().toString(),
                 ClinicalCbrDomains.AMENDMENT,
                 amendment.tenantId,
-                caseId
+                caseId,
+                scope
             );
 
             LOG.infof("Stored CBR case for amendment %s: %s → %s",

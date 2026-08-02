@@ -115,7 +115,7 @@ class ClinicalPatientContextTest {
             Map.of(ClinicalMemoryAttributes.GRADE, grade,
                 MemoryAttributeKeys.OUTCOME, "REPORTED",
                 MemoryAttributeKeys.ACTOR_ID, "clinical-service"),
-            Instant.now());
+            Instant.now(), null);
     }
 
     private static Memory memoryWithOutcome(String outcome) {
@@ -128,6 +128,6 @@ class ClinicalPatientContextTest {
             "AE outcome",
             Map.of(MemoryAttributeKeys.OUTCOME, outcome,
                 MemoryAttributeKeys.ACTOR_ID, "clinical-service"),
-            Instant.now());
+            Instant.now(), null);
     }
 }

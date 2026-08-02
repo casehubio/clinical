@@ -5,12 +5,24 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import io.casehub.clinical.api.model.ConsentStatus;
 import io.casehub.clinical.api.model.EnrollmentStatus;
+import io.casehub.clinical.api.model.SiteStatus;
+import io.casehub.clinical.api.model.TrialPhase;
+import io.casehub.clinical.api.model.TrialStatus;
+import io.casehub.clinical.entity.ClinicalTrial;
 import io.casehub.clinical.entity.PatientEnrollment;
+import io.casehub.clinical.entity.TrialSite;
+import io.casehub.clinical.cbr.ClinicalCbrDomains;
+import io.casehub.clinical.cbr.ClinicalCbrService;
 import io.casehub.clinical.ledger.ConsentWithdrawalLedgerEntry;
 import io.casehub.ledger.api.spi.LedgerEntryRepository;
+import io.casehub.neocortex.memory.cbr.CbrCaseMemoryStore;
+import io.casehub.neocortex.memory.cbr.CbrQuery;
+import io.casehub.neocortex.memory.cbr.TextualCbrCase;
+import io.casehub.platform.api.path.Path;
 import io.quarkus.test.junit.QuarkusTest;
 import jakarta.inject.Inject;
 import jakarta.transaction.Transactional;
+import java.util.Map;
 import java.util.UUID;
 import org.junit.jupiter.api.Test;
 
@@ -19,6 +31,8 @@ class ConsentWithdrawalServiceTest {
 
     @Inject ConsentWithdrawalService service;
     @Inject LedgerEntryRepository ledgerEntryRepository;
+    @Inject CbrCaseMemoryStore cbrStore;
+    @Inject ClinicalCbrService cbrService;
 
     @Test
     void withdraw_sets_both_statuses_pseudonymizes_patientId_sets_withdrawnAt() {
@@ -74,6 +88,70 @@ class ConsentWithdrawalServiceTest {
         // might be null. The test verifies the field exists and the code path doesn't NPE.
         // In production with JpaLedgerEntryRepository, this will be non-null when
         // casehub.ledger.erasure-receipt.enabled=true.
+    }
+
+    @Test
+    void withdraw_erases_patient_scope_cbr_cases() {
+        UUID trialId = UUID.randomUUID();
+        UUID siteId = UUID.randomUUID();
+        String patientId = "patient-cbr-test";
+
+        UUID enrollmentId = persistEnrollmentWithSite(patientId, siteId, trialId);
+        Path patientScope = Path.of(trialId.toString(), siteId.toString(), patientId);
+
+        cbrService.storeIdempotent(
+            new TextualCbrCase("AE for patient", "escalated", "resolved", 1.0, null, null),
+            "clinical-ae", "ae-" + enrollmentId,
+            ClinicalCbrDomains.AE, "default", null, patientScope);
+
+        var before = cbrStore.retrieveSimilar(
+            CbrQuery.of("default", ClinicalCbrDomains.AE, patientScope, "clinical-ae", Map.of(), 10)
+                .withProblem("AE for patient"),
+            TextualCbrCase.class);
+        assertThat(before).isNotEmpty();
+
+        service.withdraw(enrollmentId, "default");
+
+        var after = cbrStore.retrieveSimilar(
+            CbrQuery.of("default", ClinicalCbrDomains.AE, patientScope, "clinical-ae", Map.of(), 10)
+                .withProblem("AE for patient"),
+            TextualCbrCase.class);
+        assertThat(after).isEmpty();
+    }
+
+    @Transactional
+    UUID persistEnrollmentWithSite(String patientId, UUID siteId, UUID trialId) {
+        ClinicalTrial trial = ClinicalTrial.findById(trialId);
+        if (trial == null) {
+            trial = new ClinicalTrial();
+            trial.id = trialId;
+            trial.protocolId = "PROTO-CBR";
+            trial.phase = TrialPhase.PHASE_III;
+            trial.sponsor = "Test Sponsor";
+            trial.status = TrialStatus.ACTIVE;
+            trial.tenantId = "default";
+            trial.persist();
+        }
+        TrialSite site = TrialSite.findById(siteId);
+        if (site == null) {
+            site = new TrialSite();
+            site.id = siteId;
+            site.trialId = trialId;
+            site.investigatorId = "INV-CBR";
+            site.status = SiteStatus.ACTIVE;
+            site.tenantId = "default";
+            site.targetEnrollment = 100;
+            site.persist();
+        }
+        PatientEnrollment e = new PatientEnrollment();
+        e.id = UUID.randomUUID();
+        e.siteId = siteId;
+        e.patientId = patientId;
+        e.tenantId = "default";
+        e.consentStatus = ConsentStatus.PENDING;
+        e.enrollmentStatus = EnrollmentStatus.CANDIDATE;
+        e.persist();
+        return e.id;
     }
 
     @Transactional

@@ -30,7 +30,7 @@ class SiteEnrollmentTrajectoryJobTest {
     void setUp() {
         trajectoryBuilder = new SiteEnrollmentTrajectoryBuilder();
         cbrService = Mockito.mock(ClinicalCbrService.class);
-        job = new SiteEnrollmentTrajectoryJob(trajectoryBuilder, cbrService);
+        job = new SiteEnrollmentTrajectoryJob(trajectoryBuilder, cbrService, new ClinicalScopeResolver());
     }
 
     @Test
@@ -50,7 +50,7 @@ class SiteEnrollmentTrajectoryJobTest {
                 trialStart.plusSeconds(86400 * 16)   // week 2
             ));
 
-        when(cbrService.storeIdempotent(any(), any(), any(), any(), any(), any()))
+        when(cbrService.storeIdempotent(any(), any(), any(), any(), any(), any(), any()))
             .thenReturn("stored-id");
 
         job.snapshotSite(siteId, trialId, trialStart, 100, "PHASE_III", tenantId);
@@ -62,7 +62,8 @@ class SiteEnrollmentTrajectoryJobTest {
             any(String.class),
             eq(ClinicalCbrDomains.SITE_ENROLLMENT),
             eq(tenantId),
-            eq(null));
+            eq(null),
+            any());
 
         PlanCbrCase stored = caseCaptor.getValue();
         assertThat(stored.problem()).contains("PHASE_III");
@@ -84,7 +85,7 @@ class SiteEnrollmentTrajectoryJobTest {
 
         job.snapshotSite(siteId, trialId, Instant.now(), 100, "PHASE_III", tenantId);
 
-        verify(cbrService, never()).storeIdempotent(any(), any(), any(), any(), any(), any());
+        verify(cbrService, never()).storeIdempotent(any(), any(), any(), any(), any(), any(), any());
     }
 
     @Test
@@ -97,13 +98,13 @@ class SiteEnrollmentTrajectoryJobTest {
         trajectoryBuilder.setEnrollmentQuery((sid, tid) ->
             List.of(trialStart.plusSeconds(86400), trialStart.plusSeconds(86400 * 8)));
 
-        when(cbrService.storeIdempotent(any(), any(), any(), any(), any(), any()))
+        when(cbrService.storeIdempotent(any(), any(), any(), any(), any(), any(), any()))
             .thenReturn("stored-id");
 
         job.snapshotSite(siteId, trialId, trialStart, 50, "PHASE_II", tenantId);
 
         ArgumentCaptor<PlanCbrCase> captor = ArgumentCaptor.forClass(PlanCbrCase.class);
-        verify(cbrService).storeIdempotent(captor.capture(), any(), any(), any(), any(), any());
+        verify(cbrService).storeIdempotent(captor.capture(), any(), any(), any(), any(), any(), any());
 
         PlanCbrCase stored = captor.getValue();
         FeatureValue progress = stored.features().get("enrollmentProgress");

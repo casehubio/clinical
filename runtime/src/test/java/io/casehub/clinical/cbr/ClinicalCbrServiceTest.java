@@ -45,7 +45,7 @@ class ClinicalCbrServiceTest {
         when(store.store(cbrCase, caseType, entityId, domain, tenantId, caseId, io.casehub.platform.api.path.Path.root()))
             .thenReturn("cbr-id-123");
 
-        final String result = service.storeIdempotent(cbrCase, caseType, entityId, domain, tenantId, caseId);
+        final String result = service.storeIdempotent(cbrCase, caseType, entityId, domain, tenantId, caseId, io.casehub.platform.api.path.Path.root());
 
         assertThat(result).isEqualTo("cbr-id-123");
 

@@ -142,5 +142,13 @@ public final class ClinicalComplianceSupplement {
         return s;
     }
 
+    public static ComplianceSupplement safetySignalDetection() {
+        ComplianceSupplement s = new JpaComplianceSupplement();
+        s.planRef                = "ICH E6(R3) §5.17 + ICH E2F §3.3 — DSMB-level cross-site safety signal detection";
+        s.algorithmRef           = "TrialSafetyAggregationJob (rule-based grade threshold and cross-site cluster detection)";
+        s.humanOverrideAvailable = true;
+        return s;
+    }
+
 
 }
