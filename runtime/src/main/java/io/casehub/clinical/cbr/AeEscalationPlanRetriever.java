@@ -56,8 +56,10 @@ public class AeEscalationPlanRetriever {
             long priorAeCount = ae.enrollmentId != null
                     ? entityResolver.countPriorAes(ae.enrollmentId, ae.id) : 0;
 
-            Map<String, Object> rawFeatures = AeCbrFeatureBuilder.buildQueryFeatures(
-                    ae, enrollment, trial, priorAeCount);
+            long siteEnrollmentCount = site != null ? entityResolver.countEnrollmentsAtSite(site.id) : 0;
+            int siteTargetEnrollment = site != null ? site.targetEnrollment : 0;
+            var ctx = new AeCbrContext(ae, enrollment, trial, null, false, priorAeCount, siteEnrollmentCount, siteTargetEnrollment, 0.5);
+            Map<String, Object> rawFeatures = AeCbrFeatureBuilder.buildQueryFeatures(ctx);
             Map<String, FeatureValue> featureMap = FeatureValue.toFeatureMap(rawFeatures);
 
             Path scope = scopeResolver.forAdverseEvent(ae).orElse(Path.root());
@@ -91,6 +93,7 @@ public class AeEscalationPlanRetriever {
         TrialSite findSite(UUID id);
         ClinicalTrial findTrial(UUID id);
         long countPriorAes(UUID enrollmentId, UUID excludeAeId);
+        long countEnrollmentsAtSite(UUID siteId);
     }
 
     private static class PanacheEntityResolver implements EntityResolver {
@@ -103,6 +106,10 @@ public class AeEscalationPlanRetriever {
         @Override
         public long countPriorAes(UUID enrollmentId, UUID excludeAeId) {
             return AdverseEvent.count("enrollmentId = ?1 and id != ?2", enrollmentId, excludeAeId);
+        }
+        @Override
+        public long countEnrollmentsAtSite(UUID siteId) {
+            return PatientEnrollment.count("siteId", siteId);
         }
     }
 }

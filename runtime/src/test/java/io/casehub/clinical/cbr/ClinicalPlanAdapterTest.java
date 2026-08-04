@@ -20,7 +20,7 @@ class ClinicalPlanAdapterTest {
 
     @Test
     void rule1_failedStep_isSuppressed() {
-        var trace = new PlanTrace("safety-review", "safety-monitoring", "worker-1", "FAILED", 0, Map.of());
+        var trace = new PlanTrace("safety-review", "safety-monitoring", "worker-1", "FAILED", 0, Map.of(), null);
         var scored = buildCase(Map.of("grade", FeatureValue.number(3)), List.of(trace));
         var current = Map.of("grade", (FeatureValue) FeatureValue.number(3));
 
@@ -33,7 +33,7 @@ class ClinicalPlanAdapterTest {
 
     @Test
     void rule1_terminatedStep_isSuppressed() {
-        var trace = new PlanTrace("safety-review", "safety-monitoring", "worker-1", "TERMINATED", 0, Map.of());
+        var trace = new PlanTrace("safety-review", "safety-monitoring", "worker-1", "TERMINATED", 0, Map.of(), null);
         var scored = buildCase(Map.of("grade", FeatureValue.number(3)), List.of(trace));
         var current = Map.of("grade", (FeatureValue) FeatureValue.number(3));
 
@@ -43,7 +43,7 @@ class ClinicalPlanAdapterTest {
 
     @Test
     void rule2_completedStep_isBoosted() {
-        var trace = new PlanTrace("safety-review", "safety-monitoring", "worker-1", "COMPLETED", 0, Map.of());
+        var trace = new PlanTrace("safety-review", "safety-monitoring", "worker-1", "COMPLETED", 0, Map.of(), null);
         var scored = buildCase(Map.of("grade", FeatureValue.number(3)), List.of(trace));
         var current = Map.of("grade", (FeatureValue) FeatureValue.number(3));
 
@@ -55,7 +55,7 @@ class ClinicalPlanAdapterTest {
 
     @Test
     void rule3_higherGrade_boostsSafetySteps() {
-        var trace = new PlanTrace("safety-review", "safety-monitoring", "worker-1", "COMPLETED", 0, Map.of());
+        var trace = new PlanTrace("safety-review", "safety-monitoring", "worker-1", "COMPLETED", 0, Map.of(), null);
         var pastFeatures = Map.of("grade", (FeatureValue) FeatureValue.number(2));
         var scored = buildCase(pastFeatures, List.of(trace));
         var current = Map.of("grade", (FeatureValue) FeatureValue.number(4));
@@ -67,7 +67,7 @@ class ClinicalPlanAdapterTest {
 
     @Test
     void rule3_doesNotBoostSuppressedSteps() {
-        var trace = new PlanTrace("safety-review", "safety-monitoring", "worker-1", "FAILED", 0, Map.of());
+        var trace = new PlanTrace("safety-review", "safety-monitoring", "worker-1", "FAILED", 0, Map.of(), null);
         var pastFeatures = Map.of("grade", (FeatureValue) FeatureValue.number(2));
         var scored = buildCase(pastFeatures, List.of(trace));
         var current = Map.of("grade", (FeatureValue) FeatureValue.number(4));
@@ -79,7 +79,7 @@ class ClinicalPlanAdapterTest {
 
     @Test
     void rule3_sameGrade_noExtraBoost() {
-        var trace = new PlanTrace("safety-review", "safety-monitoring", "worker-1", "COMPLETED", 0, Map.of());
+        var trace = new PlanTrace("safety-review", "safety-monitoring", "worker-1", "COMPLETED", 0, Map.of(), null);
         var features = Map.of("grade", (FeatureValue) FeatureValue.number(3));
         var scored = buildCase(features, List.of(trace));
 
@@ -89,7 +89,7 @@ class ClinicalPlanAdapterTest {
 
     @Test
     void rule4_susarCondition_addsStep() {
-        var trace = new PlanTrace("safety-review", "safety-monitoring", "worker-1", "COMPLETED", 0, Map.of());
+        var trace = new PlanTrace("safety-review", "safety-monitoring", "worker-1", "COMPLETED", 0, Map.of(), null);
         var pastFeatures = Map.<String, FeatureValue>of(
                 "grade", FeatureValue.number(3),
                 "unexpected", FeatureValue.string("false"),
@@ -113,7 +113,7 @@ class ClinicalPlanAdapterTest {
 
     @Test
     void rule4_pastAlsoSusar_noAddition() {
-        var trace = new PlanTrace("safety-review", "safety-monitoring", "worker-1", "COMPLETED", 0, Map.of());
+        var trace = new PlanTrace("safety-review", "safety-monitoring", "worker-1", "COMPLETED", 0, Map.of(), null);
         var features = Map.<String, FeatureValue>of(
                 "grade", FeatureValue.number(3),
                 "unexpected", FeatureValue.string("true"),
@@ -126,7 +126,7 @@ class ClinicalPlanAdapterTest {
 
     @Test
     void nonAeCaseType_passesThrough() {
-        var trace = new PlanTrace("some-binding", "some-cap", "worker", "COMPLETED", 0, Map.of());
+        var trace = new PlanTrace("some-binding", "some-cap", "worker", "COMPLETED", 0, Map.of(), null);
         var scored = buildCase(Map.of(), List.of(trace));
 
         AdaptedPlan result = adapter.adapt("other-type", scored, Map.of());
@@ -137,7 +137,7 @@ class ClinicalPlanAdapterTest {
 
     @Test
     void missingGradeFeature_skipsRule3() {
-        var trace = new PlanTrace("safety-review", "safety-monitoring", "worker-1", "COMPLETED", 0, Map.of());
+        var trace = new PlanTrace("safety-review", "safety-monitoring", "worker-1", "COMPLETED", 0, Map.of(), null);
         var scored = buildCase(Map.of(), List.of(trace));
 
         AdaptedPlan result = adapter.adapt("clinical-ae", scored, Map.of());
@@ -146,7 +146,7 @@ class ClinicalPlanAdapterTest {
 
     @Test
     void combinedRules_reasonConcatenation() {
-        var trace = new PlanTrace("safety-review", "safety-monitoring", "worker-1", "COMPLETED", 0, Map.of());
+        var trace = new PlanTrace("safety-review", "safety-monitoring", "worker-1", "COMPLETED", 0, Map.of(), null);
         var pastFeatures = Map.of("grade", (FeatureValue) FeatureValue.number(2));
         var scored = buildCase(pastFeatures, List.of(trace));
         var current = Map.of("grade", (FeatureValue) FeatureValue.number(4));
@@ -159,7 +159,7 @@ class ClinicalPlanAdapterTest {
 
     @Test
     void retainedStep_unknownOutcome() {
-        var trace = new PlanTrace("safety-review", "safety-monitoring", "worker-1", "RUNNING", 0, Map.of());
+        var trace = new PlanTrace("safety-review", "safety-monitoring", "worker-1", "RUNNING", 0, Map.of(), null);
         var scored = buildCase(Map.of("grade", FeatureValue.number(3)), List.of(trace));
         var current = Map.of("grade", (FeatureValue) FeatureValue.number(3));
 

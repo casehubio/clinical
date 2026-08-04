@@ -162,7 +162,7 @@ class PrecedentEndpointTest {
     private void populateAePrecedents() {
         for (int i = 0; i < 3; i++) {
             List<PlanTrace> traces = List.of(
-                    new PlanTrace("safety-review", "safety-monitoring", "officer-alpha", "COMPLETED", 1, Map.of())
+                    new PlanTrace("safety-review", "safety-monitoring", "officer-alpha", "COMPLETED", 1, Map.of(), null)
                                             );
 
             PlanCbrCase cbrCase = new PlanCbrCase(
@@ -202,7 +202,7 @@ class PrecedentEndpointTest {
         // Store 2 deviation precedents with plan traces
         for (int i = 0; i < 2; i++) {
             List<PlanTrace> planTrace = List.of(
-                new PlanTrace("pi-oversight", "pi-authorisation", "pi-smith", "APPROVED", 1, Map.of())
+                new PlanTrace("pi-oversight", "pi-authorisation", "pi-smith", "APPROVED", 1, Map.of(), null)
             );
 
             PlanCbrCase cbrCase = new PlanCbrCase(

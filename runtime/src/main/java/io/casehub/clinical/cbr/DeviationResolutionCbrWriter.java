@@ -126,10 +126,11 @@ public class DeviationResolutionCbrWriter {
         trace.add(new PlanTrace(
             "pi-oversight",
             "pi-authorisation",
-            null,  // Worker name not recorded
+            null,
             deviation.piApprovalStatus.name(),
             1,
-            Map.of()
+            Map.of(),
+            null
         ));
 
         // IRB committee binding (CRITICAL only, after IRB decides)
@@ -140,7 +141,8 @@ public class DeviationResolutionCbrWriter {
                 null,
                 irbApproval.decision.name(),
                 2,
-                Map.of()
+                Map.of(),
+                null
             ));
         }
 

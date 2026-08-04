@@ -34,7 +34,7 @@ class ClinicalCaseOutcomeObserverTest {
         scopeResolver = mock(ClinicalScopeResolver.class);
         when(scopeResolver.forAdverseEvent(any())).thenReturn(java.util.Optional.of(io.casehub.platform.api.path.Path.of("trial-1", "site-1", "patient-1")));
         AeTrajectoryBuilder trajectoryBuilder = mock(AeTrajectoryBuilder.class);
-        observer = new ClinicalCaseOutcomeObserver(cbrService, store, planItemStore, trajectoryBuilder, scopeResolver);
+        observer = new ClinicalCaseOutcomeObserver(cbrService, store, planItemStore, trajectoryBuilder, scopeResolver, mock(io.casehub.ledger.runtime.repository.ActorTrustScoreRepository.class));
     }
 
     @Test
@@ -85,7 +85,7 @@ class ClinicalCaseOutcomeObserverTest {
         CbrCase stored = caseCaptor.getValue();
         assertThat(stored).isInstanceOf(PlanCbrCase.class);
         PlanCbrCase plan = (PlanCbrCase) stored;
-        assertThat(plan.features()).hasSize(11);
+        assertThat(plan.features()).hasSize(14);
         assertThat(plan.planTrace()).hasSize(1);
         assertThat(plan.planTrace().get(0).bindingName()).isEqualTo("safety-review");
         assertThat(plan.planTrace().get(0).capabilityName()).isEqualTo("safety-monitoring");
@@ -296,14 +296,113 @@ class ClinicalCaseOutcomeObserverTest {
         assertThat(outcomeCaptor.getValue().successRate()).isEqualTo(1.0);
     }
 
+    @Test
+    void onOutcome_aeCase_storesSiteEnrollmentAndTrustFeatures() {
+        UUID aeId         = UUID.randomUUID();
+        UUID caseId       = UUID.randomUUID();
+        UUID siteId       = UUID.randomUUID();
+        UUID enrollmentId = UUID.randomUUID();
+
+        AdverseEvent ae = new AdverseEvent();
+        ae.id                         = aeId;
+        ae.grade                      = CtcaeGrade.GRADE_3;
+        ae.eventType                  = "Hepatotoxicity";
+        ae.tenantId                   = "test-tenant";
+        ae.engineCaseId               = caseId;
+        ae.enrollmentId               = enrollmentId;
+        ae.regulatorySubmissionStatus = RegulatorySubmissionStatus.NONE;
+        ae.susarOversightStatus       = SusarOversightStatus.NONE;
+
+        PatientEnrollment enrollment = new PatientEnrollment();
+        enrollment.id           = enrollmentId;
+        enrollment.siteId       = siteId;
+        enrollment.treatmentArm = "ARM_A";
+
+        TrialSite site = new TrialSite();
+        site.id               = siteId;
+        site.trialId          = UUID.randomUUID();
+        site.targetEnrollment = 100;
+
+        ClinicalTrial trial = new ClinicalTrial();
+        trial.phase = TrialPhase.PHASE_II;
+
+        observer.setEntityResolver(new TestEntityResolver(ae, enrollment, site, trial, 1, 45, 0.82));
+
+        List<PlanItemRecord> planItems = List.of(
+                PlanItemRecord.primitive(caseId, "pi-1", "safety-review", TaskStatus.COMPLETED,
+                                         Instant.now(), TargetType.HUMAN_TASK, null, "test-tenant", null, "agent-alpha", null)
+                                                );
+        when(planItemStore.findByCaseId(caseId, "test-tenant")).thenReturn(planItems);
+
+        Map<String, Object> snapshot = new HashMap<>();
+        snapshot.put("aeId", aeId.toString());
+        snapshot.put("safetyReview", "ESCALATE_TO_DSMB");
+        snapshot.put("dsmbEscalation", "false");
+
+        CaseOutcomeEvent event = new CaseOutcomeEvent(
+                "ae-escalation", "test-tenant", caseId, snapshot, "COMPLETED", Instant.now(), Map.of());
+
+        observer.onOutcome(event);
+
+        ArgumentCaptor<CbrCase> caseCaptor = ArgumentCaptor.forClass(CbrCase.class);
+        verify(cbrService).storeIdempotent(
+                caseCaptor.capture(), eq("clinical-ae"), eq(aeId.toString()),
+                eq(ClinicalCbrDomains.AE), eq("test-tenant"), eq(caseId.toString()), any());
+
+        PlanCbrCase plan = (PlanCbrCase) caseCaptor.getValue();
+        assertThat(plan.features()).hasSize(14);
+        assertThat(plan.features().get("siteEnrollmentCount")).isEqualTo(FeatureValue.number(45));
+        assertThat(plan.features().get("siteTargetEnrollment")).isEqualTo(FeatureValue.number(100));
+        assertThat(plan.features().get("agentTrustScore")).isEqualTo(FeatureValue.number(0.82));
+    }
+
+    @Test
+    void onOutcome_aeCase_noPlanTrace_trustDefaultsToHalf() {
+        UUID aeId   = UUID.randomUUID();
+        UUID caseId = UUID.randomUUID();
+
+        AdverseEvent ae = new AdverseEvent();
+        ae.id                         = aeId;
+        ae.grade                      = CtcaeGrade.GRADE_3;
+        ae.eventType                  = "Nausea";
+        ae.tenantId                   = "test-tenant";
+        ae.engineCaseId               = caseId;
+        ae.regulatorySubmissionStatus = RegulatorySubmissionStatus.NONE;
+        ae.susarOversightStatus       = SusarOversightStatus.NONE;
+
+        observer.setEntityResolver(new TestEntityResolver(ae, null, null, null, 0, 0, 0.5));
+        when(planItemStore.findByCaseId(caseId, "test-tenant")).thenReturn(List.of());
+
+        Map<String, Object> snapshot = new HashMap<>();
+        snapshot.put("aeId", aeId.toString());
+
+        CaseOutcomeEvent event = new CaseOutcomeEvent(
+                "ae-escalation", "test-tenant", caseId, snapshot, "COMPLETED", Instant.now(), Map.of());
+
+        observer.onOutcome(event);
+
+        ArgumentCaptor<CbrCase> caseCaptor = ArgumentCaptor.forClass(CbrCase.class);
+        verify(cbrService).storeIdempotent(caseCaptor.capture(), any(), any(), any(), any(), any(), any());
+        PlanCbrCase plan = (PlanCbrCase) caseCaptor.getValue();
+        assertThat(plan.features().get("agentTrustScore")).isEqualTo(FeatureValue.number(0.5));
+    }
+
+
     record TestEntityResolver(
         AdverseEvent ae, PatientEnrollment enrollment,
-        ClinicalTrial trial, long priorAeCount
+        TrialSite site, ClinicalTrial trial, long priorAeCount,
+        long siteEnrollmentCount, double agentTrustScore
     ) implements ClinicalCaseOutcomeObserver.EntityResolver {
+        TestEntityResolver(AdverseEvent ae, PatientEnrollment enrollment,
+                           ClinicalTrial trial, long priorAeCount) {
+            this(ae, enrollment, null, trial, priorAeCount, 0, 0.5);
+        }
         @Override public AdverseEvent findAe(UUID aeId) { return ae; }
         @Override public PatientEnrollment findEnrollment(UUID id) { return enrollment; }
-        @Override public TrialSite findSite(UUID id) { return null; }
+        @Override public TrialSite findSite(UUID id) { return site; }
         @Override public ClinicalTrial findTrial(UUID id) { return trial; }
         @Override public long countPriorAes(UUID enrollmentId, UUID excludeAeId) { return priorAeCount; }
+        @Override public long countEnrollmentsAtSite(UUID siteId) { return siteEnrollmentCount; }
+        @Override public double findAgentTrustScore(String actorId) { return agentTrustScore; }
     }
 }

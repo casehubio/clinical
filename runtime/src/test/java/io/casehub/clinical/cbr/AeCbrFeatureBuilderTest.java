@@ -11,14 +11,14 @@ import static org.assertj.core.api.Assertions.assertThat;
 class AeCbrFeatureBuilderTest {
 
     @Test
-    void buildFeatures_allFieldsPresent_returns11Features() {
+    void buildFeatures_allFieldsPresent_returns14Features() {
         AdverseEvent ae = new AdverseEvent();
-        ae.grade = CtcaeGrade.GRADE_3;
-        ae.eventType = "Neutropenia";
-        ae.suspected = true;
-        ae.unexpected = true;
+        ae.grade                      = CtcaeGrade.GRADE_3;
+        ae.eventType                  = "Neutropenia";
+        ae.suspected                  = true;
+        ae.unexpected                 = true;
         ae.regulatorySubmissionStatus = RegulatorySubmissionStatus.FILED;
-        ae.susarOversightStatus = SusarOversightStatus.COMPLETED;
+        ae.susarOversightStatus       = SusarOversightStatus.COMPLETED;
 
         PatientEnrollment enrollment = new PatientEnrollment();
         enrollment.treatmentArm = "ARM_A";
@@ -26,10 +26,12 @@ class AeCbrFeatureBuilderTest {
         ClinicalTrial trial = new ClinicalTrial();
         trial.phase = TrialPhase.PHASE_III;
 
-        Map<String, Object> features = AeCbrFeatureBuilder.buildFeatures(
-            ae, enrollment, trial, "CONTINUE_MONITORING", true, 2);
+        var ctx = new AeCbrContext(ae, enrollment, trial, "CONTINUE_MONITORING",
+                                   true, 2, 45, 100, 0.82);
 
-        assertThat(features).hasSize(11);
+        Map<String, Object> features = AeCbrFeatureBuilder.buildFeatures(ctx);
+
+        assertThat(features).hasSize(14);
         assertThat(features.get("grade")).isEqualTo(3);
         assertThat(features.get("eventType")).isEqualTo(java.util.List.of("Neutropenia"));
         assertThat(features.get("trialPhase")).isEqualTo("PHASE_III");
@@ -41,6 +43,9 @@ class AeCbrFeatureBuilderTest {
         assertThat(features.get("dsmbEscalated")).isEqualTo("true");
         assertThat(features.get("indReportFiled")).isEqualTo("true");
         assertThat(features.get("susarOversight")).isEqualTo("true");
+        assertThat(features.get("siteEnrollmentCount")).isEqualTo(45L);
+        assertThat(features.get("siteTargetEnrollment")).isEqualTo(100);
+        assertThat(features.get("agentTrustScore")).isEqualTo(0.82);
     }
 
     @Test
@@ -50,8 +55,8 @@ class AeCbrFeatureBuilderTest {
         ae.regulatorySubmissionStatus = RegulatorySubmissionStatus.NONE;
         ae.susarOversightStatus = SusarOversightStatus.NONE;
 
-        Map<String, Object> features = AeCbrFeatureBuilder.buildFeatures(
-            ae, new PatientEnrollment(), null, null, false, 0);
+        var ctx = new AeCbrContext(ae, new PatientEnrollment(), null, null, false, 0, 0, 0, 0.5);
+        Map<String, Object> features = AeCbrFeatureBuilder.buildFeatures(ctx);
 
         assertThat(features.get("treatmentArm")).isEqualTo("UNASSIGNED");
     }
@@ -63,8 +68,8 @@ class AeCbrFeatureBuilderTest {
         ae.regulatorySubmissionStatus = RegulatorySubmissionStatus.NONE;
         ae.susarOversightStatus = SusarOversightStatus.NONE;
 
-        Map<String, Object> features = AeCbrFeatureBuilder.buildFeatures(
-            ae, null, null, null, false, 0);
+        var ctx = new AeCbrContext(ae, null, null, null, false, 0, 0, 0, 0.5);
+        Map<String, Object> features = AeCbrFeatureBuilder.buildFeatures(ctx);
 
         assertThat(features.get("treatmentArm")).isEqualTo("UNASSIGNED");
     }
@@ -75,8 +80,8 @@ class AeCbrFeatureBuilderTest {
         ae.regulatorySubmissionStatus = RegulatorySubmissionStatus.NONE;
         ae.susarOversightStatus = SusarOversightStatus.NONE;
 
-        Map<String, Object> features = AeCbrFeatureBuilder.buildFeatures(
-            ae, null, null, null, false, 0);
+        var ctx = new AeCbrContext(ae, null, null, null, false, 0, 0, 0, 0.5);
+        Map<String, Object> features = AeCbrFeatureBuilder.buildFeatures(ctx);
 
         assertThat(features.get("grade")).isEqualTo(0);
     }
@@ -108,7 +113,8 @@ class AeCbrFeatureBuilderTest {
         ClinicalTrial trial = new ClinicalTrial();
         trial.phase = TrialPhase.PHASE_III;
 
-        String problem = AeCbrFeatureBuilder.buildProblemSummary(ae, trial);
+        var ctx = new AeCbrContext(ae, null, trial, null, false, 0, 0, 0, 0.5);
+        String problem = AeCbrFeatureBuilder.buildProblemSummary(ctx);
         assertThat(problem).contains("Grade 3", "Neutropenia", "PHASE_III", "unexpected=true", "suspected=true");
     }
 
@@ -118,7 +124,8 @@ class AeCbrFeatureBuilderTest {
         ae.regulatorySubmissionStatus = RegulatorySubmissionStatus.FILED;
         ae.susarOversightStatus = SusarOversightStatus.COMPLETED;
 
-        String solution = AeCbrFeatureBuilder.buildSolutionSummary("ESCALATE_TO_DSMB", true, ae);
+        var ctx = new AeCbrContext(ae, null, null, "ESCALATE_TO_DSMB", true, 0, 0, 0, 0.5);
+        String solution = AeCbrFeatureBuilder.buildSolutionSummary(ctx);
         assertThat(solution).contains("ESCALATE_TO_DSMB", "true");
     }
 
@@ -126,7 +133,8 @@ class AeCbrFeatureBuilderTest {
     void buildProblemSummary_nullFields_handlesGracefully() {
         AdverseEvent ae = new AdverseEvent();
 
-        String problem = AeCbrFeatureBuilder.buildProblemSummary(ae, null);
+        var ctx = new AeCbrContext(ae, null, null, null, false, 0, 0, 0, 0.5);
+        String problem = AeCbrFeatureBuilder.buildProblemSummary(ctx);
         assertThat(problem).contains("Grade 0", "UNKNOWN");
     }
 
@@ -136,7 +144,43 @@ class AeCbrFeatureBuilderTest {
         ae.regulatorySubmissionStatus = RegulatorySubmissionStatus.NONE;
         ae.susarOversightStatus = SusarOversightStatus.NONE;
 
-        String solution = AeCbrFeatureBuilder.buildSolutionSummary(null, false, ae);
+        var ctx = new AeCbrContext(ae, null, null, null, false, 0, 0, 0, 0.5);
+        String solution = AeCbrFeatureBuilder.buildSolutionSummary(ctx);
         assertThat(solution).contains("UNKNOWN");
     }
+
+    @Test
+    void buildQueryFeatures_excludesAgentTrustScore() {
+        var                 ctx      = new AeCbrContext(minimalAe(), null, null, null, false, 0, 10, 50, 0.75);
+        Map<String, Object> features = AeCbrFeatureBuilder.buildQueryFeatures(ctx);
+
+        assertThat(features).containsKey("siteEnrollmentCount");
+        assertThat(features).containsKey("siteTargetEnrollment");
+        assertThat(features).doesNotContainKey("agentTrustScore");
+    }
+
+    @Test
+    void buildFeatures_trustScoreAtBounds() {
+        var ctx0 = new AeCbrContext(minimalAe(), null, null, null, false, 0, 0, 0, 0.0);
+        assertThat(AeCbrFeatureBuilder.buildFeatures(ctx0).get("agentTrustScore")).isEqualTo(0.0);
+
+        var ctx1 = new AeCbrContext(minimalAe(), null, null, null, false, 0, 0, 0, 1.0);
+        assertThat(AeCbrFeatureBuilder.buildFeatures(ctx1).get("agentTrustScore")).isEqualTo(1.0);
+    }
+
+    @Test
+    void buildFeatures_zeroEnrollment() {
+        var                 ctx      = new AeCbrContext(minimalAe(), null, null, null, false, 0, 0, 0, 0.5);
+        Map<String, Object> features = AeCbrFeatureBuilder.buildFeatures(ctx);
+        assertThat(features.get("siteEnrollmentCount")).isEqualTo(0L);
+        assertThat(features.get("siteTargetEnrollment")).isEqualTo(0);
+    }
+
+    private AdverseEvent minimalAe() {
+        AdverseEvent ae = new AdverseEvent();
+        ae.regulatorySubmissionStatus = RegulatorySubmissionStatus.NONE;
+        ae.susarOversightStatus       = SusarOversightStatus.NONE;
+        return ae;
+    }
+
 }

@@ -14,41 +14,38 @@ public final class AeCbrFeatureBuilder {
 
     private AeCbrFeatureBuilder() {}
 
-    public static Map<String, Object> buildFeatures(AdverseEvent ae,
-                                                     PatientEnrollment enrollment,
-                                                     ClinicalTrial trial,
-                                                     String safetyReviewOutcome,
-                                                     boolean dsmbEscalated,
-                                                     long priorAeCount) {
+    public static Map<String, Object> buildFeatures(AeCbrContext ctx) {
         Map<String, Object> features = new LinkedHashMap<>();
-        features.put("grade", ae.grade != null ? ae.grade.ordinal() + 1 : 0);
-        features.put("eventType", List.of(ae.eventType != null ? ae.eventType : "UNKNOWN"));
-        features.put("trialPhase", trial != null && trial.phase != null ? trial.phase.name() : "UNKNOWN");
-        features.put("unexpected", String.valueOf(ae.unexpected));
-        features.put("suspected", String.valueOf(ae.suspected));
-        features.put("treatmentArm", enrollment != null && enrollment.treatmentArm != null
-            ? enrollment.treatmentArm : "UNASSIGNED");
-        features.put("priorAeCount", bucketPriorAeCount(priorAeCount));
-        features.put("safetyReviewOutcome", safetyReviewOutcome != null ? safetyReviewOutcome : "UNKNOWN");
-        features.put("dsmbEscalated", String.valueOf(dsmbEscalated));
-        features.put("indReportFiled", String.valueOf(ae.regulatorySubmissionStatus != RegulatorySubmissionStatus.NONE));
-        features.put("susarOversight", String.valueOf(ae.susarOversightStatus != SusarOversightStatus.NONE));
+        features.put("grade", ctx.ae().grade != null ? ctx.ae().grade.ordinal() + 1 : 0);
+        features.put("eventType", List.of(ctx.ae().eventType != null ? ctx.ae().eventType : "UNKNOWN"));
+        features.put("trialPhase", ctx.trial() != null && ctx.trial().phase != null ? ctx.trial().phase.name() : "UNKNOWN");
+        features.put("unexpected", String.valueOf(ctx.ae().unexpected));
+        features.put("suspected", String.valueOf(ctx.ae().suspected));
+        features.put("treatmentArm", ctx.enrollment() != null && ctx.enrollment().treatmentArm != null
+                                     ? ctx.enrollment().treatmentArm : "UNASSIGNED");
+        features.put("priorAeCount", bucketPriorAeCount(ctx.priorAeCount()));
+        features.put("safetyReviewOutcome", ctx.safetyReviewOutcome() != null ? ctx.safetyReviewOutcome() : "UNKNOWN");
+        features.put("dsmbEscalated", String.valueOf(ctx.dsmbEscalated()));
+        features.put("indReportFiled", String.valueOf(ctx.ae().regulatorySubmissionStatus != RegulatorySubmissionStatus.NONE));
+        features.put("susarOversight", String.valueOf(ctx.ae().susarOversightStatus != SusarOversightStatus.NONE));
+        features.put("siteEnrollmentCount", ctx.siteEnrollmentCount());
+        features.put("siteTargetEnrollment", ctx.siteTargetEnrollment());
+        features.put("agentTrustScore", ctx.agentTrustScore());
         return features;
     }
 
-    public static Map<String, Object> buildQueryFeatures(AdverseEvent ae,
-                                                          PatientEnrollment enrollment,
-                                                          ClinicalTrial trial,
-                                                          long priorAeCount) {
+    public static Map<String, Object> buildQueryFeatures(AeCbrContext ctx) {
         Map<String, Object> features = new LinkedHashMap<>();
-        features.put("grade", ae.grade != null ? ae.grade.ordinal() + 1 : 0);
-        features.put("eventType", List.of(ae.eventType != null ? ae.eventType : "UNKNOWN"));
-        features.put("trialPhase", trial != null && trial.phase != null ? trial.phase.name() : "UNKNOWN");
-        features.put("unexpected", String.valueOf(ae.unexpected));
-        features.put("suspected", String.valueOf(ae.suspected));
-        features.put("treatmentArm", enrollment != null && enrollment.treatmentArm != null
-            ? enrollment.treatmentArm : "UNASSIGNED");
-        features.put("priorAeCount", bucketPriorAeCount(priorAeCount));
+        features.put("grade", ctx.ae().grade != null ? ctx.ae().grade.ordinal() + 1 : 0);
+        features.put("eventType", List.of(ctx.ae().eventType != null ? ctx.ae().eventType : "UNKNOWN"));
+        features.put("trialPhase", ctx.trial() != null && ctx.trial().phase != null ? ctx.trial().phase.name() : "UNKNOWN");
+        features.put("unexpected", String.valueOf(ctx.ae().unexpected));
+        features.put("suspected", String.valueOf(ctx.ae().suspected));
+        features.put("treatmentArm", ctx.enrollment() != null && ctx.enrollment().treatmentArm != null
+                                     ? ctx.enrollment().treatmentArm : "UNASSIGNED");
+        features.put("priorAeCount", bucketPriorAeCount(ctx.priorAeCount()));
+        features.put("siteEnrollmentCount", ctx.siteEnrollmentCount());
+        features.put("siteTargetEnrollment", ctx.siteTargetEnrollment());
         return features;
     }
 
@@ -58,21 +55,21 @@ public final class AeCbrFeatureBuilder {
         return "MULTIPLE";
     }
 
-    public static String buildProblemSummary(AdverseEvent ae, ClinicalTrial trial) {
+    public static String buildProblemSummary(AeCbrContext ctx) {
         return "Grade %d %s in %s trial, unexpected=%s, suspected=%s".formatted(
-            ae.grade != null ? ae.grade.ordinal() + 1 : 0,
-            ae.eventType != null ? ae.eventType : "UNKNOWN",
-            trial != null && trial.phase != null ? trial.phase.name() : "UNKNOWN",
-            ae.unexpected, ae.suspected);
+                ctx.ae().grade != null ? ctx.ae().grade.ordinal() + 1 : 0,
+                ctx.ae().eventType != null ? ctx.ae().eventType : "UNKNOWN",
+                ctx.trial() != null && ctx.trial().phase != null ? ctx.trial().phase.name() : "UNKNOWN",
+                ctx.ae().unexpected, ctx.ae().suspected);
     }
 
-    public static String buildSolutionSummary(String safetyReviewOutcome,
-                                               boolean dsmbEscalated,
-                                               AdverseEvent ae) {
+    public static String buildSolutionSummary(AeCbrContext ctx) {
         return "Safety review: %s. DSMB escalated: %s. IND report: %s. SUSAR oversight: %s.".formatted(
-            safetyReviewOutcome != null ? safetyReviewOutcome : "UNKNOWN",
-            dsmbEscalated,
-            ae.regulatorySubmissionStatus != RegulatorySubmissionStatus.NONE,
-            ae.susarOversightStatus != SusarOversightStatus.NONE);
+                ctx.safetyReviewOutcome() != null ? ctx.safetyReviewOutcome() : "UNKNOWN",
+                ctx.dsmbEscalated(),
+                ctx.ae().regulatorySubmissionStatus != RegulatorySubmissionStatus.NONE,
+                ctx.ae().susarOversightStatus != SusarOversightStatus.NONE);
     }
+
+
 }

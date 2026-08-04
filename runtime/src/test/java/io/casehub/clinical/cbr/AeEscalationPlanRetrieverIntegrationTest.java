@@ -63,7 +63,7 @@ class AeEscalationPlanRetrieverIntegrationTest {
     void roundTrip_storeAndRetrieve() {
         Instant before = Instant.now();
 
-        var trace = new PlanTrace("safety-review", "safety-monitoring", "worker-1", "COMPLETED", 0, Map.of());
+        var trace = new PlanTrace("safety-review", "safety-monitoring", "worker-1", "COMPLETED", 0, Map.of(), null);
         var features = Map.<String, Object>of(
                 "grade", 3, "eventType", List.of("hepatotoxicity"),
                 "trialPhase", "PHASE_III", "unexpected", "false",

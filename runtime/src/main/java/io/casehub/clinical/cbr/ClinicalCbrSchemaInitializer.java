@@ -60,8 +60,11 @@ public class ClinicalCbrSchemaInitializer {
                                    FeatureField.categorical("safetyReviewOutcome"),
                                    FeatureField.categorical("dsmbEscalated"),
                                    FeatureField.categorical("indReportFiled"),
-                                   FeatureField.categorical("susarOversight"));
-    }
+                                   FeatureField.categorical("susarOversight"),
+                                   FeatureField.numeric("siteEnrollmentCount", 0, 10000),
+                                   FeatureField.numeric("siteTargetEnrollment", 0, 10000),
+                                   FeatureField.numeric("agentTrustScore", 0, 1),
+                                   FeatureField.numeric("mergeCount", 1, 100000));}
 
     static CbrFeatureSchema deviationSchema() {
         return CbrFeatureSchema.of("clinical-deviation",

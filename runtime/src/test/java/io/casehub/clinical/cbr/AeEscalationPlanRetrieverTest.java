@@ -111,5 +111,6 @@ class AeEscalationPlanRetrieverTest {
         @Override public TrialSite findSite(UUID id) { return null; }
         @Override public ClinicalTrial findTrial(UUID id) { return null; }
         @Override public long countPriorAes(UUID enrollmentId, UUID excludeAeId) { return 0; }
+        @Override public long countEnrollmentsAtSite(UUID siteId) { return 0; }
     }
 }

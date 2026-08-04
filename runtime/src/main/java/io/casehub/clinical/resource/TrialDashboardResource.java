@@ -532,7 +532,10 @@ public class TrialDashboardResource {
         long priorAeCount = ae.enrollmentId != null
                             ? AdverseEvent.count("enrollmentId = ?1 and id != ?2", ae.enrollmentId, aeId) : 0;
 
-        Map<String, Object> features = AeCbrFeatureBuilder.buildQueryFeatures(ae, enrollment, trial, priorAeCount);
+        long siteEnrollmentCount = site != null ? PatientEnrollment.count("siteId", site.id) : 0;
+        int siteTargetEnrollment = site != null ? site.targetEnrollment : 0;
+        var ctx = new io.casehub.clinical.cbr.AeCbrContext(ae, enrollment, trial, null, false, priorAeCount, siteEnrollmentCount, siteTargetEnrollment, 0.5);
+        Map<String, Object> features = AeCbrFeatureBuilder.buildQueryFeatures(ctx);
 
         io.casehub.platform.api.path.Path queryScope = scopeResolver.forAdverseEvent(ae)
             .orElse(io.casehub.platform.api.path.Path.root());

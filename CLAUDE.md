@@ -93,12 +93,12 @@ read this section before deciding where to commit doc changes.
 ## Repo Guide
 
 This repo owns its own documentation, synced to parent via CI:
-- `docs/consumer-guide.md` — for app builders: modules, APIs, quick start
-- `docs/contributor-guide.md` — for platform builders: architecture, SPIs, internals
+- `docs/guides/consumer-guide.md` — for app builders: modules, APIs, quick start
+- `docs/guides/contributor-guide.md` — for platform builders: architecture, SPIs, internals
 
 Update the relevant guide in the same session when implementation changes modules, SPIs, or public APIs. Do not defer — drift compounds.
 
-Read `consumer-guide.md` for app-level work. Only read `contributor-guide.md` when modifying this repo's internals or extension points.
+Read `docs/guides/consumer-guide.md` for app-level work. Only read `docs/guides/contributor-guide.md` when modifying this repo's internals or extension points.
 
 ## Platform Context
 
@@ -454,6 +454,10 @@ H2 and production JDBC both require this. Without it, Agroal throws "Failed to e
 **`TrialSafetyAggregationJob` scheduler exclusion in tests:** Same pattern — excluded via `quarkus.arc.exclude-types` in test `application.properties`. The job scans AE entities per site to detect grade-threshold and cross-site-cluster safety signals on a configurable interval (`casehub.clinical.trial-safety.interval`, default 24h).
 
 **`CbrRetentionPurgeJob` scheduler exclusion in tests:** Same pattern — excluded via `quarkus.arc.exclude-types` in test `application.properties`. The job runs weekly (configurable via `casehub.clinical.cbr.retention.interval`, default 168h) and purges CBR cases per domain based on `max-age-days` and `max-cases` config properties.
+
+**`CbrCompactionJob` scheduler exclusion in tests:** Same pattern — excluded via `quarkus.arc.exclude-types` in test `application.properties`. The job runs weekly (configurable via `casehub.clinical.cbr.compaction.interval`, default 168h) and merges similar CBR cases into weighted representatives based on exact categorical merge key match. Disabled by default (`casehub.clinical.cbr.compaction.enabled=false`).
+
+**`PlanTrace` 7th param `variantId` (SNAPSHOT update):** `PlanTrace` record in `casehub-neocortex-memory-api` gained a 7th `variantId` parameter (nullable). All constructors — `new PlanTrace(bindingName, capabilityName, workerName, stepOutcome, priority, parameters, variantId)` — require the extra arg. Clinical callers pass `null`.
 
 **CBR `eventType` field is `categoricalList` not `categorical`:** `ClinicalCbrSchemaInitializer` registers `eventType` as `FeatureField.categoricalList("eventType")`. Feature builders (`AeCbrFeatureBuilder`, `DemoDataSeeder.seedTrajectoryCase`) must store it as `List.of(value)`, not plain `String`. `AeTrajectoryAlertService` and `TrialDashboardResource` query with `CbrFilter.contains()` which requires `CategoricalList`. (GE-20260721-621a64)
 

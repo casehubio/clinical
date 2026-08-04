@@ -45,13 +45,14 @@ public class ClinicalCaseOutcomeObserver implements CaseOutcomeObserver {
                                        CbrCaseMemoryStore store,
                                        PlanItemStore planItemStore,
                                        AeTrajectoryBuilder trajectoryBuilder,
-                                       ClinicalScopeResolver scopeResolver) {
+                                       ClinicalScopeResolver scopeResolver,
+                                       io.casehub.ledger.runtime.repository.ActorTrustScoreRepository trustScoreRepository) {
         this.cbrService        = cbrService;
         this.store             = store;
         this.planItemStore     = planItemStore;
         this.trajectoryBuilder = trajectoryBuilder;
         this.scopeResolver     = scopeResolver;
-        this.entityResolver    = new PanacheEntityResolver();
+        this.entityResolver    = new PanacheEntityResolver(trustScoreRepository);
     }
 
     void setEntityResolver(EntityResolver resolver) {
@@ -113,41 +114,54 @@ public class ClinicalCaseOutcomeObserver implements CaseOutcomeObserver {
         io.casehub.platform.api.path.Path scope = scopeOpt.get();
 
         PatientEnrollment enrollment = ae.enrollmentId != null
-            ? entityResolver.findEnrollment(ae.enrollmentId) : null;
+                                       ? entityResolver.findEnrollment(ae.enrollmentId) : null;
         TrialSite site = enrollment != null && enrollment.siteId != null
-            ? entityResolver.findSite(enrollment.siteId) : null;
+                         ? entityResolver.findSite(enrollment.siteId) : null;
         ClinicalTrial trial = site != null && site.trialId != null
-            ? entityResolver.findTrial(site.trialId) : null;
+                              ? entityResolver.findTrial(site.trialId) : null;
 
         long priorAeCount = ae.enrollmentId != null
-            ? entityResolver.countPriorAes(ae.enrollmentId, aeId) : 0;
+                            ? entityResolver.countPriorAes(ae.enrollmentId, aeId) : 0;
+        long siteEnrollmentCount = site != null
+                                   ? entityResolver.countEnrollmentsAtSite(site.id) : 0;
+        int siteTargetEnrollment = site != null ? site.targetEnrollment : 0;
 
         Map<String, Object> snapshot = event.caseFileSnapshot();
         String safetyReviewOutcome = snapshot.get("safetyReview") != null
-            ? String.valueOf(snapshot.get("safetyReview")) : null;
+                                     ? String.valueOf(snapshot.get("safetyReview")) : null;
         boolean dsmbEscalated = "true".equals(String.valueOf(snapshot.get("dsmbEscalation")));
-
-        Map<String, Object> features = AeCbrFeatureBuilder.buildFeatures(
-            ae, enrollment, trial, safetyReviewOutcome, dsmbEscalated, priorAeCount);
 
         List<PlanTrace> planTraces = buildPlanTraces(event.caseId(), event.tenancyId());
 
-        String problem = AeCbrFeatureBuilder.buildProblemSummary(ae, trial);
-        String solution = AeCbrFeatureBuilder.buildSolutionSummary(safetyReviewOutcome, dsmbEscalated, ae);
+        String agentId = planTraces.stream()
+                                   .filter(pt -> "safety-monitoring".equals(pt.capabilityName()))
+                                   .map(PlanTrace::workerName)
+                                   .filter(java.util.Objects::nonNull)
+                                   .findFirst()
+                                   .orElse(null);
+        double agentTrustScore = agentId != null
+                                 ? entityResolver.findAgentTrustScore(agentId) : 0.5;
+
+        var ctx = new AeCbrContext(ae, enrollment, trial, safetyReviewOutcome,
+                                   dsmbEscalated, priorAeCount, siteEnrollmentCount, siteTargetEnrollment, agentTrustScore);
+
+        Map<String, Object> features = AeCbrFeatureBuilder.buildFeatures(ctx);
+        String              problem  = AeCbrFeatureBuilder.buildProblemSummary(ctx);
+        String              solution = AeCbrFeatureBuilder.buildSolutionSummary(ctx);
 
         var cbrCase = new PlanCbrCase(
-            problem, solution, event.outcomeLabel(), 1.0,
-            FeatureValue.toFeatureMap(features), planTraces,
-            null, null);
+                problem, solution, event.outcomeLabel(), 1.0,
+                FeatureValue.toFeatureMap(features), planTraces,
+                null, null);
 
         cbrService.storeIdempotent(
-            cbrCase, "clinical-ae", aeId.toString(),
-            ClinicalCbrDomains.AE, ae.tenantId,
-            event.caseId() != null ? event.caseId().toString() : null,
-            scope);
+                cbrCase, "clinical-ae", aeId.toString(),
+                ClinicalCbrDomains.AE, ae.tenantId,
+                event.caseId() != null ? event.caseId().toString() : null,
+                scope);
 
-        LOG.infof("Stored CBR case for AE %s: grade=%s, eventType=%s, planTraces=%d",
-            aeId, ae.grade, ae.eventType, planTraces.size());
+        LOG.infof("Stored CBR case for AE %s: grade=%s, eventType=%s, planTraces=%d, agentTrust=%.2f",
+                  aeId, ae.grade, ae.eventType, planTraces.size(), agentTrustScore);
 
         try {
             List<Map<String, FeatureValue>> trajectory = trajectoryBuilder.buildTrajectory(ae, ae.tenantId);
@@ -155,37 +169,36 @@ public class ClinicalCaseOutcomeObserver implements CaseOutcomeObserver {
                 Map<String, Object> trajFeatures = new java.util.LinkedHashMap<>(features);
                 trajFeatures.put("aeTrajectory", trajectory);
                 var trajCbrCase = new PlanCbrCase(
-                    problem, solution, event.outcomeLabel(), 1.0,
-                    FeatureValue.toFeatureMap(trajFeatures), planTraces,
-                    null, null);
+                        problem, solution, event.outcomeLabel(), 1.0,
+                        FeatureValue.toFeatureMap(trajFeatures), planTraces,
+                        null, null);
                 cbrService.storeIdempotent(
-                    trajCbrCase, "clinical-ae-trajectory", aeId + "-trajectory",
-                    ClinicalCbrDomains.AE_TRAJECTORY, ae.tenantId,
-                    event.caseId() != null ? event.caseId().toString() : null,
-                    scope);
+                        trajCbrCase, "clinical-ae-trajectory", aeId + "-trajectory",
+                        ClinicalCbrDomains.AE_TRAJECTORY, ae.tenantId,
+                        event.caseId() != null ? event.caseId().toString() : null,
+                        scope);
                 LOG.infof("Stored trajectory CBR case for AE %s: observations=%d", aeId, trajectory.size());
             }
         } catch (Exception e) {
             LOG.warnf(e, "Trajectory CBR case storage failed for AE %s — point-in-time case was stored successfully", aeId);
-        }
-    }
+        }}
 
     private List<PlanTrace> buildPlanTraces(UUID caseId, String tenancyId) {
         List<PlanItemRecord> planItems = planItemStore.findByCaseId(caseId, tenancyId);
 
         return planItems.stream()
-            .filter(pi -> pi.status().isTerminal())
-            .filter(pi -> pi.executorName() != null)
-            .filter(pi -> BINDING_CAPABILITY_MAP.containsKey(pi.bindingName()))
-            .map(pi -> new PlanTrace(
-                pi.bindingName(),
-                BINDING_CAPABILITY_MAP.get(pi.bindingName()),
-                pi.executorName(),
-                pi.status().name(),
-                0,
-                Map.of()))
-            .toList();
-    }
+                        .filter(pi -> pi.status().isTerminal())
+                        .filter(pi -> pi.executorName() != null)
+                        .filter(pi -> BINDING_CAPABILITY_MAP.containsKey(pi.bindingName()))
+                        .map(pi -> new PlanTrace(
+                                pi.bindingName(),
+                                BINDING_CAPABILITY_MAP.get(pi.bindingName()),
+                                pi.executorName(),
+                                pi.status().name(),
+                                0,
+                                Map.of(),
+                                null))
+                        .toList();}
 
     private void recordOutcome(String entityId, CaseOutcomeEvent event) {
         double successRate = switch (event.outcomeLabel()) {
@@ -204,15 +217,37 @@ public class ClinicalCaseOutcomeObserver implements CaseOutcomeObserver {
         TrialSite findSite(UUID siteId);
         ClinicalTrial findTrial(UUID trialId);
         long countPriorAes(UUID enrollmentId, UUID excludeAeId);
+        long countEnrollmentsAtSite(UUID siteId);
+        double findAgentTrustScore(String actorId);
     }
 
     private static class PanacheEntityResolver implements EntityResolver {
+        private final io.casehub.ledger.runtime.repository.ActorTrustScoreRepository trustScoreRepository;
+
+        PanacheEntityResolver(io.casehub.ledger.runtime.repository.ActorTrustScoreRepository trustScoreRepository) {
+            this.trustScoreRepository = trustScoreRepository;
+        }
+
         @Override public AdverseEvent findAe(UUID aeId) { return AdverseEvent.findById(aeId); }
         @Override public PatientEnrollment findEnrollment(UUID id) { return PatientEnrollment.findById(id); }
         @Override public TrialSite findSite(UUID id) { return TrialSite.findById(id); }
         @Override public ClinicalTrial findTrial(UUID id) { return ClinicalTrial.findById(id); }
         @Override public long countPriorAes(UUID enrollmentId, UUID excludeAeId) {
             return AdverseEvent.count("enrollmentId = ?1 and id != ?2", enrollmentId, excludeAeId);
+        }
+        @Override public long countEnrollmentsAtSite(UUID siteId) {
+            return PatientEnrollment.count("siteId", siteId);
+        }
+        @Override public double findAgentTrustScore(String actorId) {
+            try {
+                return trustScoreRepository
+                    .findCapabilityDimension(actorId, "safety-monitoring",
+                        io.casehub.clinical.api.ClinicalTrustDimensions.SAFETY_ACCURACY)
+                    .map(s -> s.trustScore)
+                    .orElse(0.5);
+            } catch (Exception e) {
+                return 0.5;
+            }
         }
     }
 }

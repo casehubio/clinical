@@ -170,7 +170,7 @@ AeEscalationCompletedEvent (aeId, grade, siteId)           [siteId added]
 
 ### Lookup helper
 
-Both services share a `TrialCaseLookup` helper (or private method) that does:
+Both services share a `TrialCaseIdLookup` helper (or private method) that does:
 `TrialSite.findById(siteId).trialId → ClinicalTrial.findById(trialId).engineCaseId`.
 No new repository needed — uses existing Panache entities.
 
