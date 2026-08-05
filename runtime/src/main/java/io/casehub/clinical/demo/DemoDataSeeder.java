@@ -166,6 +166,7 @@ public class DemoDataSeeder {
         // Phase 3: Site A — eligibility screening + AE lifecycle
         screenPatientA();
         reportGrade2Ae();
+        seedRegradeDemo();
         try {
             seedSusarLifecycles();
             LOG.info("Phase 3 complete: Site A events seeded");
@@ -301,6 +302,51 @@ public class DemoDataSeeder {
             adverseEventService.reportAdverseEvent(ae);
         });
         LOG.infof("Grade 2 AE reported: %s (no SUSAR)", aeId);
+    }
+
+    void seedRegradeDemo() {
+        QuarkusTransaction.requiringNew().run(() -> {
+            UUID aeId = UUID.nameUUIDFromBytes("REGRADE-DEMO-AE".getBytes(StandardCharsets.UTF_8));
+            AdverseEvent ae = new AdverseEvent();
+            ae.id = aeId;
+            ae.enrollmentId = PATIENT_A1_ID;
+            ae.grade = CtcaeGrade.GRADE_1;
+            ae.actuality = EventActuality.ACTUAL;
+            ae.outcome = AeOutcome.RESOLVING;
+            ae.occurredAt = Instant.now().minus(Duration.ofDays(5));
+            ae.reportedAt = Instant.now().minus(Duration.ofDays(5));
+            ae.slaDeadline = ae.reportedAt.plus(Duration.ofDays(7));
+            ae.unexpected = false;
+            ae.suspected = true;
+            ae.eventType = "FATIGUE";
+            ae.tenantId = principal.tenancyId();
+            ae.persist();
+
+            io.casehub.clinical.entity.AeGradeChange initial = new io.casehub.clinical.entity.AeGradeChange();
+            initial.id = UUID.randomUUID();
+            initial.adverseEventId = aeId;
+            initial.previousGrade = null;
+            initial.newGrade = CtcaeGrade.GRADE_1;
+            initial.changedAt = ae.reportedAt;
+            initial.changedBy = "system";
+            initial.reason = "Initial report";
+            initial.persist();
+
+            io.casehub.clinical.entity.AeGradeChange regrade = new io.casehub.clinical.entity.AeGradeChange();
+            regrade.id = UUID.randomUUID();
+            regrade.adverseEventId = aeId;
+            regrade.previousGrade = CtcaeGrade.GRADE_1;
+            regrade.newGrade = CtcaeGrade.GRADE_3;
+            regrade.changedAt = Instant.now().minus(Duration.ofDays(3));
+            regrade.changedBy = "dr-chen";
+            regrade.reason = "Condition worsened — fatigue progressed to debilitating";
+            regrade.persist();
+
+            ae.grade = CtcaeGrade.GRADE_3;
+            ae.slaDeadline = regrade.changedAt.plus(Duration.ofHours(24));
+
+            LOG.infof("Regraded AE seeded: %s (Grade 1 -> 3)", aeId);
+        });
     }
 
     /**

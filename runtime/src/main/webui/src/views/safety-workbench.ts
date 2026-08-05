@@ -58,6 +58,18 @@ export function safetyWorkbench(): Component {
     ["Audit Trail", panel("Ledger Entries",
       auditTrailStub(ledgerEntriesDs.id),
     )],
+    ["Grade History", panel("Grade History",
+      html(`<clinical-ae-grade-history
+        endpoint="/api/trials/${TRIAL_ID}/sites/site-demo-001/enrollments/enr-demo-001/adverse-events/ae-demo-001/grade-history"
+        ${DEMO_MODE ? "demo" : ""}
+      ></clinical-ae-grade-history>`),
+    )],
+    ["Regrade", panel("Regrade Assessment",
+      html(`<clinical-ae-regrade
+        endpoint="/api/trials/${TRIAL_ID}/sites/site-demo-001/enrollments/enr-demo-001/adverse-events/ae-demo-001/regrade"
+        ${DEMO_MODE ? "demo" : ""}
+      ></clinical-ae-regrade>`),
+    )],
   );
 
   return columns([5, 7],

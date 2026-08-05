@@ -44,12 +44,13 @@ class ClinicalCbrSchemaInitializerTest {
                                     .findFirst()
                                     .orElseThrow();
 
-        assertThat(aeSchema.fields()).hasSize(15);
+        assertThat(aeSchema.fields()).hasSize(16);
         assertThat(aeSchema.fields().stream().map(f -> f.name()))
                 .containsExactlyInAnyOrder("grade", "eventType", "trialPhase", "unexpected",
                                            "suspected", "treatmentArm", "priorAeCount",
                                            "safetyReviewOutcome", "dsmbEscalated", "indReportFiled", "susarOversight",
-                                           "siteEnrollmentCount", "siteTargetEnrollment", "agentTrustScore", "mergeCount");
+                                           "siteEnrollmentCount", "siteTargetEnrollment", "agentTrustScore", "mergeCount",
+                                           "regradeSource");
 
         // Verify numeric field constraints
         final var gradeField = (io.casehub.neocortex.memory.cbr.FeatureField.Numeric) aeSchema.fields().stream()

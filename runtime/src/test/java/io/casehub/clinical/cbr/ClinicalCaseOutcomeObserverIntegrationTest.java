@@ -122,7 +122,7 @@ class ClinicalCaseOutcomeObserverIntegrationTest {
 
         assertThat(results).isNotEmpty();
         PlanCbrCase stored = results.get(0).cbrCase();
-        assertThat(stored.features()).hasSize(11);
+        assertThat(stored.features()).hasSize(14);
         assertThat(stored.problem()).contains("Grade 3", "Neutropenia");
         assertThat(stored.outcome()).isEqualTo("COMPLETED");
 

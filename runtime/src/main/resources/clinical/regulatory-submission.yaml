@@ -11,6 +11,10 @@ spec:
       kind: success
       condition: ".submissionFiled != null"
 
+  completion:
+    success:
+      allOf: [submission-complete]
+
   bindings:
     - name: file-ind-report
       on:

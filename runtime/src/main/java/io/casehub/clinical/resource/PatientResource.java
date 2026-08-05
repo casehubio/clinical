@@ -74,7 +74,7 @@ public class PatientResource {
         Boolean suspected
     ) {}
 
-    public record RegradeRequest(@NotNull CtcaeGrade grade, String reason) {}
+    public record RegradeRequest(@NotNull CtcaeGrade grade, @NotBlank @Size(max = 500) String reason) {}
 
     public record GradeHistoryEntry(UUID id, String previousGrade, String newGrade,
                                     Instant changedAt, String changedBy, String reason) {}

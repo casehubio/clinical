@@ -64,7 +64,8 @@ public class ClinicalCbrSchemaInitializer {
                                    FeatureField.numeric("siteEnrollmentCount", 0, 10000),
                                    FeatureField.numeric("siteTargetEnrollment", 0, 10000),
                                    FeatureField.numeric("agentTrustScore", 0, 1),
-                                   FeatureField.numeric("mergeCount", 1, 100000));}
+                                   FeatureField.numeric("mergeCount", 1, 100000),
+                                   FeatureField.categorical("regradeSource"));}
 
     static CbrFeatureSchema deviationSchema() {
         return CbrFeatureSchema.of("clinical-deviation",
