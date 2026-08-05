@@ -1,8 +1,8 @@
-import { table, lookup } from "@casehubio/pages-ui";
+import { dataTable, lookup } from "@casehubio/pages-ui";
 import type { Component } from "@casehubio/pages-ui";
 
 export function auditTrailStub(datasetId: string): Component {
-  return table({
+  return dataTable({
     title: "Audit Trail",
     lookup: lookup(datasetId),
     sortable: true,

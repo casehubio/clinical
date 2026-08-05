@@ -80,10 +80,11 @@ export class ClinicalCommitmentLifecycle extends LitElement {
       const url = this.endpoint.replace("{id}", this.commitmentId);
       const res = await fetch(url);
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
-      this._commitment = await res.json();
+      const commitment: CommitmentState = await res.json();
+      this._commitment = commitment;
       emitPagesEvent(this, "commitment.stage-changed", {
         commitmentId: this.commitmentId,
-        currentStage: this._commitment.currentStage,
+        currentStage: commitment.currentStage,
       });
     } catch (e) {
       this._error = e instanceof Error ? e.message : "Failed to load";

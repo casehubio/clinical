@@ -6,7 +6,7 @@ namespace: clinical
 spec:
   capabilities:
     - name: protocol-amendment-advisor
-      inputSchema: "{ amendmentId: .amendmentId, trialId: .trialId, proposedChange: .proposedChange }"
+      inputProjection: "{ amendmentId: .amendmentId, trialId: .trialId, proposedChange: .proposedChange }"
 
   goals:
     - name: amendment-resolved

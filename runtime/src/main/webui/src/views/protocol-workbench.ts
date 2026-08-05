@@ -1,5 +1,5 @@
 import {
-  columns, table, tabs, panel, markdown, html,
+  columns, dataTable, tabs, panel, markdown, html,
   lookup,
 } from "@casehubio/pages-ui";
 import type { Component } from "@casehubio/pages-ui";
@@ -7,7 +7,7 @@ import { deviationsDs, deviationPrecedentsDs, ledgerEntriesDs, TRIAL_ID, DEMO_MO
 import { auditTrailStub } from "../stubs/audit-trail-viewer.js";
 
 export function protocolWorkbench(): Component {
-  const deviationTable = table({
+  const deviationTable = dataTable({
     title: "Protocol Deviations",
     lookup: lookup(deviationsDs.id),
     sortable: true,
@@ -25,7 +25,7 @@ export function protocolWorkbench(): Component {
       { condition: '#{row.piApprovalStatus} == "EXPIRED"', style: { "background-color": "var(--pages-red-2, #fdf0f0)" } },
     ],
     filter: { enabled: true },
-    emptyMessage: "No protocol deviations recorded",
+
   });
 
   const detailTabs = tabs(

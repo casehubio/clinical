@@ -8,7 +8,7 @@ spec:
 
   capabilities:
     - name: safety-monitoring
-      inputSchema: "{ aeId: .aeId }"
+      inputProjection: "{ aeId: .aeId }"
 
   goals:
     - name: susar-complete

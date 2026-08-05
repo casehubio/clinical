@@ -1,5 +1,5 @@
 import {
-  rows, columns, tabs, table, metric, barChart, pieChart, html,
+  rows, columns, tabs, dataTable, metric, barChart, pieChart, html,
   lookup, groupBy, filterBy, col, count, sum,
 } from "@casehubio/pages-ui";
 import type { Component } from "@casehubio/pages-ui";
@@ -20,7 +20,7 @@ export function operations(): Component {
       title: "Enrollment by Site: Target vs Actual",
       lookup: lookup(sitesDs.id, groupBy("siteName", col("siteName"), col("targetEnrollment"), col("enrolledCount"))),
     }),
-    table({
+    dataTable({
       title: "Recent Activity",
       lookup: lookup(ledgerEntriesDs.id),
       sortable: true,
@@ -35,7 +35,7 @@ export function operations(): Component {
   );
 
   const trustGovernance = rows(
-    table({
+    dataTable({
       title: "Agent Trust Scores",
       lookup: lookup(agentsDs.id),
       sortable: true,

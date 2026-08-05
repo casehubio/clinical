@@ -1,5 +1,5 @@
 import {
-  columns, table, tabs, panel, markdown, html,
+  columns, dataTable, tabs, panel, markdown, html,
   lookup,
 } from "@casehubio/pages-ui";
 import type { Component } from "@casehubio/pages-ui";
@@ -7,7 +7,7 @@ import { adverseEventsDs, aePrecedentsDs, ledgerEntriesDs, TRIAL_ID, DEMO_MODE }
 import { auditTrailStub } from "../stubs/audit-trail-viewer.js";
 
 export function safetyWorkbench(): Component {
-  const aeTable = table({
+  const aeTable = dataTable({
     title: "Adverse Events",
     lookup: lookup(adverseEventsDs.id),
     sortable: true,
@@ -26,7 +26,7 @@ export function safetyWorkbench(): Component {
       { condition: '#{row.slaTimeRemainingHours} < 0', style: { "background-color": "var(--pages-red-3, #fde0e0)" } },
     ],
     filter: { enabled: true },
-    emptyMessage: "No adverse events reported",
+
   });
 
   const detailTabs = tabs(
