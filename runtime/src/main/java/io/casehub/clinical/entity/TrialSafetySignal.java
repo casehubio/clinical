@@ -40,6 +40,9 @@ public class TrialSafetySignal extends PanacheEntityBase {
 
     @Column(name = "resolved_at")
     public Instant resolvedAt;
+    @Column(name = "work_item_id")
+    public UUID    workItemId;
+
 
     public static TrialSafetySignal findByTrialAndType(UUID trialId, String signalType, String tenantId) {
         return find("trialId = ?1 AND signalType = ?2 AND tenantId = ?3", trialId, signalType, tenantId).firstResult();

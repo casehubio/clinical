@@ -1,14 +1,22 @@
 package io.casehub.clinical.cbr;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import io.casehub.clinical.api.ClinicalActors;
 import io.casehub.clinical.api.DsmbSafetySignalEvent;
 import io.casehub.clinical.api.model.CtcaeGrade;
 import io.casehub.clinical.entity.AdverseEvent;
 import io.casehub.clinical.entity.ClinicalTrial;
 import io.casehub.clinical.entity.TrialSafetySignal;
 import io.casehub.clinical.entity.TrialSite;
+import io.casehub.clinical.service.DsmbBatchSignalNotifier;
 import io.casehub.neocortex.memory.cbr.FeatureValue;
 import io.casehub.neocortex.memory.cbr.PlanCbrCase;
 import io.casehub.platform.api.path.Path;
+import io.casehub.work.api.WorkItemCreateRequest;
+import io.casehub.work.api.WorkItemPriority;
+import io.casehub.work.runtime.repository.WorkItemStore;
+import io.casehub.work.runtime.service.WorkItemService;
 import io.quarkus.narayana.jta.QuarkusTransaction;
 import io.quarkus.scheduler.Scheduled;
 import jakarta.enterprise.context.ApplicationScoped;
@@ -18,6 +26,7 @@ import org.eclipse.microprofile.config.inject.ConfigProperty;
 import org.jboss.logging.Logger;
 
 import java.time.Clock;
+import java.time.Duration;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
@@ -36,6 +45,10 @@ public class TrialSafetyAggregationJob {
     private final ClinicalCbrService cbrService;
     private final Clock clock;
     private final Event<DsmbSafetySignalEvent> signalEvent;
+    private final WorkItemService workItemService;
+    private final WorkItemStore workItemStore;
+    private final DsmbBatchSignalNotifier dsmbNotifier;
+    private final ObjectMapper objectMapper;
 
     @ConfigProperty(name = "casehub.clinical.trial-safety.tenant-id", defaultValue = "default")
     String tenantId;
@@ -55,13 +68,27 @@ public class TrialSafetyAggregationJob {
     @ConfigProperty(name = "casehub.clinical.trial-safety.aggregation-period-days", defaultValue = "90")
     int aggregationPeriodDays;
 
+    @ConfigProperty(name = "casehub.clinical.dsmb.batch-signal.sla", defaultValue = "PT72H")
+    Duration batchSignalSla;
+
+    @ConfigProperty(name = "casehub.clinical.dsmb.batch-signal.expiry", defaultValue = "P14D")
+    Duration batchSignalExpiry;
+
     @Inject
     public TrialSafetyAggregationJob(ClinicalCbrService cbrService,
                                       Clock clock,
-                                      Event<DsmbSafetySignalEvent> signalEvent) {
+                                      Event<DsmbSafetySignalEvent> signalEvent,
+                                      WorkItemService workItemService,
+                                      WorkItemStore workItemStore,
+                                      DsmbBatchSignalNotifier dsmbNotifier,
+                                      ObjectMapper objectMapper) {
         this.cbrService = cbrService;
         this.clock = clock;
         this.signalEvent = signalEvent;
+        this.workItemService = workItemService;
+        this.workItemStore = workItemStore;
+        this.dsmbNotifier = dsmbNotifier;
+        this.objectMapper = objectMapper;
     }
 
     @Scheduled(every = "${casehub.clinical.trial-safety.interval:24h}",
@@ -234,7 +261,8 @@ public class TrialSafetyAggregationJob {
     }
 
     void upsertSignalRecord(UUID trialId, DetectedSignal signal, String tenantId) {
-        QuarkusTransaction.requiringNew().run(() -> {
+        // Phase 1: persist signal record
+        UpsertResult result = QuarkusTransaction.requiringNew().call(() -> {
             TrialSafetySignal existing = TrialSafetySignal.findByTrialAndType(trialId, signal.signalType(), tenantId);
             Instant now = clock.instant();
             if (existing != null) {
@@ -242,6 +270,8 @@ public class TrialSafetyAggregationJob {
                 existing.summary = signal.summary();
                 existing.lastDetectedAt = now;
                 existing.resolvedAt = null;
+                boolean needsWorkItem = needsWorkItem(existing.workItemId);
+                return new UpsertResult(existing.id, needsWorkItem);
             } else {
                 TrialSafetySignal record = new TrialSafetySignal();
                 record.id = UUID.randomUUID();
@@ -253,9 +283,61 @@ public class TrialSafetyAggregationJob {
                 record.firstDetectedAt = now;
                 record.lastDetectedAt = now;
                 record.persist();
+                return new UpsertResult(record.id, true);
             }
         });
+
+        // Phase 2: create WorkItem if needed (separate transaction for error isolation)
+        if (result.needsWorkItem()) {
+            try {
+                UUID workItemId = QuarkusTransaction.requiringNew().call(() -> {
+                    var wi = workItemService.create(WorkItemCreateRequest.builder()
+                        .title("DSMB review — batch safety signal: " + signal.signalType())
+                        .description(signal.summary() + ". Detected by trial safety aggregation job.")
+                        .types(List.of("dsmb-batch-signal"))
+                        .formKey("dsmb-batch-signal-review")
+                        .priority(WorkItemPriority.HIGH)
+                        .candidateGroups("dsmb")
+                        .createdBy(ClinicalActors.CLINICAL_SERVICE)
+                        .callerRef("clinical:trial-safety-signal/" + result.signalId())
+                        .payload(buildWorkItemPayload(trialId, signal))
+                        .claimDeadline(clock.instant().plus(batchSignalSla))
+                        .expiresAt(clock.instant().plus(batchSignalExpiry))
+                        .build());
+                    TrialSafetySignal sig = TrialSafetySignal.findById(result.signalId());
+                    if (sig != null) sig.workItemId = wi.id;
+                    return wi.id;
+                });
+                dsmbNotifier.notify(trialId, signal.signalType(), signal.summary(),
+                    signal.affectedSites().size(), workItemId);
+            } catch (Exception e) {
+                LOG.warnf(e, "WorkItem creation failed for trial %s signal %s — signal record persisted, WorkItem deferred to next run",
+                    trialId, signal.signalType());
+            }
+        }
     }
+
+    private boolean needsWorkItem(UUID existingWorkItemId) {
+        if (existingWorkItemId == null) return true;
+        return workItemStore.get(existingWorkItemId)
+            .map(wi -> wi.status.isTerminal())
+            .orElse(true);
+    }
+
+    private String buildWorkItemPayload(UUID trialId, DetectedSignal signal) {
+        try {
+            return objectMapper.writeValueAsString(Map.of(
+                "trialId", trialId.toString(),
+                "signalType", signal.signalType(),
+                "affectedSiteCount", signal.affectedSites().size(),
+                "summary", signal.summary(),
+                "affectedSites", signal.affectedSites().stream().map(UUID::toString).toList()));
+        } catch (JsonProcessingException e) {
+            return "{}";
+        }
+    }
+
+    record UpsertResult(UUID signalId, boolean needsWorkItem) {}
 
     void fireSignalEvent(UUID trialId, DetectedSignal signal, String tenantId) {
         signalEvent.fireAsync(new DsmbSafetySignalEvent(

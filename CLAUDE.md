@@ -451,7 +451,7 @@ H2 and production JDBC both require this. Without it, Agroal throws "Failed to e
 
 **`SiteEnrollmentTrajectoryJob` scheduler exclusion in tests:** Same pattern as `SponsorNotificationRetryJob` — excluded via `quarkus.arc.exclude-types` in test `application.properties`. The job snapshots enrollment trajectories as CBR cases on a configurable interval (`casehub.clinical.enrollment-trajectory.snapshot-interval`, default 24h).
 
-**`TrialSafetyAggregationJob` scheduler exclusion in tests:** Same pattern — excluded via `quarkus.arc.exclude-types` in test `application.properties`. The job scans AE entities per site to detect grade-threshold and cross-site-cluster safety signals on a configurable interval (`casehub.clinical.trial-safety.interval`, default 24h).
+**`TrialSafetyAggregationJob` scheduler in tests:** NOT excluded from `quarkus.arc.exclude-types` — integration tests (`DsmbBatchSignalWorkItemTest`) inject the real bean to test WorkItem creation. The scheduler is prevented from firing by setting `casehub.clinical.trial-safety.interval=9999h` in test `application.properties`. The job scans AE entities per site to detect grade-threshold and cross-site-cluster safety signals and creates DSMB WorkItems for batch-detected signals.
 
 **`CbrRetentionPurgeJob` scheduler exclusion in tests:** Same pattern — excluded via `quarkus.arc.exclude-types` in test `application.properties`. The job runs weekly (configurable via `casehub.clinical.cbr.retention.interval`, default 168h) and purges CBR cases per domain based on `max-age-days` and `max-cases` config properties.
 

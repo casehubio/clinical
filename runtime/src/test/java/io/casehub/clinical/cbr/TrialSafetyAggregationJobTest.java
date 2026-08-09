@@ -8,9 +8,13 @@ import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import io.casehub.clinical.api.DsmbSafetySignalEvent;
 import io.casehub.clinical.api.model.CtcaeGrade;
+import io.casehub.clinical.service.DsmbBatchSignalNotifier;
 import io.casehub.neocortex.memory.cbr.PlanCbrCase;
+import io.casehub.work.runtime.repository.WorkItemStore;
+import io.casehub.work.runtime.service.WorkItemService;
 import jakarta.enterprise.event.Event;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -50,7 +54,9 @@ class TrialSafetyAggregationJobTest {
         when(cbrService.storeIdempotent(any(), any(), any(), any(), any(), any(), any()))
             .thenReturn("stored-id");
 
-        job = new TrialSafetyAggregationJob(cbrService, clock, signalEvent);
+        job = new TrialSafetyAggregationJob(cbrService, clock, signalEvent,
+            mock(WorkItemService.class), mock(WorkItemStore.class),
+            mock(DsmbBatchSignalNotifier.class), new ObjectMapper());
         job.tenantId = "default";
         job.gradeThresholdMinGrade = 3;
         job.gradeThresholdMinSites = 3;
