@@ -90,6 +90,8 @@ public class TrialDashboardResource {
     io.casehub.clinical.cbr.AeTrajectoryBuilder             aeTrajectoryBuilder;
     @Inject
     io.casehub.clinical.cbr.SiteEnrollmentTrajectoryBuilder siteEnrollmentTrajectoryBuilder;
+    @Inject
+    io.casehub.clinical.service.CommitmentLifecycleService commitmentLifecycleService;
 
 
     /**
@@ -611,23 +613,14 @@ public class TrialDashboardResource {
             return Response.status(404).build();
         }
 
-        // Verify deviation belongs to this trial (via site → trial)
         TrialSite site = TrialSite.findByIdForTenant(deviation.siteId, principal);
         if (site == null || !site.trialId.equals(trialId)) {
             return Response.status(404).build();
         }
 
-        var response = new CommitmentLifecycleResponse(
-                devId,
-                deviation.deviationType,
-                deviation.severity != null ? deviation.severity.name() : null,
-                deviation.piApprovalStatus != null ? deviation.piApprovalStatus.name() : null,
-                deviation.piCommandChannelName,
-                deviation.commandedAt,
-                deviation.responseDeadline
-        );
-
-        return Response.ok(response).build();
+        return commitmentLifecycleService.buildResponse(deviation, principal)
+                .map(resp -> Response.ok(resp).build())
+                .orElse(Response.status(404).build());
     }
 
     record TrajectoryObservation(long secondsSinceReport, int escalation, int susar, int regulatory) {}
@@ -886,13 +879,5 @@ public class TrialDashboardResource {
                           long enrolledCount, long adverseEventCount, long deviationCount,
                           int targetEnrollment) {}
 
-    public record CommitmentLifecycleResponse(
-            UUID deviationId,
-            String deviationType,
-            String severity,
-            String piApprovalStatus,
-            String channelName,
-            Instant commandedAt,
-            Instant resolvedAt
-    ) {}
+
 }
