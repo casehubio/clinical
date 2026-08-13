@@ -109,7 +109,7 @@ These gaps map directly to the compliance gap table in `docs/use-case-analysis.m
 
 ### What it adds
 
-Adds `casehub-work` to create a formal safety officer `WorkItem` with a grade-keyed `claimDeadline` — the GCP ICH E6(R3) adverse event reporting SLA. Grade 3/4 = 24 hours. Grade 5 (death) = 1 hour. Grade 1/2 = 7 days. The `AdverseEvent` entity now carries a `workItemId` — the caller can track the safety review independently of the event.
+Adds `casehub-work` to create a formal safety officer `WorkItemEntity` with a grade-keyed `claimDeadline` — the GCP ICH E6(R3) adverse event reporting SLA. Grade 3/4 = 24 hours. Grade 5 (death) = 1 hour. Grade 1/2 = 7 days. The `AdverseEvent` entity now carries a `workItemId` — the caller can track the safety review independently of the event.
 
 This closes the most visible gap in Layer 1: a Grade 3 adverse event could sit indefinitely. Now the platform escalates if the SLA deadline passes.
 

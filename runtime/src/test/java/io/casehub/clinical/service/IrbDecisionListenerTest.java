@@ -5,7 +5,7 @@ import io.casehub.clinical.api.model.IrbDecision;
 import io.casehub.clinical.entity.IrbApproval;
 import io.casehub.clinical.memory.ClinicalMemoryService;
 import io.casehub.work.runtime.event.WorkItemLifecycleEvent;
-import io.casehub.work.runtime.model.WorkItem;
+import io.casehub.work.runtime.model.WorkItemEntity;
 import io.casehub.work.api.WorkItemStatus;
 import io.casehub.work.engine.PlanItemCallerRef;
 import io.quarkus.test.InjectMock;
@@ -67,7 +67,7 @@ class IrbDecisionListenerTest {
     // --- Helper factories ---
 
     private WorkItemLifecycleEvent completedEvent(String decisionJson) {
-        WorkItem workItem = new WorkItem();
+        WorkItemEntity workItem = new WorkItemEntity();
         workItem.id = UUID.randomUUID();
         workItem.status = WorkItemStatus.COMPLETED;
         workItem.payload = "{\"deviationId\":\"" + deviationId + "\"}";
@@ -76,8 +76,8 @@ class IrbDecisionListenerTest {
     }
 
     private WorkItemLifecycleEvent expiredEvent() {
-        UUID caseId = UUID.randomUUID();
-        WorkItem workItem = new WorkItem();
+        UUID           caseId   = UUID.randomUUID();
+        WorkItemEntity workItem = new WorkItemEntity();
         workItem.id = UUID.randomUUID();
         workItem.status = WorkItemStatus.EXPIRED;
         workItem.payload = "{\"deviationId\":\"" + deviationId + "\"}";
@@ -86,7 +86,7 @@ class IrbDecisionListenerTest {
     }
 
     private WorkItemLifecycleEvent nonIrbEvent() {
-        WorkItem workItem = new WorkItem();
+        WorkItemEntity workItem = new WorkItemEntity();
         workItem.id = UUID.randomUUID();
         workItem.status = WorkItemStatus.COMPLETED;
         workItem.payload = "{}"; // no deviationId

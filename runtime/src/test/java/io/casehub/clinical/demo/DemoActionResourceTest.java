@@ -5,10 +5,6 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.*;
 
-import io.casehub.clinical.api.model.PiApprovalStatus;
-import io.casehub.clinical.api.model.SusarOversightStatus;
-import io.casehub.clinical.entity.AdverseEvent;
-import io.casehub.clinical.entity.ProtocolDeviation;
 import io.casehub.ledger.runtime.service.TrustScoreJob;
 import io.casehub.platform.api.identity.CurrentPrincipal;
 import io.casehub.qhorus.api.gateway.ChannelRef;
@@ -16,8 +12,8 @@ import io.casehub.qhorus.api.gateway.InboundHumanMessage;
 import io.casehub.qhorus.api.channel.Channel;
 import io.casehub.qhorus.runtime.channel.ChannelService;
 import io.casehub.qhorus.runtime.gateway.ChannelGateway;
-import io.casehub.work.runtime.model.WorkItem;
-import io.casehub.work.runtime.repository.WorkItemStore;
+import io.casehub.work.runtime.model.WorkItemEntity;
+import io.casehub.work.api.spi.WorkItemStore;
 import io.casehub.work.runtime.service.WorkItemService;
 import jakarta.ws.rs.core.Response;
 import java.util.List;
@@ -142,11 +138,11 @@ class DemoActionResourceTest {
             UUID caseId = UUID.randomUUID();
             String callerRef = "case:" + caseId + "/gate:1";
 
-            WorkItem gateItem = new WorkItem();
+            WorkItemEntity gateItem = new WorkItemEntity();
             gateItem.id = UUID.randomUUID();
             gateItem.callerRef = callerRef;
 
-            WorkItem otherItem = new WorkItem();
+            WorkItemEntity otherItem = new WorkItemEntity();
             otherItem.id = UUID.randomUUID();
             otherItem.callerRef = "case:" + UUID.randomUUID() + "/gate:2";
 

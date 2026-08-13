@@ -16,7 +16,7 @@ import io.casehub.clinical.entity.TrialSite;
 import io.casehub.clinical.support.WorkItemCompletionCapture;
 import io.casehub.clinical.support.WorkItemQueries;
 import io.casehub.work.runtime.event.WorkItemLifecycleEvent;
-import io.casehub.work.runtime.model.WorkItem;
+import io.casehub.work.runtime.model.WorkItemEntity;
 import io.casehub.work.api.WorkItemStatus;
 import io.casehub.work.runtime.service.WorkItemService;
 import io.casehub.work.engine.WorkItemLifecycleAdapter;
@@ -78,12 +78,12 @@ class IrbGateLifecycleTest {
         // Checkpoint 2: await IRB WorkItem (engine#312 — creation may be delayed)
         await().atMost(5, SECONDS).pollInterval(100, MILLISECONDS)
                 .untilAsserted(() -> {
-                    List<WorkItem> items = irbWorkItems();
+                    List<WorkItemEntity> items = irbWorkItems();
                     assertThat(items).as("IRB WorkItem").isNotEmpty();
                     assertThat(items.get(0).title).contains("IRB consultation");
                 });
 
-        WorkItem irbWorkItem = irbWorkItems().get(0);
+        WorkItemEntity irbWorkItem = irbWorkItems().get(0);
 
         // Checkpoint 3: complete WorkItem — fires async CDI lifecycle event to all observers
         String resolution = "{\"decision\":\"APPROVED\",\"committeeId\":\"irb-001\",\"decidedAt\":\"2026-05-22T12:00:00Z\"}";
@@ -100,7 +100,7 @@ class IrbGateLifecycleTest {
 
         // Drive the engine path directly (engine#315 — WorkItemLifecycleAdapter @ObservesAsync
         // delivery to indexed external jar observers is unreliable in tests)
-        WorkItem completed = irbWorkItems().get(0);
+        WorkItemEntity completed = irbWorkItems().get(0);
         lifecycleAdapter.onWorkItemLifecycle(
                 WorkItemLifecycleEvent.of("COMPLETED", completed, "irb-committee", completed.resolution));
 
@@ -119,7 +119,7 @@ class IrbGateLifecycleTest {
         await().atMost(5, SECONDS).pollInterval(100, MILLISECONDS)
                 .untilAsserted(() -> assertThat(irbWorkItems()).isNotEmpty());
 
-        WorkItem irbWorkItem = irbWorkItems().get(0);
+        WorkItemEntity irbWorkItem = irbWorkItems().get(0);
 
         // Simulate expiry via direct listener invocation:
         // IrbDecisionListener handles EXPIRED by updating IrbApproval AND signaling the case directly
@@ -156,7 +156,7 @@ class IrbGateLifecycleTest {
                 "CONSENT_DEVIATION", "pi-001", "test-tenant");
     }
 
-    private List<WorkItem> irbWorkItems() {
+    private List<WorkItemEntity> irbWorkItems() {
         return workItemQueries.scanAll().stream()
                 .filter(wi -> wi.payload != null && wi.payload.contains(deviationId.toString()))
                 .toList();

@@ -7,7 +7,7 @@ import io.casehub.clinical.api.model.IrbDecision;
 import io.casehub.clinical.entity.IrbApproval;
 import io.casehub.clinical.memory.ClinicalMemoryService;
 import io.casehub.work.runtime.event.WorkItemLifecycleEvent;
-import io.casehub.work.runtime.model.WorkItem;
+import io.casehub.work.runtime.model.WorkItemEntity;
 import io.casehub.work.api.WorkItemStatus;
 import io.casehub.work.engine.CallerRef;
 import jakarta.enterprise.context.ApplicationScoped;
@@ -44,7 +44,7 @@ public class IrbDecisionListener {
 
     @Transactional
     public void onWorkItemLifecycle(@ObservesAsync WorkItemLifecycleEvent event) {
-        WorkItem workItem = event.workItem();
+        WorkItemEntity workItem = event.workItem();
         if (workItem == null) return;
 
         UUID deviationId = extractDeviationId(workItem);
@@ -106,7 +106,7 @@ public class IrbDecisionListener {
         }
     }
 
-    private UUID extractDeviationId(WorkItem workItem) {
+    private UUID extractDeviationId(WorkItemEntity workItem) {
         if (workItem.payload == null) return null;
         try {
             JsonNode node = objectMapper.readTree(workItem.payload);
@@ -118,7 +118,7 @@ public class IrbDecisionListener {
         }
     }
 
-    private IrbDecision resolveDecision(WorkItemStatus status, WorkItem workItem) {
+    private IrbDecision resolveDecision(WorkItemStatus status, WorkItemEntity workItem) {
         return switch (status) {
             case COMPLETED -> parseDecisionFromResolution(workItem.resolution);
             case EXPIRED   -> IrbDecision.EXPIRED;

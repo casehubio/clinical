@@ -10,8 +10,8 @@ import io.casehub.qhorus.api.gateway.ChannelRef;
 import io.casehub.qhorus.api.gateway.InboundHumanMessage;
 import io.casehub.qhorus.runtime.channel.ChannelService;
 import io.casehub.qhorus.runtime.gateway.ChannelGateway;
-import io.casehub.work.runtime.model.WorkItem;
-import io.casehub.work.runtime.repository.WorkItemStore;
+import io.casehub.work.runtime.model.WorkItemEntity;
+import io.casehub.work.api.spi.WorkItemStore;
 import io.casehub.work.runtime.service.WorkItemService;
 import io.quarkus.arc.profile.IfBuildProfile;
 import jakarta.inject.Inject;
@@ -147,10 +147,10 @@ public class DemoActionResource {
         // Find the gate WorkItem by scanning for callerRef containing the case ID.
         // GateCallerRef.encode() produces "case:<caseId>/gate:<gateId>".
         String caseIdStr = ae.susarOversightCaseId.toString();
-        WorkItem gateWorkItem = workItemStore.scanAll().stream()
-                .filter(wi -> wi.callerRef != null && wi.callerRef.contains("case:" + caseIdStr))
-                .findFirst()
-                .orElse(null);
+        WorkItemEntity gateWorkItem = workItemStore.scanAll().stream()
+                                                   .filter(wi -> wi.callerRef != null && wi.callerRef.contains("case:" + caseIdStr))
+                                                   .findFirst()
+                                                   .orElse(null);
 
         if (gateWorkItem == null) {
             return Response.status(Response.Status.CONFLICT)

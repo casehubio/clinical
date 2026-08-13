@@ -18,7 +18,7 @@ import io.casehub.clinical.support.WorkItemCompletionCapture;
 import io.casehub.clinical.support.WorkItemQueries;
 import io.casehub.platform.testing.FixedCurrentPrincipal;
 import io.casehub.work.runtime.event.WorkItemLifecycleEvent;
-import io.casehub.work.runtime.model.WorkItem;
+import io.casehub.work.runtime.model.WorkItemEntity;
 import io.casehub.work.runtime.service.WorkItemService;
 import io.casehub.work.engine.WorkItemLifecycleAdapter;
 import io.quarkus.test.junit.QuarkusTest;
@@ -76,21 +76,21 @@ class AeEscalationLifecycleTest {
         // Checkpoint: exactly one safety-review WorkItem, no dsmb WorkItem
         await().atMost(5, SECONDS).pollInterval(100, MILLISECONDS)
                 .untilAsserted(() -> {
-                    List<WorkItem> items = aeWorkItems();
+                    List<WorkItemEntity> items = aeWorkItems();
                     assertThat(items.stream().anyMatch(wi -> wi.title.contains("Senior safety monitor")))
                             .as("safety-review WorkItem for Grade 3").isTrue();
                     assertThat(items.stream().noneMatch(wi -> wi.title.contains("DSMB")))
                             .as("No DSMB WorkItem for Grade 3").isTrue();
                 });
 
-        WorkItem safetyWorkItem = aeWorkItems().stream()
-                .filter(wi -> wi.title.contains("Senior safety monitor"))
-                .findFirst().orElseThrow();
+        WorkItemEntity safetyWorkItem = aeWorkItems().stream()
+                                                     .filter(wi -> wi.title.contains("Senior safety monitor"))
+                                                     .findFirst().orElseThrow();
         String resolution = "{\"outcome\":\"REVIEWED\",\"reviewedAt\":\"2026-05-22T13:00:00Z\"}";
         workItemService.completeFromSystem(safetyWorkItem.id, "senior-monitor", resolution);
 
         // Re-fetch after completion so the WorkItem has the updated resolution and status
-        WorkItem completed = aeWorkItems().get(0);
+        WorkItemEntity completed = aeWorkItems().get(0);
         lifecycleAdapter.onWorkItemLifecycle(
                 WorkItemLifecycleEvent.of("COMPLETED", completed, "senior-monitor", completed.resolution));
 
@@ -119,26 +119,26 @@ class AeEscalationLifecycleTest {
         // Checkpoint: two WorkItems (safety-review + dsmb-escalation)
         await().atMost(5, SECONDS).pollInterval(100, MILLISECONDS)
                 .untilAsserted(() -> {
-                    List<WorkItem> items = aeWorkItems();
+                    List<WorkItemEntity> items = aeWorkItems();
                     assertThat(items).as("Two WorkItems for Grade 4").hasSizeGreaterThanOrEqualTo(2);
                 });
 
-        List<WorkItem> allItems = aeWorkItems();
-        WorkItem safetyItem = allItems.stream()
-                .filter(wi -> wi.title.contains("Senior")).findFirst().orElseThrow();
-        WorkItem dsmbItem = allItems.stream()
-                .filter(wi -> wi.title.contains("DSMB")).findFirst().orElseThrow();
+        List<WorkItemEntity> allItems = aeWorkItems();
+        WorkItemEntity safetyItem = allItems.stream()
+                                            .filter(wi -> wi.title.contains("Senior")).findFirst().orElseThrow();
+        WorkItemEntity dsmbItem = allItems.stream()
+                                          .filter(wi -> wi.title.contains("DSMB")).findFirst().orElseThrow();
 
         String resolution = "{\"outcome\":\"REVIEWED\",\"reviewedAt\":\"2026-05-22T13:00:00Z\"}";
         workItemService.completeFromSystem(safetyItem.id, "senior-monitor", resolution);
         workItemService.completeFromSystem(dsmbItem.id, "dsmb-chair", resolution);
 
         // Re-fetch after completion so WorkItems have updated resolution and status
-        List<WorkItem> completedItems = aeWorkItems();
-        WorkItem completedSafety = completedItems.stream()
-                .filter(wi -> wi.title.contains("Senior")).findFirst().orElseThrow();
-        WorkItem completedDsmb = completedItems.stream()
-                .filter(wi -> wi.title.contains("DSMB")).findFirst().orElseThrow();
+        List<WorkItemEntity> completedItems = aeWorkItems();
+        WorkItemEntity completedSafety = completedItems.stream()
+                                                       .filter(wi -> wi.title.contains("Senior")).findFirst().orElseThrow();
+        WorkItemEntity completedDsmb = completedItems.stream()
+                                                     .filter(wi -> wi.title.contains("DSMB")).findFirst().orElseThrow();
 
         lifecycleAdapter.onWorkItemLifecycle(
                 WorkItemLifecycleEvent.of("COMPLETED", completedSafety, "senior-monitor", completedSafety.resolution));
@@ -160,7 +160,7 @@ class AeEscalationLifecycleTest {
         return new AdverseEventReportedEvent(aeId, enrollmentId, siteId, grade, Instant.now(), principal.tenancyId());
     }
 
-    private List<WorkItem> aeWorkItems() {
+    private List<WorkItemEntity> aeWorkItems() {
         return workItemQueries.scanAll().stream()
                 .filter(wi -> wi.payload != null && wi.payload.contains(aeId.toString()))
                 .toList();

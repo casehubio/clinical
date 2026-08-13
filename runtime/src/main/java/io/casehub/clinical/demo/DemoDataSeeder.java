@@ -32,8 +32,8 @@ import io.casehub.qhorus.api.gateway.ChannelRef;
 import io.casehub.qhorus.api.gateway.InboundHumanMessage;
 import io.casehub.qhorus.runtime.channel.ChannelService;
 import io.casehub.qhorus.runtime.gateway.ChannelGateway;
-import io.casehub.work.runtime.model.WorkItem;
-import io.casehub.work.runtime.repository.WorkItemStore;
+import io.casehub.work.runtime.model.WorkItemEntity;
+import io.casehub.work.api.spi.WorkItemStore;
 import io.casehub.work.runtime.service.WorkItemService;
 import io.quarkus.arc.profile.IfBuildProfile;
 import io.quarkus.narayana.jta.QuarkusTransaction;
@@ -413,10 +413,10 @@ public class DemoDataSeeder {
 
         // Step 4: Complete the gate WorkItem
         QuarkusTransaction.requiringNew().run(() -> {
-            WorkItem gateWorkItem = workItemStore.scanAll().stream()
-                    .filter(wi -> wi.callerRef != null && wi.callerRef.contains("case:" + caseIdStr))
-                    .findFirst()
-                    .orElseThrow(() -> new IllegalStateException(
+            WorkItemEntity gateWorkItem = workItemStore.scanAll().stream()
+                                                       .filter(wi -> wi.callerRef != null && wi.callerRef.contains("case:" + caseIdStr))
+                                                       .findFirst()
+                                                       .orElseThrow(() -> new IllegalStateException(
                             "Gate WorkItem not found for SUSAR case " + caseIdStr));
 
             String resolution = "{\"decision\":\"APPROVED\",\"approvedBy\":\"demo-investigator\"}";

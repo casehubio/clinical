@@ -10,7 +10,7 @@ and the specific casehub-clinical class that closes it.
 | Adverse event SLA — Grade 3/4 within 24h | No deadline tracking | `WorkItem.claimDeadline` — `AdverseEventService` | 2 |
 | PI authorisation for protocol deviations | Agent autonomous | COMMAND commitment — `ProtocolDeviationService` | 3 |
 | FDA tamper-evident audit | No audit trail | Merkle MMR — `AdverseEventLedgerEntry` | 4 |
-| IRB gate for CRITICAL deviations | Not addressed | `deviation-review.yaml` humanTask; 72h `WorkItem` | 5 |
+| IRB gate for CRITICAL deviations | Not addressed | `deviation-review.yaml` humanTask; 72h `WorkItemEntity` | 5 |
 | GDPR consent withdrawal (Art.17) | Not applicable | `ConsentWithdrawalService` + `LedgerErasureService` | 8 |
 | Multi-site independence | Single-site linear pipeline | Trial-level `CaseInstance`; per-site blackboard signals | 6 |
 | Trust-weighted safety routing | No trust model | `ClinicalTrustRoutingPolicyProvider`; EigenTrust | 7 |

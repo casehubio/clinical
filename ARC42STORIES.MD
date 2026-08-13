@@ -548,7 +548,7 @@ None — Chapter 1 establishes the gaps that subsequent Chapters close.
 **What this delivers**
 
 Before: `ae.persist()` — no SLA clock, no deadline, no audit record. An FDA inspector reading the database cannot verify whether any adverse event was ever reviewed or when.
-After: `AdverseEventService.reportAdverseEvent()` creates a `WorkItem` with `claimDeadline = reportedAt + grade.sla()` and writes an `AdverseEventLedgerEntry` into the Merkle chain in the same `@Transactional` call. SLA miss triggers platform escalation. Both records are independently verifiable.
+After: `AdverseEventService.reportAdverseEvent()` creates a `WorkItemEntity` with `claimDeadline = reportedAt + grade.sla()` and writes an `AdverseEventLedgerEntry` into the Merkle chain in the same `@Transactional` call. SLA miss triggers platform escalation. Both records are independently verifiable.
 
 Not closed here: L3 (no formal PI accountability for deviations), L5 (Grade 3+ AE routing is still hardcoded — adaptive gate selection arrives in C4).
 
@@ -564,7 +564,7 @@ Not closed here: L3 (no formal PI accountability for deviations), L5 (Grade 3+ A
 | Layer | Delta |
 |---|---|
 | L1 Domain Baseline | Low — `AdverseEvent.workItemId UUID` column (V106) |
-| L2 casehub-work | High — `AdverseEventService`, `WorkItem` with SLA, escalation routing |
+| L2 casehub-work | High — `AdverseEventService`, `WorkItemEntity` with SLA, escalation routing |
 | L4 casehub-ledger | High — `AdverseEventLedgerEntry`, `AdverseEventLedgerWriter`, Merkle chain |
 
 ---
@@ -814,7 +814,7 @@ Test infrastructure: `InMemoryLedgerEntryRepository` added to test `selected-alt
 #### What it adds
 
 **Before:** `ae.persist()` — Grade 3 adverse event persisted with no SLA, no deadline, no formal obligation on any safety officer.
-**After:** `AdverseEventService.reportAdverseEvent()` creates a `WorkItem` with `claimDeadline = reportedAt + grade.sla()` and stores `workItemId` on the `AdverseEvent` entity. Platform escalation fires automatically on SLA miss — clinical code does not change between deployments.
+**After:** `AdverseEventService.reportAdverseEvent()` creates a `WorkItemEntity` with `claimDeadline = reportedAt + grade.sla()` and stores `workItemId` on the `AdverseEvent` entity. Platform escalation fires automatically on SLA miss — clinical code does not change between deployments.
 
 What this layer adds:
 - **Grade-keyed `claimDeadline`** — `grade.sla().orElseThrow()` anchors the SLA clock to `reportedAt` (set server-side, ignoring client timestamp); Grade 3/4 = 24h, Grade 5 = 1h, Grade 1/2 = 7d
@@ -855,7 +855,7 @@ Not closed here: L4 (tamper-evident audit for AEs), L5 (Grade 3+ routing becomes
 
 #### Pattern introduced
 
-Server-side SLA clock anchoring — `reportedAt = clock.instant()` in the service layer; `claimDeadline = reportedAt + domain.sla()` passed to `WorkItem`.
+Server-side SLA clock anchoring — `reportedAt = clock.instant()` in the service layer; `claimDeadline = reportedAt + domain.sla()` passed to `WorkItemEntity`.
 
 #### Pattern anchor
 
