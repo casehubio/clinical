@@ -16,7 +16,7 @@ import io.casehub.clinical.entity.TrialSite;
 import io.casehub.clinical.support.WorkItemCompletionCapture;
 import io.casehub.clinical.support.WorkItemQueries;
 import io.casehub.work.runtime.event.WorkItemLifecycleEvent;
-import io.casehub.work.runtime.model.WorkItem;
+import io.casehub.work.api.WorkItem;
 import io.casehub.work.api.WorkItemStatus;
 import io.casehub.work.runtime.service.WorkItemService;
 import io.casehub.work.engine.WorkItemLifecycleAdapter;
@@ -80,18 +80,18 @@ class IrbGateLifecycleTest {
                 .untilAsserted(() -> {
                     List<WorkItem> items = irbWorkItems();
                     assertThat(items).as("IRB WorkItem").isNotEmpty();
-                    assertThat(items.get(0).title).contains("IRB consultation");
+                    assertThat(items.get(0).title()).contains("IRB consultation");
                 });
 
         WorkItem irbWorkItem = irbWorkItems().get(0);
 
         // Checkpoint 3: complete WorkItem — fires async CDI lifecycle event to all observers
         String resolution = "{\"decision\":\"APPROVED\",\"committeeId\":\"irb-001\",\"decidedAt\":\"2026-05-22T12:00:00Z\"}";
-        workItemService.completeFromSystem(irbWorkItem.id, "irb-committee", resolution);
+        workItemService.completeFromSystem(irbWorkItem.id(), "irb-committee", resolution);
 
         // Verify in-process CDI delivery to IrbDecisionListener (in-process — reliable)
         await().atMost(3, SECONDS).pollInterval(100, MILLISECONDS)
-                .untilAsserted(() -> assertThat(completionCapture.wasCompleted(irbWorkItem.id)).isTrue());
+                .untilAsserted(() -> assertThat(completionCapture.wasCompleted(irbWorkItem.id())).isTrue());
 
         // Verify IrbDecisionListener updated the IrbApproval
         await().atMost(3, SECONDS).pollInterval(100, MILLISECONDS)
@@ -102,7 +102,7 @@ class IrbGateLifecycleTest {
         // delivery to indexed external jar observers is unreliable in tests)
         WorkItem completed = irbWorkItems().get(0);
         lifecycleAdapter.onWorkItemLifecycle(
-                WorkItemLifecycleEvent.of("COMPLETED", completed, "irb-committee", completed.resolution));
+                WorkItemLifecycleEvent.of("COMPLETED", completed, "irb-committee", completed.resolution()));
 
         // Checkpoint 4: IrbDecisionListener updated the domain state — that is the completion signal.
         // Engine case state verification via findByUuid requires tenancyId from FixedCurrentPrincipal
@@ -124,11 +124,11 @@ class IrbGateLifecycleTest {
         // Simulate expiry via direct listener invocation:
         // IrbDecisionListener handles EXPIRED by updating IrbApproval AND signaling the case directly
         // (adapter would call markFaulted() which doesn't fire outputMapping — listener bypasses that).
-        // WorkItemLifecycleEvent.of uses workItem.status for event.status() — must set EXPIRED on the
-        // entity before constructing the event so IrbDecisionListener.resolveDecision returns EXPIRED.
-        irbWorkItem.status = WorkItemStatus.EXPIRED;
+        // WorkItemLifecycleEvent.of uses workItem.status() for event.status() — must set EXPIRED
+        // before constructing the event so IrbDecisionListener.resolveDecision returns EXPIRED.
+        WorkItem expiredItem = irbWorkItem.toBuilder().status(WorkItemStatus.EXPIRED).build();
         irbDecisionListener.onWorkItemLifecycle(
-                WorkItemLifecycleEvent.of("EXPIRED", irbWorkItem, "system", null));
+                WorkItemLifecycleEvent.of("EXPIRED", expiredItem, "system", null));
 
         await().atMost(3, SECONDS).pollInterval(100, MILLISECONDS)
                 .untilAsserted(() ->
@@ -158,7 +158,7 @@ class IrbGateLifecycleTest {
 
     private List<WorkItem> irbWorkItems() {
         return workItemQueries.scanAll().stream()
-                .filter(wi -> wi.payload != null && wi.payload.contains(deviationId.toString()))
+                .filter(wi -> wi.payload() != null && wi.payload().contains(deviationId.toString()))
                 .toList();
     }
 

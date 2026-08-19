@@ -3,7 +3,7 @@ package io.casehub.clinical.service;
 import io.casehub.clinical.api.model.RegulatorySubmissionStatus;
 import io.casehub.clinical.entity.AdverseEvent;
 import io.casehub.work.runtime.event.WorkItemLifecycleEvent;
-import io.casehub.work.runtime.model.WorkItem;
+import io.casehub.work.api.WorkItem;
 import io.casehub.work.api.WorkItemStatus;
 import io.casehub.work.engine.CallerRef;
 import jakarta.enterprise.context.ApplicationScoped;
@@ -40,7 +40,7 @@ public class RegulatorySubmissionBreachListener {
         if (workItem == null) {
             return;
         }
-        CallerRef ref = CallerRef.parse(workItem.callerRef);
+        CallerRef ref = CallerRef.parse(workItem.callerRef());
         if (ref == null) {
             return;
         }

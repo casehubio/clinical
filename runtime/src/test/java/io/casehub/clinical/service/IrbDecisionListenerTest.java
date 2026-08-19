@@ -5,7 +5,7 @@ import io.casehub.clinical.api.model.IrbDecision;
 import io.casehub.clinical.entity.IrbApproval;
 import io.casehub.clinical.memory.ClinicalMemoryService;
 import io.casehub.work.runtime.event.WorkItemLifecycleEvent;
-import io.casehub.work.runtime.model.WorkItem;
+import io.casehub.work.api.WorkItem;
 import io.casehub.work.api.WorkItemStatus;
 import io.casehub.work.engine.PlanItemCallerRef;
 import io.quarkus.test.InjectMock;
@@ -67,29 +67,32 @@ class IrbDecisionListenerTest {
     // --- Helper factories ---
 
     private WorkItemLifecycleEvent completedEvent(String decisionJson) {
-        WorkItem workItem = new WorkItem();
-        workItem.id = UUID.randomUUID();
-        workItem.status = WorkItemStatus.COMPLETED;
-        workItem.payload = "{\"deviationId\":\"" + deviationId + "\"}";
-        workItem.resolution = "{\"decision\":\"" + decisionJson + "\"}";
+        WorkItem workItem = WorkItem.builder()
+                .id(UUID.randomUUID())
+                .status(WorkItemStatus.COMPLETED)
+                .payload("{\"deviationId\":\"" + deviationId + "\"}")
+                .resolution("{\"decision\":\"" + decisionJson + "\"}")
+                .build();
         return WorkItemLifecycleEvent.of("COMPLETED", workItem, "irb-test", null);
     }
 
     private WorkItemLifecycleEvent expiredEvent() {
         UUID caseId = UUID.randomUUID();
-        WorkItem workItem = new WorkItem();
-        workItem.id = UUID.randomUUID();
-        workItem.status = WorkItemStatus.EXPIRED;
-        workItem.payload = "{\"deviationId\":\"" + deviationId + "\"}";
-        workItem.callerRef = PlanItemCallerRef.encode(caseId, "irb-consultation");
+        WorkItem workItem = WorkItem.builder()
+                .id(UUID.randomUUID())
+                .status(WorkItemStatus.EXPIRED)
+                .payload("{\"deviationId\":\"" + deviationId + "\"}")
+                .callerRef(PlanItemCallerRef.encode(caseId, "irb-consultation"))
+                .build();
         return WorkItemLifecycleEvent.of("EXPIRED", workItem, "irb-test", null);
     }
 
     private WorkItemLifecycleEvent nonIrbEvent() {
-        WorkItem workItem = new WorkItem();
-        workItem.id = UUID.randomUUID();
-        workItem.status = WorkItemStatus.COMPLETED;
-        workItem.payload = "{}"; // no deviationId
+        WorkItem workItem = WorkItem.builder()
+                .id(UUID.randomUUID())
+                .status(WorkItemStatus.COMPLETED)
+                .payload("{}")
+                .build();
         return WorkItemLifecycleEvent.of("COMPLETED", workItem, "irb-test", null);
     }
 

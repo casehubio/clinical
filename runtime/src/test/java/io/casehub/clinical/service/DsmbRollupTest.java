@@ -15,7 +15,7 @@ import io.casehub.clinical.api.model.AeOutcome;
 import io.casehub.clinical.api.model.EventActuality;
 import io.casehub.clinical.support.WorkItemCompletionCapture;
 import io.casehub.clinical.support.WorkItemQueries;
-import io.casehub.work.runtime.model.WorkItem;
+import io.casehub.work.api.WorkItem;
 import io.casehub.work.api.WorkItemStatus;
 import io.casehub.work.runtime.service.WorkItemService;
 import io.casehub.work.engine.WorkItemLifecycleAdapter;
@@ -77,8 +77,8 @@ class DsmbRollupTest {
                 .untilAsserted(() -> {
                     List<WorkItem> items = dsmbRollupWorkItems();
                     assertThat(items).as("DSMB rollup WorkItem").isNotEmpty();
-                    assertThat(items.get(0).title).contains("DSMB review");
-                    assertThat(items.get(0).title).contains("multiple sites");
+                    assertThat(items.get(0).title()).contains("DSMB review");
+                    assertThat(items.get(0).title()).contains("multiple sites");
                 });
     }
 
@@ -105,8 +105,8 @@ class DsmbRollupTest {
 
     private List<WorkItem> dsmbRollupWorkItems() {
         return workItemQueries.scanAll().stream()
-                .filter(wi -> wi.title != null && wi.title.contains("DSMB review")
-                        && wi.title.contains("multiple sites"))
+                .filter(wi -> wi.title() != null && wi.title().contains("DSMB review")
+                        && wi.title().contains("multiple sites"))
                 .toList();
     }
 

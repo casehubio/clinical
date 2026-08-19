@@ -10,8 +10,8 @@ import io.casehub.qhorus.api.gateway.ChannelRef;
 import io.casehub.qhorus.api.gateway.InboundHumanMessage;
 import io.casehub.qhorus.runtime.channel.ChannelService;
 import io.casehub.qhorus.runtime.gateway.ChannelGateway;
-import io.casehub.work.runtime.model.WorkItem;
-import io.casehub.work.runtime.repository.WorkItemStore;
+import io.casehub.work.api.WorkItem;
+import io.casehub.work.api.spi.WorkItemStore;
 import io.casehub.work.runtime.service.WorkItemService;
 import io.quarkus.arc.profile.IfBuildProfile;
 import jakarta.inject.Inject;
@@ -148,7 +148,7 @@ public class DemoActionResource {
         // GateCallerRef.encode() produces "case:<caseId>/gate:<gateId>".
         String caseIdStr = ae.susarOversightCaseId.toString();
         WorkItem gateWorkItem = workItemStore.scanAll().stream()
-                .filter(wi -> wi.callerRef != null && wi.callerRef.contains("case:" + caseIdStr))
+                .filter(wi -> wi.callerRef() != null && wi.callerRef().contains("case:" + caseIdStr))
                 .findFirst()
                 .orElse(null);
 
@@ -162,9 +162,9 @@ public class DemoActionResource {
         }
 
         String resolution = "{\"decision\":\"APPROVED\",\"approvedBy\":\"demo-investigator\"}";
-        workItemService.completeFromSystem(gateWorkItem.id, "demo-investigator", resolution);
+        workItemService.completeFromSystem(gateWorkItem.id(), "demo-investigator", resolution);
 
-        LOG.infof("Demo SUSAR gate approved for aeId=%s workItemId=%s", aeId, gateWorkItem.id);
+        LOG.infof("Demo SUSAR gate approved for aeId=%s workItemId=%s", aeId, gateWorkItem.id());
 
         // Trigger immediate trust score recomputation (normally 24h cron)
         try {
@@ -178,7 +178,7 @@ public class DemoActionResource {
         return Response.ok(Map.of(
                 "aeId", aeId.toString(),
                 "action", "SUSAR_GATE_APPROVED",
-                "workItemId", gateWorkItem.id.toString(),
+                "workItemId", gateWorkItem.id().toString(),
                 "note", "ActionGateApprovedEvent fired — trust scores recomputed"))
                 .build();
     }

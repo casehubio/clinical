@@ -1,7 +1,7 @@
 package io.casehub.clinical.support;
 
-import io.casehub.work.runtime.model.WorkItem;
-import io.casehub.work.runtime.repository.WorkItemStore;
+import io.casehub.work.api.WorkItem;
+import io.casehub.work.api.spi.WorkItemStore;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 import jakarta.transaction.Transactional;
