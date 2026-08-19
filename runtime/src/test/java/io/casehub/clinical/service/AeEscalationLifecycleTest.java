@@ -17,7 +17,7 @@ import io.casehub.clinical.entity.AdverseEvent;
 import io.casehub.clinical.support.WorkItemCompletionCapture;
 import io.casehub.clinical.support.WorkItemQueries;
 import io.casehub.platform.testing.FixedCurrentPrincipal;
-import io.casehub.work.runtime.event.WorkItemLifecycleEvent;
+import io.casehub.work.api.WorkItemLifecycleEvent;
 import io.casehub.work.api.WorkItem;
 import io.casehub.work.runtime.service.WorkItemService;
 import io.casehub.work.engine.WorkItemLifecycleAdapter;

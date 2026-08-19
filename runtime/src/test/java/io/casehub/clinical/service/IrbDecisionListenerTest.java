@@ -4,7 +4,7 @@ import io.casehub.clinical.api.IrbApprovalResolvedEvent;
 import io.casehub.clinical.api.model.IrbDecision;
 import io.casehub.clinical.entity.IrbApproval;
 import io.casehub.clinical.memory.ClinicalMemoryService;
-import io.casehub.work.runtime.event.WorkItemLifecycleEvent;
+import io.casehub.work.api.WorkItemLifecycleEvent;
 import io.casehub.work.api.WorkItem;
 import io.casehub.work.api.WorkItemStatus;
 import io.casehub.work.engine.PlanItemCallerRef;
