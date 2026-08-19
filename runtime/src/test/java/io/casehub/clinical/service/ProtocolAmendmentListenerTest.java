@@ -1,15 +1,13 @@
 package io.casehub.clinical.service;
 
-import io.casehub.api.context.CaseContext;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.ObjectNode;
 import io.casehub.clinical.api.model.AmendmentCaseStatus;
 import io.casehub.clinical.api.model.ProtocolAmendmentStatus;
 import io.casehub.clinical.entity.ProtocolAmendment;
-import io.casehub.engine.common.internal.model.CaseInstance;
-import io.casehub.engine.common.spi.CaseInstanceRepository;
 import io.casehub.engine.common.spi.event.CaseLifecycleEvent;
 import io.quarkus.test.InjectMock;
 import io.quarkus.test.junit.QuarkusTest;
-import io.smallrye.mutiny.Uni;
 import jakarta.inject.Inject;
 import jakarta.transaction.Transactional;
 import org.junit.jupiter.api.BeforeEach;
@@ -18,21 +16,19 @@ import org.junit.jupiter.api.Test;
 import java.time.Instant;
 import java.util.UUID;
 
-import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doNothing;
-import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
-import static org.mockito.Mockito.when;
 
 @QuarkusTest
 class ProtocolAmendmentListenerTest {
 
+    private static final ObjectMapper MAPPER = new ObjectMapper();
+
     @Inject ProtocolAmendmentListener listener;
-    @InjectMock CaseInstanceRepository caseInstanceRepository;
     @InjectMock ProtocolAmendmentStatusUpdater statusUpdater;
 
     UUID amendmentId;
@@ -54,66 +50,50 @@ class ProtocolAmendmentListenerTest {
         a.proposedAt = Instant.now();
         a.persist();
 
-        // Stub statusUpdater as no-op — updater tests cover write logic
         doNothing().when(statusUpdater).applyRecommendation(any(), any());
     }
 
-    private CaseLifecycleEvent goalReached(UUID caseId, String tenancyId) {
-        return CaseLifecycleEvent.of(caseId, tenancyId, "CompleteCase",
-            "GoalReached", "RUNNING", "system", "system", null);
+    private CaseLifecycleEvent goalReached(UUID caseId, ObjectNode snapshot) {
+        return new CaseLifecycleEvent(caseId, "default", "CompleteCase",
+            "GoalReached", "RUNNING", "system", "system", null,
+            null, null, snapshot, null, null);
     }
 
-    private void mockInstance(UUID caseId, String advisorRec) {
-        CaseContext ctx = mock(CaseContext.class);
-        when(ctx.getPath("amendmentId")).thenReturn(amendmentId.toString());
-        when(ctx.getPath("advisorRecommendation")).thenReturn(advisorRec);
-        CaseInstance instance = mock(CaseInstance.class);
-        when(instance.getCaseContext()).thenReturn(ctx);
-        when(caseInstanceRepository.findByUuid(eq(caseId), any()))
-            .thenReturn(instance);
+    private ObjectNode buildSnapshot(String advisorRec) {
+        ObjectNode snapshot = MAPPER.createObjectNode();
+        snapshot.put("amendmentId", amendmentId.toString());
+        if (advisorRec != null) snapshot.put("advisorRecommendation", advisorRec);
+        return snapshot;
     }
 
     @Test
     void proceed_delegates_to_updater() {
-        mockInstance(caseId, "PROCEED");
-        listener.onCaseLifecycle(goalReached(caseId, "default"));
-
+        listener.onCaseLifecycle(goalReached(caseId, buildSnapshot("PROCEED")));
         verify(statusUpdater).applyRecommendation(eq(amendmentId), eq("PROCEED"));
     }
 
     @Test
     void halt_delegates_to_updater() {
-        mockInstance(caseId, "HALT");
-        listener.onCaseLifecycle(goalReached(caseId, "default"));
-
+        listener.onCaseLifecycle(goalReached(caseId, buildSnapshot("HALT")));
         verify(statusUpdater).applyRecommendation(eq(amendmentId), eq("HALT"));
     }
 
     @Test
     void refer_to_dsmb_delegates_to_updater() {
-        mockInstance(caseId, "REFER_TO_DSMB");
-        listener.onCaseLifecycle(goalReached(caseId, "default"));
-
+        listener.onCaseLifecycle(goalReached(caseId, buildSnapshot("REFER_TO_DSMB")));
         verify(statusUpdater).applyRecommendation(eq(amendmentId), eq("REFER_TO_DSMB"));
     }
 
     @Test
     void non_amendment_case_skipped_when_amendmentId_absent_from_context() {
-        CaseContext ctx = mock(CaseContext.class);
-        when(ctx.getPath("amendmentId")).thenReturn(null);
-        CaseInstance instance = mock(CaseInstance.class);
-        when(instance.getCaseContext()).thenReturn(ctx);
-        when(caseInstanceRepository.findByUuid(eq(caseId), any()))
-            .thenReturn(instance);
-
-        listener.onCaseLifecycle(goalReached(caseId, "default"));
+        ObjectNode snapshot = MAPPER.createObjectNode();
+        listener.onCaseLifecycle(goalReached(caseId, snapshot));
         verifyNoInteractions(statusUpdater);
     }
 
     @Test
     void delegates_exactly_once_per_event() {
-        mockInstance(caseId, "PROCEED");
-        listener.onCaseLifecycle(goalReached(caseId, "default"));
+        listener.onCaseLifecycle(goalReached(caseId, buildSnapshot("PROCEED")));
         verify(statusUpdater, times(1)).applyRecommendation(eq(amendmentId), eq("PROCEED"));
     }
 }

@@ -1,8 +1,8 @@
 package io.casehub.clinical.service;
 
+import com.fasterxml.jackson.databind.JsonNode;
 import io.casehub.clinical.api.AeEscalationCompletedEvent;
 import io.casehub.clinical.api.model.CtcaeGrade;
-import io.casehub.engine.common.spi.CaseInstanceRepository;
 import io.casehub.engine.common.spi.event.CaseLifecycleEvent;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.enterprise.event.Event;
@@ -10,84 +10,68 @@ import jakarta.enterprise.event.ObservesAsync;
 import jakarta.inject.Inject;
 import org.jboss.logging.Logger;
 
-import java.time.Duration;
 import java.time.Instant;
-import java.util.Map;
 import java.util.UUID;
 
 /**
  * Observes case lifecycle events and handles AE escalation case completion.
  *
  * <p>Discriminates AE escalation cases by presence of {@code aeId} in the case
- * context (set at case start by AeEscalationCaseService). Deviation review cases
- * and other cases lack this key and are silently ignored.
- *
- * <p>{@code CaseLifecycleEvent} is from {@code io.casehub.engine.common.spi.event}
- * — the public SPI package promoted in engine#378 (was internal.event).
+ * context snapshot (set at case start by AeEscalationCaseService). Deviation review
+ * cases and other cases lack this key and are silently ignored.
  */
 @ApplicationScoped
 public class AeEscalationListener {
 
     private static final Logger LOG = Logger.getLogger(AeEscalationListener.class);
-    private static final Duration LOOKUP_TIMEOUT = Duration.ofSeconds(5);
-    /** Key written by the AE escalation YAML binding's outputMapping: "{ safetyReview: . }". */
     static final String OUTCOME_KEY = "outcome";
 
-    @Inject CaseInstanceRepository caseInstanceRepository;
     @Inject AeEscalationLedgerWriter ledgerWriter;
     @Inject AeStatusUpdater statusUpdater;
     @Inject Event<AeEscalationCompletedEvent> completedEvents;
     @Inject io.casehub.clinical.memory.ClinicalMemoryService memoryService;
-    @Inject
-            io.casehub.clinical.cbr.AeTrajectoryAlertService aeTrajectoryAlertService;
-
+    @Inject io.casehub.clinical.cbr.AeTrajectoryAlertService aeTrajectoryAlertService;
 
     public void onCaseLifecycle(@ObservesAsync CaseLifecycleEvent event) {
         LOG.debugf("AeEscalationListener: received eventType=%s caseStatus=%s caseId=%s", event.eventType(), event.caseStatus(), event.caseId());
         if (!"GoalReached".equals(event.eventType()) && !"CaseCompleted".equals(event.eventType())) return;
 
-        var instance = caseInstanceRepository
-                .findByUuid(event.caseId(), event.tenancyId());
-        if (instance == null) return;
+        JsonNode snapshot = event.contextSnapshot();
+        if (snapshot == null) return;
 
-        Object aeIdObj = instance.getCaseContext().getPath("aeId");
-        if (aeIdObj == null) return; // not an AE escalation case
+        String aeIdStr = snapshot.path("aeId").asText(null);
+        if (aeIdStr == null) return;
 
         UUID aeId;
         try {
-            aeId = UUID.fromString(aeIdObj.toString());
+            aeId = UUID.fromString(aeIdStr);
         } catch (IllegalArgumentException e) {
-            LOG.warnf("AeEscalationListener: invalid aeId in case context: %s", aeIdObj);
+            LOG.warnf("AeEscalationListener: invalid aeId in case context: %s", aeIdStr);
             return;
         }
 
-        // REQUIRES_NEW: commits independently of the outer transaction.
-        // Returns false if already COMPLETED — GoalReached fires multiple times per case (idempotency guard).
         boolean firstCompletion = statusUpdater.markCompleted(aeId);
         if (!firstCompletion) return;
         try { aeTrajectoryAlertService.evaluate(aeId, event.tenancyId()); } catch (Exception te) { LOG.warnf(te, "Trajectory alert evaluation failed for aeId=%s", aeId); }
 
-        // Context resolution outside try block — if these throw, no REQUIRES_NEW has committed,
-        // so there is no FDA gap. Exceptions propagate to the @ObservesAsync dispatcher, which logs them.
-        UUID enrollmentId = resolveUuid(instance.getCaseContext().getPath("enrollmentId"));
+        UUID enrollmentId = resolveUuid(snapshot.path("enrollmentId").asText(null));
         if (enrollmentId == null) {
             LOG.warnf("AeEscalationListener: enrollmentId missing from case context for aeId=%s — ledger write skipped", aeId);
             return;
         }
-        UUID siteId = resolveUuid(instance.getCaseContext().getPath("siteId"));
-        CtcaeGrade grade = resolveGrade(instance.getCaseContext().getPath("grade"));
-        String safetyReviewOutcome = resolveOutcome(instance.getCaseContext().getPath("safetyReview"));
-        boolean dsmbEscalated = instance.getCaseContext().getPath("dsmbEscalation") != null;
-        boolean unexpected = Boolean.TRUE.equals(instance.getCaseContext().getPath("unexpected"));
+        UUID siteId = resolveUuid(snapshot.path("siteId").asText(null));
+        CtcaeGrade grade = resolveGrade(snapshot.path("grade").asText(null));
+        String safetyReviewOutcome = snapshot.path("safetyReview").path(OUTCOME_KEY).asText(null);
+        boolean dsmbEscalated = !snapshot.path("dsmbEscalation").isMissingNode()
+                && !snapshot.path("dsmbEscalation").isNull();
+        boolean unexpected = snapshot.path("unexpected").asBoolean(false);
         Instant completedAt = Instant.now();
 
-        // Narrow try/catch: markCompleted committed (REQUIRES_NEW). Any exception here is an FDA gap.
-        // ledgerWritten guards against a spurious failure entry when only fireAsync throws after success.
         boolean ledgerWritten = false;
         try {
             ledgerWriter.writeCompletionEntry(aeId, enrollmentId, grade, safetyReviewOutcome, dsmbEscalated, completedAt);
             ledgerWritten = true;
-            String tenantId = resolveString(instance.getCaseContext().getPath("tenantId"));
+            String tenantId = snapshot.path("tenantId").asText(null);
             if (tenantId != null) {
                 memoryService.storeAeOutcome(aeId, enrollmentId, grade, safetyReviewOutcome, dsmbEscalated, tenantId);
             }
@@ -107,23 +91,13 @@ public class AeEscalationListener {
         }
     }
 
-    private String resolveString(Object obj) {
-        return obj != null ? obj.toString() : null;
+    private UUID resolveUuid(String str) {
+        if (str == null) return null;
+        try { return UUID.fromString(str); } catch (IllegalArgumentException e) { return null; }
     }
 
-    private UUID resolveUuid(Object obj) {
-        if (obj == null) return null;
-        try { return UUID.fromString(obj.toString()); } catch (IllegalArgumentException e) { return null; }
-    }
-
-    private CtcaeGrade resolveGrade(Object obj) {
-        if (obj == null) return null;
-        try { return CtcaeGrade.valueOf(obj.toString()); } catch (IllegalArgumentException e) { return null; }
-    }
-
-    private String resolveOutcome(Object obj) {
-        if (!(obj instanceof Map<?, ?> map)) return null;
-        Object outcome = map.get(OUTCOME_KEY);
-        return outcome != null ? outcome.toString() : null;
+    private CtcaeGrade resolveGrade(String str) {
+        if (str == null) return null;
+        try { return CtcaeGrade.valueOf(str); } catch (IllegalArgumentException e) { return null; }
     }
 }
