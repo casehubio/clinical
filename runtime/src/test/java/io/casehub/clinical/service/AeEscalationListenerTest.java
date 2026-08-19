@@ -1,13 +1,11 @@
 package io.casehub.clinical.service;
 
-import io.casehub.api.context.CaseContext;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.ObjectNode;
 import io.casehub.clinical.api.AeEscalationCompletedEvent;
 import io.casehub.clinical.api.model.CtcaeGrade;
-import io.casehub.engine.common.spi.event.CaseLifecycleEvent;
-import io.casehub.engine.common.internal.model.CaseInstance;
 import io.casehub.clinical.memory.ClinicalMemoryService;
-import io.casehub.engine.common.spi.CaseInstanceRepository;
-import io.smallrye.mutiny.Uni;
+import io.casehub.engine.common.spi.event.CaseLifecycleEvent;
 import jakarta.enterprise.event.Event;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -16,7 +14,6 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
-import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 
@@ -30,7 +27,8 @@ import static org.mockito.Mockito.*;
 @ExtendWith(MockitoExtension.class)
 class AeEscalationListenerTest {
 
-    @Mock CaseInstanceRepository caseInstanceRepository;
+    private static final ObjectMapper MAPPER = new ObjectMapper();
+
     @Mock AeEscalationLedgerWriter ledgerWriter;
     @Mock AeStatusUpdater statusUpdater;
     @Mock Event<AeEscalationCompletedEvent> completedEvents;
@@ -44,24 +42,15 @@ class AeEscalationListenerTest {
         UUID enrollmentId = UUID.randomUUID();
         UUID siteId = UUID.randomUUID();
 
-        CaseContext ctx = mock(CaseContext.class);
-        when(ctx.getPath("aeId")).thenReturn(aeId.toString());
-        when(ctx.getPath("enrollmentId")).thenReturn(enrollmentId.toString());
-        when(ctx.getPath("grade")).thenReturn("GRADE_4");
-        when(ctx.getPath("siteId")).thenReturn(siteId.toString());
-        when(ctx.getPath("safetyReview")).thenReturn(Map.of(AeEscalationListener.OUTCOME_KEY, "REVIEWED"));
-        when(ctx.getPath("dsmbEscalation")).thenReturn("completed");
-        when(ctx.getPath("tenantId")).thenReturn("test-tenant");
-        when(ctx.getPath("unexpected")).thenReturn(null);
+        ObjectNode snapshot = buildSnapshot(aeId, enrollmentId, siteId, "GRADE_4",
+                "REVIEWED", "completed", "test-tenant", null);
 
-        CaseInstance instance = mock(CaseInstance.class);
-        when(instance.getCaseContext()).thenReturn(ctx);
-        when(caseInstanceRepository.findByUuid(eq(caseId), any())).thenReturn(instance);
         when(statusUpdater.markCompleted(aeId)).thenReturn(true);
         when(completedEvents.fireAsync(any())).thenReturn(CompletableFuture.completedFuture(null));
 
-        listener.onCaseLifecycle(CaseLifecycleEvent.of(
-                caseId, "default", "CompleteCase", "CaseCompleted", "COMPLETED", "system", "system", null));
+        listener.onCaseLifecycle(new CaseLifecycleEvent(
+                caseId, "default", "CompleteCase", "CaseCompleted", "COMPLETED",
+                "system", "system", null, null, null, snapshot, null, null));
 
         ArgumentCaptor<AeEscalationCompletedEvent> captor =
                 ArgumentCaptor.forClass(AeEscalationCompletedEvent.class);
@@ -80,24 +69,15 @@ class AeEscalationListenerTest {
         UUID enrollmentId = UUID.randomUUID();
         UUID siteId = UUID.randomUUID();
 
-        CaseContext ctx = mock(CaseContext.class);
-        when(ctx.getPath("aeId")).thenReturn(aeId.toString());
-        when(ctx.getPath("enrollmentId")).thenReturn(enrollmentId.toString());
-        when(ctx.getPath("grade")).thenReturn("GRADE_5");
-        when(ctx.getPath("siteId")).thenReturn(siteId.toString());
-        when(ctx.getPath("safetyReview")).thenReturn(Map.of(AeEscalationListener.OUTCOME_KEY, "REVIEWED"));
-        when(ctx.getPath("dsmbEscalation")).thenReturn("completed");
-        when(ctx.getPath("tenantId")).thenReturn("test-tenant");
-        when(ctx.getPath("unexpected")).thenReturn(true);
+        ObjectNode snapshot = buildSnapshot(aeId, enrollmentId, siteId, "GRADE_5",
+                "REVIEWED", "completed", "test-tenant", true);
 
-        CaseInstance instance = mock(CaseInstance.class);
-        when(instance.getCaseContext()).thenReturn(ctx);
-        when(caseInstanceRepository.findByUuid(eq(caseId), any())).thenReturn(instance);
         when(statusUpdater.markCompleted(aeId)).thenReturn(true);
         when(completedEvents.fireAsync(any())).thenReturn(CompletableFuture.completedFuture(null));
 
-        listener.onCaseLifecycle(CaseLifecycleEvent.of(
-                caseId, "default", "CompleteCase", "CaseCompleted", "COMPLETED", "system", "system", null));
+        listener.onCaseLifecycle(new CaseLifecycleEvent(
+                caseId, "default", "CompleteCase", "CaseCompleted", "COMPLETED",
+                "system", "system", null, null, null, snapshot, null, null));
 
         ArgumentCaptor<AeEscalationCompletedEvent> captor =
                 ArgumentCaptor.forClass(AeEscalationCompletedEvent.class);
@@ -108,10 +88,11 @@ class AeEscalationListenerTest {
 
     @Test
     void non_completed_events_are_ignored() {
-        listener.onCaseLifecycle(CaseLifecycleEvent.of(
-                UUID.randomUUID(), "default", "StartCase", "CaseStarted", "RUNNING", "system", "system", null));
+        listener.onCaseLifecycle(new CaseLifecycleEvent(
+                UUID.randomUUID(), "default", "StartCase", "CaseStarted", "RUNNING",
+                "system", "system", null, null, null, null, null, null));
 
-        verifyNoInteractions(caseInstanceRepository);
+        verifyNoInteractions(statusUpdater);
         verifyNoInteractions(completedEvents);
     }
 
@@ -120,16 +101,12 @@ class AeEscalationListenerTest {
         UUID caseId = UUID.randomUUID();
         UUID aeId = UUID.randomUUID();
 
-        CaseContext ctx = mock(CaseContext.class);
-        when(ctx.getPath("aeId")).thenReturn(aeId.toString());
-        when(ctx.getPath("enrollmentId")).thenReturn(null);
+        ObjectNode snapshot = MAPPER.createObjectNode();
+        snapshot.put("aeId", aeId.toString());
+
         when(statusUpdater.markCompleted(aeId)).thenReturn(true);
 
-        CaseInstance instance = mock(CaseInstance.class);
-        when(instance.getCaseContext()).thenReturn(ctx);
-        when(caseInstanceRepository.findByUuid(eq(caseId), any())).thenReturn(instance);
-
-        assertThatCode(() -> listener.onCaseLifecycle(goalReachedEvent(caseId)))
+        assertThatCode(() -> listener.onCaseLifecycle(goalReachedEvent(caseId, snapshot)))
             .doesNotThrowAnyException();
 
         verifyNoInteractions(ledgerWriter);
@@ -141,40 +118,15 @@ class AeEscalationListenerTest {
         UUID caseId = UUID.randomUUID();
         UUID aeId = UUID.randomUUID();
 
-        CaseContext ctx = mock(CaseContext.class);
-        when(ctx.getPath("aeId")).thenReturn(aeId.toString());
-        when(statusUpdater.markCompleted(aeId)).thenReturn(false); // already COMPLETED
+        ObjectNode snapshot = MAPPER.createObjectNode();
+        snapshot.put("aeId", aeId.toString());
 
-        CaseInstance instance = mock(CaseInstance.class);
-        when(instance.getCaseContext()).thenReturn(ctx);
-        when(caseInstanceRepository.findByUuid(eq(caseId), any())).thenReturn(instance);
+        when(statusUpdater.markCompleted(aeId)).thenReturn(false);
 
-        listener.onCaseLifecycle(CaseLifecycleEvent.of(
-                caseId, "default", "CompleteCase", "GoalReached", "RUNNING", "system", "system", null));
+        listener.onCaseLifecycle(goalReachedEvent(caseId, snapshot));
 
         verifyNoInteractions(ledgerWriter);
         verifyNoInteractions(completedEvents);
-    }
-
-    // --- helper methods ---
-
-    private CaseLifecycleEvent goalReachedEvent(UUID caseId) {
-        return CaseLifecycleEvent.of(
-                caseId, "default", "CompleteCase", "GoalReached", "RUNNING", "system", "system", null);
-    }
-
-    private void mockInstanceWith(UUID caseId, UUID aeId, UUID enrollmentId, String grade) {
-        CaseContext ctx = mock(CaseContext.class);
-        when(ctx.getPath("aeId")).thenReturn(aeId.toString());
-        when(ctx.getPath("enrollmentId")).thenReturn(enrollmentId.toString());
-        when(ctx.getPath("grade")).thenReturn(grade);
-        when(ctx.getPath("siteId")).thenReturn(null);
-        when(ctx.getPath("safetyReview")).thenReturn(null);
-        when(ctx.getPath("dsmbEscalation")).thenReturn(null);
-        when(ctx.getPath("unexpected")).thenReturn(null);
-        CaseInstance instance = mock(CaseInstance.class);
-        when(instance.getCaseContext()).thenReturn(ctx);
-        when(caseInstanceRepository.findByUuid(eq(caseId), any())).thenReturn(instance);
     }
 
     @Test
@@ -182,12 +134,14 @@ class AeEscalationListenerTest {
         UUID caseId = UUID.randomUUID();
         UUID aeId = UUID.randomUUID();
         UUID enrollmentId = UUID.randomUUID();
-        mockInstanceWith(caseId, aeId, enrollmentId, "GRADE_3");
+        ObjectNode snapshot = buildSnapshot(aeId, enrollmentId, null, "GRADE_3",
+                null, null, null, null);
+
         when(statusUpdater.markCompleted(aeId)).thenReturn(true);
         doThrow(new RuntimeException("ledger write failed"))
             .when(ledgerWriter).writeCompletionEntry(any(), any(), any(), any(), anyBoolean(), any());
 
-        assertThatCode(() -> listener.onCaseLifecycle(goalReachedEvent(caseId)))
+        assertThatCode(() -> listener.onCaseLifecycle(goalReachedEvent(caseId, snapshot)))
             .doesNotThrowAnyException();
 
         verify(ledgerWriter).writeObserverFailureEntry(eq(aeId), eq(enrollmentId), eq(CtcaeGrade.GRADE_3));
@@ -198,14 +152,16 @@ class AeEscalationListenerTest {
         UUID caseId = UUID.randomUUID();
         UUID aeId = UUID.randomUUID();
         UUID enrollmentId = UUID.randomUUID();
-        mockInstanceWith(caseId, aeId, enrollmentId, "GRADE_4");
+        ObjectNode snapshot = buildSnapshot(aeId, enrollmentId, null, "GRADE_4",
+                null, null, null, null);
+
         when(statusUpdater.markCompleted(aeId)).thenReturn(true);
         doThrow(new RuntimeException("ledger write failed"))
             .when(ledgerWriter).writeCompletionEntry(any(), any(), any(), any(), anyBoolean(), any());
         doThrow(new RuntimeException("fallback write failed"))
             .when(ledgerWriter).writeObserverFailureEntry(any(), any(), any());
 
-        assertThatCode(() -> listener.onCaseLifecycle(goalReachedEvent(caseId)))
+        assertThatCode(() -> listener.onCaseLifecycle(goalReachedEvent(caseId, snapshot)))
             .doesNotThrowAnyException();
     }
 
@@ -214,14 +170,42 @@ class AeEscalationListenerTest {
         UUID caseId = UUID.randomUUID();
         UUID aeId = UUID.randomUUID();
         UUID enrollmentId = UUID.randomUUID();
-        mockInstanceWith(caseId, aeId, enrollmentId, "GRADE_3");
+        ObjectNode snapshot = buildSnapshot(aeId, enrollmentId, null, "GRADE_3",
+                null, null, null, null);
+
         when(statusUpdater.markCompleted(aeId)).thenReturn(true);
         doThrow(new RuntimeException("fireAsync failed"))
             .when(completedEvents).fireAsync(any());
 
-        assertThatCode(() -> listener.onCaseLifecycle(goalReachedEvent(caseId)))
+        assertThatCode(() -> listener.onCaseLifecycle(goalReachedEvent(caseId, snapshot)))
             .doesNotThrowAnyException();
 
         verify(ledgerWriter, never()).writeObserverFailureEntry(any(), any(), any());
+    }
+
+    // --- helpers ---
+
+    private static CaseLifecycleEvent goalReachedEvent(UUID caseId, ObjectNode snapshot) {
+        return new CaseLifecycleEvent(
+                caseId, "default", "CompleteCase", "GoalReached", "RUNNING",
+                "system", "system", null, null, null, snapshot, null, null);
+    }
+
+    private static ObjectNode buildSnapshot(UUID aeId, UUID enrollmentId, UUID siteId,
+                                             String grade, String safetyReviewOutcome,
+                                             String dsmbEscalation, String tenantId,
+                                             Boolean unexpected) {
+        ObjectNode snapshot = MAPPER.createObjectNode();
+        if (aeId != null) snapshot.put("aeId", aeId.toString());
+        if (enrollmentId != null) snapshot.put("enrollmentId", enrollmentId.toString());
+        if (siteId != null) snapshot.put("siteId", siteId.toString());
+        if (grade != null) snapshot.put("grade", grade);
+        if (safetyReviewOutcome != null) {
+            snapshot.putObject("safetyReview").put("outcome", safetyReviewOutcome);
+        }
+        if (dsmbEscalation != null) snapshot.put("dsmbEscalation", dsmbEscalation);
+        if (tenantId != null) snapshot.put("tenantId", tenantId);
+        if (unexpected != null) snapshot.put("unexpected", unexpected);
+        return snapshot;
     }
 }

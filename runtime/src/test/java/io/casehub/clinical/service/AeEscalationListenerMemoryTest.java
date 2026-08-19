@@ -1,13 +1,11 @@
 package io.casehub.clinical.service;
 
-import io.casehub.api.context.CaseContext;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.ObjectNode;
 import io.casehub.clinical.api.AeEscalationCompletedEvent;
 import io.casehub.clinical.api.model.CtcaeGrade;
 import io.casehub.clinical.memory.ClinicalMemoryService;
-import io.casehub.engine.common.internal.model.CaseInstance;
-import io.casehub.engine.common.spi.CaseInstanceRepository;
 import io.casehub.engine.common.spi.event.CaseLifecycleEvent;
-import io.smallrye.mutiny.Uni;
 import io.quarkus.test.InjectMock;
 import io.quarkus.test.junit.QuarkusTest;
 import jakarta.enterprise.event.Event;
@@ -16,11 +14,11 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
 
-import java.util.Map;
 import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyBoolean;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.*;
 
@@ -32,16 +30,16 @@ import static org.mockito.Mockito.*;
 @QuarkusTest
 class AeEscalationListenerMemoryTest {
 
+    private static final ObjectMapper MAPPER = new ObjectMapper();
+
     @Inject AeEscalationListener listener;
     @InjectMock ClinicalMemoryService memoryService;
-    @InjectMock CaseInstanceRepository caseInstanceRepository;
     @InjectMock AeEscalationLedgerWriter ledgerWriter;
     @InjectMock AeStatusUpdater statusUpdater;
     @InjectMock Event<AeEscalationCompletedEvent> completedEvents;
 
     @BeforeEach
     void stubDefaults() {
-        // Prevent null-return side effects per GE-20260604-4298f9
         doNothing().when(memoryService).storeAeOutcome(any(), any(), any(), any(), anyBoolean(), any());
         when(completedEvents.fireAsync(any())).thenReturn(java.util.concurrent.CompletableFuture.completedFuture(null));
     }
@@ -53,16 +51,12 @@ class AeEscalationListenerMemoryTest {
         UUID enrollmentId = UUID.randomUUID();
         UUID siteId = UUID.randomUUID();
 
-        CaseContext ctx = buildContext(aeId, enrollmentId, siteId, "GRADE_3",
-            Map.of(AeEscalationListener.OUTCOME_KEY, "REVIEWED"), "completed", "test-tenant");
+        ObjectNode snapshot = buildSnapshot(aeId, enrollmentId, siteId, "GRADE_3",
+                "REVIEWED", "completed", "test-tenant");
 
-        CaseInstance instance = mock(CaseInstance.class);
-        when(instance.getCaseContext()).thenReturn(ctx);
-        when(caseInstanceRepository.findByUuid(eq(caseId), any()))
-            .thenReturn(instance);
         when(statusUpdater.markCompleted(aeId)).thenReturn(true);
 
-        listener.onCaseLifecycle(goalReached(caseId));
+        listener.onCaseLifecycle(goalReached(caseId, snapshot));
 
         ArgumentCaptor<UUID> aeCaptor      = ArgumentCaptor.forClass(UUID.class);
         ArgumentCaptor<UUID> enrollCaptor  = ArgumentCaptor.forClass(UUID.class);
@@ -83,40 +77,37 @@ class AeEscalationListenerMemoryTest {
         UUID enrollmentId = UUID.randomUUID();
         UUID siteId = UUID.randomUUID();
 
-        // No tenantId in context
-        CaseContext ctx = buildContext(aeId, enrollmentId, siteId, "GRADE_3",
-            Map.of(AeEscalationListener.OUTCOME_KEY, "REVIEWED"), "completed", null);
+        ObjectNode snapshot = buildSnapshot(aeId, enrollmentId, siteId, "GRADE_3",
+                "REVIEWED", "completed", null);
 
-        CaseInstance instance = mock(CaseInstance.class);
-        when(instance.getCaseContext()).thenReturn(ctx);
-        when(caseInstanceRepository.findByUuid(eq(caseId), any()))
-            .thenReturn(instance);
         when(statusUpdater.markCompleted(aeId)).thenReturn(true);
 
-        listener.onCaseLifecycle(goalReached(caseId));
+        listener.onCaseLifecycle(goalReached(caseId, snapshot));
 
         verify(memoryService, never()).storeAeOutcome(any(), any(), any(), any(), anyBoolean(), any());
     }
 
     // ── helpers ───────────────────────────────────────────────────────────────
 
-    private static CaseContext buildContext(UUID aeId, UUID enrollmentId, UUID siteId,
-                                            String grade, Object safetyReview,
-                                            Object dsmbEscalation, String tenantId) {
-        CaseContext ctx = mock(CaseContext.class);
-        when(ctx.getPath("aeId")).thenReturn(aeId.toString());
-        when(ctx.getPath("enrollmentId")).thenReturn(enrollmentId.toString());
-        when(ctx.getPath("siteId")).thenReturn(siteId.toString());
-        when(ctx.getPath("grade")).thenReturn(grade);
-        when(ctx.getPath("safetyReview")).thenReturn(safetyReview);
-        when(ctx.getPath("dsmbEscalation")).thenReturn(dsmbEscalation);
-        when(ctx.getPath("tenantId")).thenReturn(tenantId);
-        when(ctx.getPath("unexpected")).thenReturn(null);
-        return ctx;
+    private static ObjectNode buildSnapshot(UUID aeId, UUID enrollmentId, UUID siteId,
+                                             String grade, String safetyReviewOutcome,
+                                             String dsmbEscalation, String tenantId) {
+        ObjectNode snapshot = MAPPER.createObjectNode();
+        if (aeId != null) snapshot.put("aeId", aeId.toString());
+        if (enrollmentId != null) snapshot.put("enrollmentId", enrollmentId.toString());
+        if (siteId != null) snapshot.put("siteId", siteId.toString());
+        if (grade != null) snapshot.put("grade", grade);
+        if (safetyReviewOutcome != null) {
+            snapshot.putObject("safetyReview").put("outcome", safetyReviewOutcome);
+        }
+        if (dsmbEscalation != null) snapshot.put("dsmbEscalation", dsmbEscalation);
+        if (tenantId != null) snapshot.put("tenantId", tenantId);
+        return snapshot;
     }
 
-    private static CaseLifecycleEvent goalReached(UUID caseId) {
-        return CaseLifecycleEvent.of(
-            caseId, "default", "CompleteCase", "GoalReached", "RUNNING", "system", "system", null);
+    private static CaseLifecycleEvent goalReached(UUID caseId, ObjectNode snapshot) {
+        return new CaseLifecycleEvent(
+            caseId, "default", "CompleteCase", "GoalReached", "RUNNING",
+            "system", "system", null, null, null, snapshot, null, null);
     }
 }
