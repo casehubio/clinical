@@ -10,6 +10,10 @@ import io.casehub.clinical.entity.ClinicalTrial;
 import io.casehub.clinical.entity.ProtocolDeviation;
 import io.casehub.clinical.entity.TrialSite;
 import io.casehub.platform.testing.FixedCurrentPrincipal;
+import io.casehub.qhorus.api.message.Commitment;
+import io.casehub.qhorus.api.message.CommitmentState;
+import io.casehub.qhorus.api.message.MessageType;
+import io.casehub.qhorus.api.store.CommitmentStore;
 import io.quarkus.test.junit.QuarkusTest;
 import io.quarkus.test.security.TestSecurity;
 import jakarta.inject.Inject;
@@ -24,6 +28,7 @@ import org.junit.jupiter.api.Test;
 public class CommitmentEndpointTest {
 
     @Inject FixedCurrentPrincipal principal;
+    @Inject CommitmentStore commitmentStore;
 
     private UUID trialId;
     private UUID deviationId;
@@ -59,6 +64,18 @@ public class CommitmentEndpointTest {
         dev.commandedAt = Instant.now();
         dev.tenantId = principal.tenancyId();
         dev.persist();
+
+        commitmentStore.save(Commitment.builder()
+                .id(UUID.randomUUID())
+                .correlationId(deviationId.toString())
+                .channelId(UUID.randomUUID())
+                .messageType(MessageType.COMMAND)
+                .requester("system")
+                .obligor("pi-test")
+                .state(CommitmentState.OPEN)
+                .tenancyId(principal.tenancyId())
+                .createdAt(Instant.now())
+                .build());
     }
 
     @Test
@@ -77,12 +94,11 @@ public class CommitmentEndpointTest {
                 trialId, deviationId)
             .then()
             .statusCode(200)
-            .body("deviationId", is(deviationId.toString()))
-            .body("deviationType", is("DOSING_ERROR"))
-            .body("severity", is("CRITICAL"))
-            .body("piApprovalStatus", is("PENDING"))
-            .body("channelName", is("clinical/deviation/dev-test-123/pi-oversight"))
-            .body("commandedAt", notNullValue());
+            .body("id", notNullValue())
+            .body("currentStage", is("COMMANDED"))
+            .body("stages", hasSize(4))
+            .body("stages[0].key", is("COMMANDED"))
+            .body("stages[0].status", is("completed"));
     }
 
     @Test
