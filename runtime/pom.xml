@@ -215,11 +215,14 @@
       <optional>true</optional>
     </dependency>
 
-    <!-- UI hosting via Quinoa -->
+    <!-- UI hosting via Quinoa — disabled until Plan 2 (TypeScript UI).
+         Commented out: deployment processor runs npm ci even with enabled=false,
+         and no package-lock.json exists (webui uses Yarn portal: resolutions).
     <dependency>
       <groupId>io.quarkiverse.quinoa</groupId>
       <artifactId>quarkus-quinoa</artifactId>
     </dependency>
+    -->
 
     <!-- Test -->
     <dependency>
