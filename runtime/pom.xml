@@ -215,9 +215,9 @@
       <optional>true</optional>
     </dependency>
 
-    <!-- UI hosting via Quinoa — disabled until Plan 2 (TypeScript UI).
-         Commented out: deployment processor runs npm ci even with enabled=false,
-         and no package-lock.json exists (webui uses Yarn portal: resolutions).
+    <!-- UI hosting via Quinoa — disabled until webui packages are publishable.
+         QuinoaProcessor runs npm ci even with enabled=false; missing packages
+         and Yarn Berry portal: protocol make this fail in CI.
     <dependency>
       <groupId>io.quarkiverse.quinoa</groupId>
       <artifactId>quarkus-quinoa</artifactId>
