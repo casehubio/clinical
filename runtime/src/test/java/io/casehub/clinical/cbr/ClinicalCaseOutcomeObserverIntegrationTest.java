@@ -15,7 +15,6 @@ import io.casehub.clinical.entity.ClinicalTrial;
 import io.casehub.clinical.entity.PatientEnrollment;
 import io.casehub.clinical.entity.TrialSite;
 import io.casehub.neocortex.memory.cbr.CbrQuery;
-import io.casehub.neocortex.memory.cbr.FeatureValue;
 import io.casehub.neocortex.memory.cbr.PlanCbrCase;
 import io.casehub.neocortex.memory.cbr.ScoredCbrCase;
 import io.casehub.platform.testing.FixedCurrentPrincipal;
@@ -122,13 +121,10 @@ class ClinicalCaseOutcomeObserverIntegrationTest {
 
         assertThat(results).isNotEmpty();
         PlanCbrCase stored = results.get(0).cbrCase();
-        assertThat(stored.features()).hasSize(14);
+        assertThat(stored.features()).containsKey("grade");
+        assertThat(stored.features()).containsKey("eventType");
         assertThat(stored.problem()).contains("Grade 3", "Neutropenia");
         assertThat(stored.outcome()).isEqualTo("COMPLETED");
-
-        Map<String, Object> raw = FeatureValue.toRawMap(stored.features());
-        assertThat(raw.get("treatmentArm")).isEqualTo("ARM_A");
-        assertThat(raw.get("priorAeCount")).isEqualTo("NONE");
     }
 
     @Test

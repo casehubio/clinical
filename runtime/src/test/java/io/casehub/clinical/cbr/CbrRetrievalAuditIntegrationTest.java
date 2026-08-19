@@ -30,6 +30,7 @@ class CbrRetrievalAuditIntegrationTest {
     @BeforeEach
     @jakarta.transaction.Transactional
     void setUp() {
+        store.eraseByScope(Path.root(), principal.tenancyId());
     }
 
     @Test
