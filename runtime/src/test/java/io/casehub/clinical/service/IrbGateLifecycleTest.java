@@ -124,11 +124,11 @@ class IrbGateLifecycleTest {
         // Simulate expiry via direct listener invocation:
         // IrbDecisionListener handles EXPIRED by updating IrbApproval AND signaling the case directly
         // (adapter would call markFaulted() which doesn't fire outputMapping — listener bypasses that).
-        // WorkItemLifecycleEvent.of uses workItem.status() for event.status() — must set EXPIRED on the
-        // record before constructing the event so IrbDecisionListener.resolveDecision returns EXPIRED.
-        WorkItem expiredWorkItem = irbWorkItem.toBuilder().status(WorkItemStatus.EXPIRED).build();
+        // WorkItemLifecycleEvent.of uses workItem.status for event.status() — must set EXPIRED on the
+        // entity before constructing the event so IrbDecisionListener.resolveDecision returns EXPIRED.
+        WorkItem expiredItem = irbWorkItem.toBuilder().status(WorkItemStatus.EXPIRED).build();
         irbDecisionListener.onWorkItemLifecycle(
-                WorkItemLifecycleEvent.of("EXPIRED", expiredWorkItem, "system", null));
+                WorkItemLifecycleEvent.of("EXPIRED", expiredItem, "system", null));
 
         await().atMost(3, SECONDS).pollInterval(100, MILLISECONDS)
                 .untilAsserted(() ->

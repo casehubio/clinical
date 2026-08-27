@@ -91,7 +91,7 @@ class IrbDecisionListenerTest {
         WorkItem workItem = WorkItem.builder()
                 .id(UUID.randomUUID())
                 .status(WorkItemStatus.COMPLETED)
-                .payload("{}") // no deviationId
+                .payload("{}")
                 .build();
         return WorkItemLifecycleEvent.of("COMPLETED", workItem, "irb-test", null);
     }

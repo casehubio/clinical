@@ -150,7 +150,6 @@ class DemoActionResourceTest {
 
             when(workItemStore.scanAll()).thenReturn(List.of(gateItem, otherItem));
 
-            // Verify the filter logic matches the callerRef pattern
             var match = List.of(gateItem, otherItem).stream()
                     .filter(wi -> wi.callerRef() != null && wi.callerRef().contains("case:" + caseId))
                     .findFirst();
