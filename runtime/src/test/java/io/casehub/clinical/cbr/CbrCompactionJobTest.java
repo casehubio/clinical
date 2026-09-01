@@ -1,5 +1,6 @@
 package io.casehub.clinical.cbr;
 
+import io.casehub.neocortex.cognitive.Confidence;
 import io.casehub.neocortex.memory.cbr.*;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -33,9 +34,9 @@ class CbrCompactionJobTest {
         var sameMergeKey = makeFeatures(3, "Neutropenia", "PHASE_III", 40, 0.8);
         when(store.retrieveSimilar(any(), eq(PlanCbrCase.class)))
             .thenReturn(List.of(
-                scored("case-1", new PlanCbrCase("p", "s", "COMPLETED", 1.0, sameMergeKey, List.of(), null, null)),
-                scored("case-2", new PlanCbrCase("p", "s", "COMPLETED", 0.9, withNumerics(sameMergeKey, 50, 0.7), List.of(), null, null)),
-                scored("case-3", new PlanCbrCase("p", "s", "COMPLETED", 0.8, withNumerics(sameMergeKey, 60, 0.6), List.of(), null, null))
+                scored("case-1", new PlanCbrCase("p", "s", "COMPLETED", Confidence.unknown(1.0), sameMergeKey, List.of(), null, null)),
+                scored("case-2", new PlanCbrCase("p", "s", "COMPLETED", Confidence.unknown(0.9), withNumerics(sameMergeKey, 50, 0.7), List.of(), null, null)),
+                scored("case-3", new PlanCbrCase("p", "s", "COMPLETED", Confidence.unknown(0.8), withNumerics(sameMergeKey, 60, 0.6), List.of(), null, null))
             ));
 
         job.compact();
@@ -52,8 +53,8 @@ class CbrCompactionJobTest {
         var features = makeFeatures(3, "Neutropenia", "PHASE_III", 40, 0.8);
         when(store.retrieveSimilar(any(), eq(PlanCbrCase.class)))
             .thenReturn(List.of(
-                scored("case-1", new PlanCbrCase("p", "s", "COMPLETED", 1.0, features, List.of(), null, null)),
-                scored("case-2", new PlanCbrCase("p", "s", "COMPLETED", 1.0, features, List.of(), null, null))
+                scored("case-1", new PlanCbrCase("p", "s", "COMPLETED", Confidence.unknown(1.0), features, List.of(), null, null)),
+                scored("case-2", new PlanCbrCase("p", "s", "COMPLETED", Confidence.unknown(1.0), features, List.of(), null, null))
             ));
 
         job.compact();
@@ -71,12 +72,12 @@ class CbrCompactionJobTest {
 
         when(store.retrieveSimilar(any(), eq(PlanCbrCase.class)))
             .thenReturn(List.of(
-                scored("a1", new PlanCbrCase("p", "s", "COMPLETED", 1.0, keyA, List.of(), null, null)),
-                scored("a2", new PlanCbrCase("p", "s", "COMPLETED", 1.0, keyA, List.of(), null, null)),
-                scored("a3", new PlanCbrCase("p", "s", "COMPLETED", 1.0, keyA, List.of(), null, null)),
-                scored("b1", new PlanCbrCase("p", "s", "COMPLETED", 1.0, keyB, List.of(), null, null)),
-                scored("b2", new PlanCbrCase("p", "s", "COMPLETED", 1.0, keyB, List.of(), null, null)),
-                scored("b3", new PlanCbrCase("p", "s", "COMPLETED", 1.0, keyB, List.of(), null, null))
+                scored("a1", new PlanCbrCase("p", "s", "COMPLETED", Confidence.unknown(1.0), keyA, List.of(), null, null)),
+                scored("a2", new PlanCbrCase("p", "s", "COMPLETED", Confidence.unknown(1.0), keyA, List.of(), null, null)),
+                scored("a3", new PlanCbrCase("p", "s", "COMPLETED", Confidence.unknown(1.0), keyA, List.of(), null, null)),
+                scored("b1", new PlanCbrCase("p", "s", "COMPLETED", Confidence.unknown(1.0), keyB, List.of(), null, null)),
+                scored("b2", new PlanCbrCase("p", "s", "COMPLETED", Confidence.unknown(1.0), keyB, List.of(), null, null)),
+                scored("b3", new PlanCbrCase("p", "s", "COMPLETED", Confidence.unknown(1.0), keyB, List.of(), null, null))
             ));
 
         job.compact();
@@ -99,9 +100,9 @@ class CbrCompactionJobTest {
 
         when(store.retrieveSimilar(any(), eq(PlanCbrCase.class)))
             .thenReturn(List.of(
-                scored("compact-abc", new PlanCbrCase("p", "s", "COMPLETED", 0.9, compactFeatures, List.of(), null, null)),
-                scored("new-1", new PlanCbrCase("p", "s", "COMPLETED", 0.7, singleFeatures, List.of(), null, null)),
-                scored("new-2", new PlanCbrCase("p", "s", "COMPLETED", 0.7, singleFeatures, List.of(), null, null))
+                scored("compact-abc", new PlanCbrCase("p", "s", "COMPLETED", Confidence.unknown(0.9), compactFeatures, List.of(), null, null)),
+                scored("new-1", new PlanCbrCase("p", "s", "COMPLETED", Confidence.unknown(0.7), singleFeatures, List.of(), null, null)),
+                scored("new-2", new PlanCbrCase("p", "s", "COMPLETED", Confidence.unknown(0.7), singleFeatures, List.of(), null, null))
             ));
 
         job.compact();
@@ -125,9 +126,9 @@ class CbrCompactionJobTest {
         var features = makeFeatures(3, "Neutropenia", "PHASE_III", 40, 0.8);
         when(store.retrieveSimilar(any(), eq(PlanCbrCase.class)))
             .thenReturn(List.of(
-                scored("c1", new PlanCbrCase("p", "s", "COMPLETED", 1.0, features, List.of(), null, null)),
-                scored("c2", new PlanCbrCase("p", "s", "COMPLETED", 1.0, features, List.of(), null, null)),
-                scored("c3", new PlanCbrCase("p", "s", "COMPLETED", 1.0, features, List.of(), null, null))
+                scored("c1", new PlanCbrCase("p", "s", "COMPLETED", Confidence.unknown(1.0), features, List.of(), null, null)),
+                scored("c2", new PlanCbrCase("p", "s", "COMPLETED", Confidence.unknown(1.0), features, List.of(), null, null)),
+                scored("c3", new PlanCbrCase("p", "s", "COMPLETED", Confidence.unknown(1.0), features, List.of(), null, null))
             ));
 
         job.compact();
@@ -139,9 +140,9 @@ class CbrCompactionJobTest {
         when(store.discoverTenants(ClinicalCbrDomains.AE)).thenReturn(Set.of("default"));
         when(store.retrieveSimilar(any(), eq(PlanCbrCase.class)))
             .thenReturn(List.of(
-                scored("c1", new PlanCbrCase("p", "s", "COMPLETED", 1.0, features, List.of(), null, null)),
-                scored("c2", new PlanCbrCase("p", "s", "COMPLETED", 1.0, features, List.of(), null, null)),
-                scored("c3", new PlanCbrCase("p", "s", "COMPLETED", 1.0, features, List.of(), null, null))
+                scored("c1", new PlanCbrCase("p", "s", "COMPLETED", Confidence.unknown(1.0), features, List.of(), null, null)),
+                scored("c2", new PlanCbrCase("p", "s", "COMPLETED", Confidence.unknown(1.0), features, List.of(), null, null)),
+                scored("c3", new PlanCbrCase("p", "s", "COMPLETED", Confidence.unknown(1.0), features, List.of(), null, null))
             ));
 
         job.compact();

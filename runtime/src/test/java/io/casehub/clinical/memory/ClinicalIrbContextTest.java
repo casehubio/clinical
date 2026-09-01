@@ -73,16 +73,8 @@ class ClinicalIrbContextTest {
     }
 
     private static Memory decisionFromSite(String outcome, UUID siteId) {
-        return new Memory(
-            UUID.randomUUID().toString(),
-            "deviation-type:CONSENT_VIOLATION",
-            ClinicalMemoryDomains.IRB,
-            "test-tenant",
-            null,
-            "IRB " + outcome,
-            Map.of(MemoryAttributeKeys.OUTCOME, outcome,
+        return new Memory(UUID.randomUUID().toString(), "deviation-type:CONSENT_VIOLATION", ClinicalMemoryDomains.IRB, "test-tenant", null, "IRB " + outcome, Map.of(MemoryAttributeKeys.OUTCOME, outcome,
                 ClinicalMemoryAttributes.SITE_ID, siteId.toString(),
-                MemoryAttributeKeys.ACTOR_ID, "clinical-service"),
-            Instant.now(), null);
+                MemoryAttributeKeys.ACTOR_ID, "clinical-service"), Instant.now(), null, null, null, null);
     }
 }

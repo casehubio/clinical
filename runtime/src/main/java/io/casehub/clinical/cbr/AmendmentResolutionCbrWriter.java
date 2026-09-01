@@ -2,6 +2,7 @@ package io.casehub.clinical.cbr;
 
 import io.casehub.clinical.api.ProtocolAmendmentResolvedEvent;
 import io.casehub.clinical.entity.ProtocolAmendment;
+import io.casehub.neocortex.cognitive.Confidence;
 import io.casehub.neocortex.memory.cbr.TextualCbrCase;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.enterprise.event.ObservesAsync;
@@ -63,14 +64,7 @@ public class AmendmentResolutionCbrWriter {
                 ? event.recommendation().name()
                 : "UNKNOWN";
 
-            var cbrCase = new TextualCbrCase(
-                amendment.proposedChange,
-                solution,
-                event.terminalStatus().name(),
-                1.0,
-                null,
-                null
-            );
+            var cbrCase = new TextualCbrCase(amendment.proposedChange, solution, event.terminalStatus().name(), Confidence.unknown(1.0), null, null);
 
             String caseId = amendment.engineCaseId != null
                 ? amendment.engineCaseId.toString()

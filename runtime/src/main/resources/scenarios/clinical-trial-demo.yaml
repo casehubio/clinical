@@ -1,0 +1,209 @@
+scenario: clinical-trial-demo
+
+chapters:
+  - label: "Trial Setup"
+    content: |
+      ## Phase III Clinical Trial
+      Setting up a 3-site oncology trial with AI agents for eligibility
+      screening, safety monitoring, and protocol review. The platform
+      assigns trust scores to each agent and routes decisions based on
+      demonstrated reliability.
+    sections:
+      - label: "Create Trial"
+        steps:
+          - name: create-trial
+            target: server
+            commands:
+              - action: createTrial
+                data:
+                  protocolId: "ONCO-2026-DEMO"
+                  phase: "PHASE_III"
+                  sponsor: "Acme Pharma"
+                  targetEnrollment: 100
+
+      - label: "Activate Trial"
+        steps:
+          - name: activate
+            target: server
+            commands:
+              - action: activateTrial
+                data:
+                  trialId: "${create-trial.trialId}"
+
+      - label: "Add Sites"
+        steps:
+          - name: site-a
+            target: server
+            commands:
+              - action: addSite
+                data:
+                  trialId: "${create-trial.trialId}"
+                  investigatorId: "dr-chen"
+          - name: site-b
+            target: server
+            commands:
+              - action: addSite
+                data:
+                  trialId: "${create-trial.trialId}"
+                  investigatorId: "dr-patel"
+          - name: site-c
+            target: server
+            commands:
+              - action: addSite
+                data:
+                  trialId: "${create-trial.trialId}"
+                  investigatorId: "dr-martinez"
+
+      - label: "Enroll Patients"
+        steps:
+          - name: patient-a1
+            target: server
+            commands:
+              - action: enrollPatient
+                mode: bulk
+                data:
+                  items:
+                    - { trialId: "${create-trial.trialId}", siteId: "${site-a.siteId}", patientId: "PAT-001" }
+                    - { trialId: "${create-trial.trialId}", siteId: "${site-a.siteId}", patientId: "PAT-002" }
+                    - { trialId: "${create-trial.trialId}", siteId: "${site-b.siteId}", patientId: "PAT-003" }
+                    - { trialId: "${create-trial.trialId}", siteId: "${site-b.siteId}", patientId: "PAT-004" }
+                    - { trialId: "${create-trial.trialId}", siteId: "${site-c.siteId}", patientId: "PAT-005" }
+
+  - label: "Accountability in Action"
+    content: |
+      ## When a Protocol Deviation Occurs
+      A CRITICAL deviation is reported at Site B. Watch how the platform
+      creates a formal obligation for the Principal Investigator — not a
+      notification, a tracked commitment with a deadline and an escalation
+      path to the IRB.
+    sections:
+      - label: "Report Deviation"
+        steps:
+          - navigate: "/?tab=Manage&subtab=Trial+Detail"
+          - fill:
+              role: textbox
+              name: "Deviation Type"
+              value: "CONSENT_DEVIATION"
+          - select:
+              role: combobox
+              name: "Severity"
+              value: "CRITICAL"
+          - click:
+              role: button
+              name: "Report"
+          - spotlight:
+              role: row
+              name: "CONSENT_DEVIATION"
+              content: |
+                The PI now has a formal COMMAND — a tracked obligation with
+                a deadline. Not an email, not a notification — a commitment
+                that the platform enforces. If the PI doesn't respond within
+                the deadline, the case auto-escalates to the IRB.
+
+      - label: "PI Authorisation"
+        content: |
+          The PI reviews and approves the deviation. The commitment lifecycle
+          tracks every state transition with a named actor and timestamp.
+        steps:
+          - name: approve-pi
+            target: server
+            commands:
+              - action: approvePiResponse
+                data:
+                  deviationId: "${report-deviation.deviationId}"
+          - spotlight:
+              role: region
+              name: "PI Commitment"
+              content: |
+                COMMANDED → ACKNOWLEDGED → DONE. Every transition is a named
+                actor with a timestamp in the tamper-evident Merkle chain.
+                This is accountability — not just logging.
+
+  - label: "AI Governance"
+    content: |
+      ## When the AI Makes a Safety Decision
+      A Grade 4 adverse event is reported. The platform routes it to a
+      trusted safety agent, evaluates SUSAR criteria, and gates the AI's
+      decision for human approval before it takes effect.
+    sections:
+      - label: "Report Grade 4 AE"
+        steps:
+          - navigate: "/?tab=Manage&subtab=Trial+Detail"
+          - select:
+              role: combobox
+              name: "Grade"
+              value: "GRADE_4"
+          - fill:
+              role: textbox
+              name: "Occurred At"
+              value: "2026-09-01T10:00"
+          - click:
+              role: button
+              name: "Submit"
+
+      - label: "AI Decision vs Platform Governance"
+        content: |
+          The AI agent classified this as a Suspected Unexpected Serious
+          Adverse Reaction (SUSAR). But the platform doesn't trust the AI
+          blindly — it gates the decision for human review based on the
+          agent's trust score and the risk classification of the action.
+        steps:
+          - spotlight:
+              targets:
+                - role: region
+                  name: "AI Decision"
+                  content: "The AI's SUSAR determination — based on CTCAE Grade 4, unexpected, and suspected criteria"
+                  position: bottom
+                - role: region
+                  name: "Oversight Gate"
+                  content: "Human approval required — the platform won't act on the AI's decision without investigator sign-off"
+                  position: bottom
+
+      - label: "Approve SUSAR Gate"
+        content: |
+          The investigator reviews the AI's determination and approves it.
+          The platform records the approval, updates the agent's trust score
+          via Bayesian inference, and files the IND report.
+        steps:
+          - name: approve-gate
+            target: server
+            commands:
+              - action: approveSusarGate
+                data:
+                  aeId: "${report-ae.aeId}"
+          - spotlight:
+              role: region
+              name: "Trust Score"
+              content: |
+                The agent's trust score updated via Bayesian Beta inference.
+                Endorsed decisions increase the score; overridden decisions
+                decrease it. Over time, the platform learns which agents to
+                trust on which types of decisions — and routes accordingly.
+
+  - label: "The Proof"
+    content: |
+      ## Independently Verifiable Audit Trail
+      Every decision — human and AI — is in a tamper-evident Merkle chain.
+      Any auditor can verify the complete history without trusting the
+      platform. This is what FDA 21 CFR Part 312 requires and what no
+      amount of prompt engineering can provide.
+    sections:
+      - label: "Verify Merkle Chain"
+        steps:
+          - name: verify
+            target: server
+            commands:
+              - action: verifyLedger
+                data:
+                  enrollmentId: "${patient-a1.enrollmentId}"
+          - spotlight:
+              role: alert
+              name: "Verification Result"
+              content: |
+                VERIFIED. The Merkle Mountain Range hash chain is intact.
+                Every entry — from initial AE report through SUSAR gate
+                approval — is cryptographically linked. Each entry carries
+                an EU AI Act Art.12 compliance supplement documenting the
+                algorithm, the regulatory reference, and the human override
+                availability. Independently verifiable. Tamper-evident.
+                Production-grade.

@@ -1,5 +1,6 @@
 package io.casehub.clinical.cbr;
 
+import io.casehub.neocortex.cognitive.Confidence;
 import io.casehub.neocortex.memory.cbr.*;
 import org.junit.jupiter.api.Test;
 
@@ -14,7 +15,7 @@ class ClinicalPlanAdapterTest {
 
     private ScoredCbrCase<PlanCbrCase> buildCase(Map<String, FeatureValue> features,
                                                   List<PlanTrace> traces) {
-        var cbrCase = new PlanCbrCase("problem", "solution", "COMPLETED", 1.0, features, traces, null, null);
+        var cbrCase = new PlanCbrCase("problem", "solution", "COMPLETED", Confidence.unknown(1.0), features, traces, null, null);
         return new ScoredCbrCase<>(cbrCase, "case-1", 0.87);
     }
 

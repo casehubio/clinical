@@ -6,7 +6,10 @@ import io.casehub.api.model.ContextChangeTrigger;
 import io.casehub.api.model.Goal;
 import io.casehub.api.model.GoalExpression;
 import io.casehub.api.model.GoalKind;
-import io.casehub.api.model.HumanTaskTarget;
+import io.casehub.api.model.HumanRoutingConfig;
+import io.casehub.api.model.JudgmentTarget;
+import io.casehub.api.spi.routing.CandidateSetSpec;
+import io.casehub.api.spi.routing.StaticSetStrategy;
 import java.time.Duration;
 import java.util.Set;
 
@@ -33,10 +36,10 @@ public final class DeviationReviewCaseDefinition {
                 Binding.builder()
                     .name("irb-consultation")
                     .on(new ContextChangeTrigger(".irbConsultationRequired == true and .irbConsultation == null"))
-                    .humanTask(HumanTaskTarget.inline()
+                    .judgment(JudgmentTarget.builder()
                         .title("IRB consultation required — protocol deviation")
                         .expiresIn(Duration.ofHours(72))
-                        .candidateGroups(Set.of("irb-committee"))
+                        .human(new HumanRoutingConfig(null, new io.casehub.api.spi.routing.CandidateSetSpec.Inline(StaticSetStrategy.of("irb-committee")), null, null, null))
                         .inputMapping("{ deviationId: .deviationId, severity: .severity }")
                         .outputMapping("{ irbConsultation: . }")
                         .build())

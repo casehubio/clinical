@@ -7,6 +7,7 @@ import io.casehub.clinical.api.model.PiApprovalStatus;
 import io.casehub.clinical.entity.IrbApproval;
 import io.casehub.clinical.entity.ProtocolDeviation;
 import io.casehub.neocortex.memory.cbr.FeatureValue;
+import io.casehub.neocortex.cognitive.Confidence;
 import io.casehub.neocortex.memory.cbr.PlanCbrCase;
 import io.casehub.neocortex.memory.cbr.PlanTrace;
 import jakarta.enterprise.context.ApplicationScoped;
@@ -162,16 +163,7 @@ public class DeviationResolutionCbrWriter {
                 : ""
         );
 
-        PlanCbrCase cbrCase = new PlanCbrCase(
-            problem,
-            solution,
-            "RESOLVED",
-            1.0,
-            FeatureValue.toFeatureMap(features),
-            trace,
-            null,
-            null
-        );
+        PlanCbrCase cbrCase = new PlanCbrCase(problem, solution, "RESOLVED", Confidence.unknown(1.0), FeatureValue.toFeatureMap(features), trace, null, null);
 
         cbrService.storeIdempotent(
             cbrCase,

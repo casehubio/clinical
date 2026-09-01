@@ -1,8 +1,12 @@
 package io.casehub.clinical.cbr;
 
+import io.casehub.neocortex.cognitive.Confidence;
 import io.casehub.neocortex.memory.MemoryDomain;
+import io.casehub.neocortex.cognitive.Confidence;
 import io.casehub.neocortex.memory.cbr.CbrQuery;
+import io.casehub.neocortex.cognitive.Confidence;
 import io.casehub.neocortex.memory.cbr.CbrRetrievalTrace;
+import io.casehub.neocortex.cognitive.Confidence;
 import io.casehub.neocortex.memory.cbr.FeatureValue;
 import io.casehub.platform.api.path.Path;
 import org.junit.jupiter.api.BeforeEach;
@@ -30,10 +34,8 @@ class ClinicalExplanationRendererTest {
             .withMinSimilarity(0.3);
 
         var trace = new CbrRetrievalTrace("trace-1", query, List.of(
-            new CbrRetrievalTrace.TracedCase("case-1", 0.92, false,
-                Map.of("grade", 1.0, "eventType", 0.95, "trialPhase", 0.80), 0.85, null, null, null),
-            new CbrRetrievalTrace.TracedCase("case-2", 0.78, false,
-                Map.of("grade", 0.8, "eventType", 0.70), 0.60, null, null, null)
+            new CbrRetrievalTrace.TracedCase("case-1", 0.92, false, Map.of("grade", 1.0, "eventType", 0.95, "trialPhase", 0.80), Confidence.unknown(0.85), null, null, null),
+            new CbrRetrievalTrace.TracedCase("case-2", 0.78, false, Map.of("grade", 0.8, "eventType", 0.70), Confidence.unknown(0.60), null, null, null)
         ), Instant.now());
 
         String result = renderer.render(trace);
@@ -93,7 +95,7 @@ class ClinicalExplanationRendererTest {
 
         var trace = new CbrRetrievalTrace("trace-5", query, List.of(
             new CbrRetrievalTrace.TracedCase("case-1", 0.88, false, Map.of(), null, null, null, null),
-            new CbrRetrievalTrace.TracedCase("case-2", 0.72, false, Map.of(), 0.90, null, null, null)
+            new CbrRetrievalTrace.TracedCase("case-2", 0.72, false, Map.of(), Confidence.unknown(0.90), null, null, null)
         ), Instant.now());
 
         String result = renderer.render(trace);

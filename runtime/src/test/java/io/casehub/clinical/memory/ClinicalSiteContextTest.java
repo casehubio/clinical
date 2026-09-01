@@ -69,14 +69,6 @@ class ClinicalSiteContextTest {
     // -- helper --
 
     private static Memory memory(String outcome) {
-        return new Memory(
-            UUID.randomUUID().toString(),
-            "site:" + UUID.randomUUID(),
-            new MemoryDomain("clinical-site"),
-            "test-tenant",
-            null,
-            "Site compliance event",
-            Map.of(MemoryAttributeKeys.OUTCOME, outcome, MemoryAttributeKeys.ACTOR_ID, "clinical-service"),
-            Instant.now(), null);
+        return new Memory(UUID.randomUUID().toString(), "site:" + UUID.randomUUID(), new MemoryDomain("clinical-site"), "test-tenant", null, "Site compliance event", Map.of(MemoryAttributeKeys.OUTCOME, outcome, MemoryAttributeKeys.ACTOR_ID, "clinical-service"), Instant.now(), null, null, null, null);
     }
 }

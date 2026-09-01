@@ -1,5 +1,6 @@
 package io.casehub.clinical.cbr;
 
+import io.casehub.neocortex.cognitive.Confidence;
 import io.casehub.neocortex.memory.cbr.*;
 import io.casehub.platform.api.path.Path;
 import io.quarkus.scheduler.Scheduled;
@@ -136,21 +137,14 @@ public class CbrCompactionJob {
         merged.put("mergeCount", FeatureValue.number(totalMergeCount));
 
         double weightedConfidence = group.stream()
-            .mapToDouble(c -> c.planCase().confidence() * getMergeCount(c.planCase()))
+            .mapToDouble(c -> (c.planCase().confidence() != null ? c.planCase().confidence().value() : 1.0) * getMergeCount(c.planCase()))
             .sum() / totalMergeCount;
 
         CaseWithFeatures mostRecent = group.stream()
             .max(Comparator.comparing(c -> c.summary().storedAt()))
             .orElse(group.get(0));
 
-        return new PlanCbrCase(
-            mostRecent.planCase().problem(),
-            mostRecent.planCase().solution(),
-            mostRecent.planCase().outcome(),
-            weightedConfidence,
-            merged,
-            List.of(),
-            null, null);
+        return new PlanCbrCase(mostRecent.planCase().problem(), mostRecent.planCase().solution(), mostRecent.planCase().outcome(), Confidence.unknown(weightedConfidence), merged, List.of(), null, null);
     }
 
     private FeatureValue weightedAverage(List<CaseWithFeatures> group, String field) {

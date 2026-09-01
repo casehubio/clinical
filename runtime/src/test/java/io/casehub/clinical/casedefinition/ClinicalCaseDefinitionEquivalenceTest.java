@@ -6,7 +6,8 @@ import io.casehub.api.model.AllOfGoalExpression;
 import io.casehub.api.model.Binding;
 import io.casehub.api.model.ContextChangeTrigger;
 import io.casehub.api.model.GoalBasedCompletion;
-import io.casehub.api.model.HumanTaskTarget;
+import io.casehub.api.model.HumanRoutingConfig;
+import io.casehub.api.model.JudgmentTarget;
 import io.casehub.api.model.StandardGoalKind;
 import io.casehub.api.model.converter.CaseDefinitionYamlMapper;
 import io.casehub.api.spi.routing.CandidateSetSpec;
@@ -112,11 +113,13 @@ class ClinicalCaseDefinitionEquivalenceTest {
             .isEqualTo(yamlBinding.target().getClass());
         assertThat(((ContextChangeTrigger) dslBinding.getOn()).getFilter())
             .isEqualTo(((ContextChangeTrigger) yamlBinding.getOn()).getFilter());
-        var dslHT = (HumanTaskTarget) dslBinding.target();
-        var yamlHT = (HumanTaskTarget) yamlBinding.target();
+        var dslHT = (JudgmentTarget) dslBinding.target();
+        var yamlHT = (JudgmentTarget) yamlBinding.target();
         assertThat(dslHT.title()).isEqualTo(yamlHT.title());
         assertThat(dslHT.expiresIn()).isEqualTo(yamlHT.expiresIn());
-        verifyCandidateSetSpec(dslHT.candidateGroups(), yamlHT.candidateGroups(), dslBinding.getName());
+        var dslRouting = (HumanRoutingConfig) dslHT.routingConfig();
+        var yamlRouting = (HumanRoutingConfig) yamlHT.routingConfig();
+        verifyCandidateSetSpec(dslRouting.candidateGroups(), yamlRouting.candidateGroups(), dslBinding.getName());
         assertThat(dslHT.inputMapping()).isEqualTo(yamlHT.inputMapping());
         assertThat(dslHT.outputMapping()).isEqualTo(yamlHT.outputMapping());
     }

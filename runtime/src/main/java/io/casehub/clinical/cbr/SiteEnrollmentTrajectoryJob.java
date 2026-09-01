@@ -3,6 +3,7 @@ package io.casehub.clinical.cbr;
 import io.casehub.clinical.entity.ClinicalTrial;
 import io.casehub.clinical.entity.PatientEnrollment;
 import io.casehub.clinical.entity.TrialSite;
+import io.casehub.neocortex.cognitive.Confidence;
 import io.casehub.neocortex.memory.cbr.FeatureValue;
 import io.casehub.neocortex.memory.cbr.PlanCbrCase;
 import io.quarkus.narayana.jta.QuarkusTransaction;
@@ -109,12 +110,8 @@ public class SiteEnrollmentTrajectoryJob {
         Map<String, FeatureValue> features = FeatureValue.toFeatureMap(rawFeatures);
 
         String entityId = "site-" + siteId + "-week-" + weeksSinceStart;
-        PlanCbrCase cbrCase = new PlanCbrCase(
-            "Site enrollment at week %d of %s trial, target=%d, enrolled=%d (%.1f%%)".formatted(
-                weeksSinceStart, trialPhase, targetEnrollment, currentCount, progress * 100),
-            "Enrollment trajectory snapshot — periodic recording",
-            "IN_PROGRESS", 1.0, features, List.of(),
-            null, null);
+        PlanCbrCase cbrCase = new PlanCbrCase("Site enrollment at week %d of %s trial, target=%d, enrolled=%d (%.1f%%)".formatted(
+                weeksSinceStart, trialPhase, targetEnrollment, currentCount, progress * 100), "Enrollment trajectory snapshot — periodic recording", "IN_PROGRESS", Confidence.unknown(1.0), features, List.of(), null, null);
 
         io.casehub.platform.api.path.Path scope = io.casehub.platform.api.path.Path.of(trialId.toString(), siteId.toString());
         cbrService.storeIdempotent(cbrCase, "clinical-site-enrollment", entityId,

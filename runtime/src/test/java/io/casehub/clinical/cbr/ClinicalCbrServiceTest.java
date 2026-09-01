@@ -1,10 +1,16 @@
 package io.casehub.clinical.cbr;
 
+import io.casehub.neocortex.cognitive.Confidence;
 import io.casehub.neocortex.memory.MemoryDomain;
+import io.casehub.neocortex.cognitive.Confidence;
 import io.casehub.neocortex.memory.cbr.CbrCaseMemoryStore;
+import io.casehub.neocortex.cognitive.Confidence;
 import io.casehub.neocortex.memory.cbr.CbrQuery;
+import io.casehub.neocortex.cognitive.Confidence;
 import io.casehub.neocortex.memory.cbr.FeatureValue;
+import io.casehub.neocortex.cognitive.Confidence;
 import io.casehub.neocortex.memory.cbr.FeatureVectorCbrCase;
+import io.casehub.neocortex.cognitive.Confidence;
 import io.casehub.neocortex.memory.cbr.ScoredCbrCase;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -35,7 +41,7 @@ class ClinicalCbrServiceTest {
 
     @Test
     void storeIdempotent_erasesBeforeStore() {
-        final var cbrCase = new FeatureVectorCbrCase("problem", "solution", "outcome", 0.9, Map.of(), null, null);
+        final var cbrCase = new FeatureVectorCbrCase("problem", "solution", "outcome", Confidence.unknown(0.9), Map.of(), null, null);
         final String caseType = "clinical-ae";
         final String entityId = "ae-123";
         final MemoryDomain domain = new MemoryDomain("clinical-ae");
@@ -59,8 +65,8 @@ class ClinicalCbrServiceTest {
         final var query = CbrQuery.of("tenant-1", new MemoryDomain("clinical-ae"),
             io.casehub.platform.api.path.Path.root(), "clinical-ae", FeatureValue.toFeatureMap(Map.of("grade", 3.0)), 5);
         final var expected = List.of(
-            new ScoredCbrCase<>(new FeatureVectorCbrCase("p1", "s1", "o1", 0.9, Map.of(), null, null), 0.95),
-            new ScoredCbrCase<>(new FeatureVectorCbrCase("p2", "s2", "o2", 0.8, Map.of(), null, null), 0.85)
+            new ScoredCbrCase<>(new FeatureVectorCbrCase("p1", "s1", "o1", Confidence.unknown(0.9), Map.of(), null, null), 0.95),
+            new ScoredCbrCase<>(new FeatureVectorCbrCase("p2", "s2", "o2", Confidence.unknown(0.8), Map.of(), null, null), 0.85)
         );
 
         when(store.retrieveSimilar(query, FeatureVectorCbrCase.class)).thenReturn(expected);

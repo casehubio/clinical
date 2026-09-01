@@ -23,6 +23,7 @@ import io.casehub.clinical.service.ProtocolAmendmentService;
 import io.casehub.clinical.service.ProtocolDeviationService;
 import io.casehub.clinical.service.TrialActivationService;
 import io.casehub.neocortex.memory.cbr.FeatureValue;
+import io.casehub.neocortex.cognitive.Confidence;
 import io.casehub.neocortex.memory.cbr.PlanCbrCase;
 import io.casehub.ledger.api.spi.LedgerEntryRepository;
 import io.casehub.ledger.runtime.service.LedgerVerificationService;
@@ -70,6 +71,7 @@ import java.util.concurrent.Callable;
  */
 @ApplicationScoped
 @IfBuildProfile("dev")
+@Deprecated(forRemoval = true)
 public class DemoDataSeeder {
 
     private static final Logger LOG = Logger.getLogger(DemoDataSeeder.class);
@@ -591,10 +593,7 @@ public class DemoDataSeeder {
 
         Map<String, FeatureValue> features = FeatureValue.toFeatureMap(rawFeatures);
 
-        PlanCbrCase cbrCase = new PlanCbrCase(
-                "Grade %d %s in PHASE_III trial, unexpected=%s, suspected=%s".formatted(grade, eventType, unexpected, suspected),
-                solution, outcome, 1.0, features, List.of(),
-                null, null);
+        PlanCbrCase cbrCase = new PlanCbrCase("Grade %d %s in PHASE_III trial, unexpected=%s, suspected=%s".formatted(grade, eventType, unexpected, suspected), solution, outcome, Confidence.unknown(1.0), features, List.of(), null, null);
 
         QuarkusTransaction.requiringNew().run(() ->
                                                       cbrService.storeIdempotent(cbrCase, "clinical-ae-trajectory", entityId,

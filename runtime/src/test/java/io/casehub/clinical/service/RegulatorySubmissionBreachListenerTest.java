@@ -14,7 +14,7 @@ import io.casehub.clinical.entity.AdverseEvent;
 import io.casehub.work.api.WorkItemLifecycleEvent;
 import io.casehub.work.api.WorkItem;
 import io.casehub.work.api.WorkItemStatus;
-import io.casehub.work.engine.PlanItemCallerRef;
+import io.casehub.engine.common.spi.CallerRefParser;
 import io.quarkus.test.InjectMock;
 import io.quarkus.test.junit.QuarkusTest;
 import jakarta.inject.Inject;
@@ -35,7 +35,7 @@ class RegulatorySubmissionBreachListenerTest {
         UUID aeId = persistAe(caseId, RegulatorySubmissionStatus.PENDING);
 
         listener.onWorkItemLifecycle(escalatedEvent(
-                PlanItemCallerRef.encode(caseId, UUID.randomUUID().toString())));
+                CallerRefParser.encodePlanItem(caseId, UUID.randomUUID().toString())));
 
         assertThat(findAe(aeId).regulatorySubmissionStatus)
                 .isEqualTo(RegulatorySubmissionStatus.DEADLINE_MISSED);
@@ -52,14 +52,14 @@ class RegulatorySubmissionBreachListenerTest {
     @Test
     void unrelated_case_id_is_ignored() {
         listener.onWorkItemLifecycle(escalatedEvent(
-                PlanItemCallerRef.encode(UUID.randomUUID(), UUID.randomUUID().toString())));
+                CallerRefParser.encodePlanItem(UUID.randomUUID(), UUID.randomUUID().toString())));
         verify(ledgerWriter, never()).writeBreachEntry(any());
     }
 
     @Test
     void duplicate_escalated_event_is_idempotent() {
         UUID caseId = UUID.randomUUID();
-        String callerRef = PlanItemCallerRef.encode(caseId, UUID.randomUUID().toString());
+        String callerRef = CallerRefParser.encodePlanItem(caseId, UUID.randomUUID().toString());
         persistAe(caseId, RegulatorySubmissionStatus.PENDING);
 
         listener.onWorkItemLifecycle(escalatedEvent(callerRef));
@@ -74,7 +74,7 @@ class RegulatorySubmissionBreachListenerTest {
         UUID aeId = persistAe(caseId, RegulatorySubmissionStatus.FILED);
 
         listener.onWorkItemLifecycle(escalatedEvent(
-                PlanItemCallerRef.encode(caseId, UUID.randomUUID().toString())));
+                CallerRefParser.encodePlanItem(caseId, UUID.randomUUID().toString())));
 
         assertThat(findAe(aeId).regulatorySubmissionStatus)
                 .isEqualTo(RegulatorySubmissionStatus.FILED);
@@ -88,7 +88,7 @@ class RegulatorySubmissionBreachListenerTest {
 
         // WorkItemLifecycleEvent.of() copies workItem.status into event.status() —
         // must set the workItem status to COMPLETED, not ESCALATED.
-        WorkItem wi = workItem(PlanItemCallerRef.encode(caseId, UUID.randomUUID().toString()))
+        WorkItem wi = workItem(CallerRefParser.encodePlanItem(caseId, UUID.randomUUID().toString()))
                 .toBuilder().status(WorkItemStatus.COMPLETED).build();
         WorkItemLifecycleEvent event = WorkItemLifecycleEvent.of("COMPLETED", wi, "system", null);
         listener.onWorkItemLifecycle(event);
@@ -104,7 +104,7 @@ class RegulatorySubmissionBreachListenerTest {
                 "/workitems/" + UUID.randomUUID(),
                 UUID.randomUUID().toString(),
                 UUID.randomUUID(), WorkItemStatus.ESCALATED,
-                Instant.now(), "system", null, null, null, null, "test-tenant", null, null, null, null, null);
+                Instant.now(), "system", null, null, null, null, "test-tenant", null, null, null, null, null, null);
         listener.onWorkItemLifecycle(event);
         verify(ledgerWriter, never()).writeBreachEntry(any());
     }

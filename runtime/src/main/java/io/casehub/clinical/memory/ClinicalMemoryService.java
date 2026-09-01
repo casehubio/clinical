@@ -41,13 +41,13 @@ public class ClinicalMemoryService {
 
         try {
             store.store(new MemoryInput("patient:" + enrollmentId, ClinicalMemoryDomains.PATIENT,
-                tenantId, null, text, attrs, null));
+                tenantId, null, text, attrs, null, null, null, null));
         } catch (Exception e) {
             LOG.warnf(e, "ClinicalMemoryService: storeAeReport failed for aeId=%s — ignored", aeId);
         }
         try {
             store.store(new MemoryInput("site:" + siteId, ClinicalMemoryDomains.SITE,
-                tenantId, null, text, attrs, null));
+                tenantId, null, text, attrs, null, null, null, null));
         } catch (Exception e) {
             LOG.warnf(e, "ClinicalMemoryService: storeAeReport (site) failed for siteId=%s — ignored", siteId);
         }
@@ -58,7 +58,7 @@ public class ClinicalMemoryService {
                     Map.of(MemoryAttributeKeys.ACTOR_ID, ACTOR,
                         MemoryAttributeKeys.OUTCOME, "REPORTED",
                         ClinicalMemoryAttributes.GRADE, grade.name(),
-                        ClinicalMemoryAttributes.SITE_ID, siteId.toString()), null));
+                        ClinicalMemoryAttributes.SITE_ID, siteId.toString()), null, null, null, null));
             } catch (Exception e) {
                 LOG.warnf(e, "ClinicalMemoryService: storeAeReport (drug) failed for trialId=%s — ignored", trialId);
             }
@@ -77,13 +77,13 @@ public class ClinicalMemoryService {
 
         try {
             store.store(new MemoryInput("patient:" + enrollmentId, ClinicalMemoryDomains.PATIENT,
-                                        tenantId, null, text, attrs, null));
+                                        tenantId, null, text, attrs, null, null, null, null));
         } catch (Exception e) {
             LOG.warnf(e, "ClinicalMemoryService: storeAeRegrade failed for aeId=%s — ignored", aeId);
         }
         try {
             store.store(new MemoryInput("site:" + siteId, ClinicalMemoryDomains.SITE,
-                                        tenantId, null, text, attrs, null));
+                                        tenantId, null, text, attrs, null, null, null, null));
         } catch (Exception e) {
             LOG.warnf(e, "ClinicalMemoryService: storeAeRegrade (site) failed for siteId=%s — ignored", siteId);
         }
@@ -94,7 +94,7 @@ public class ClinicalMemoryService {
                                             Map.of(MemoryAttributeKeys.ACTOR_ID, ACTOR,
                                                    MemoryAttributeKeys.OUTCOME, "REGRADED",
                                                    ClinicalMemoryAttributes.GRADE, newGrade.name(),
-                                                   ClinicalMemoryAttributes.SITE_ID, siteId.toString()), null));
+                                                   ClinicalMemoryAttributes.SITE_ID, siteId.toString()), null, null, null, null));
             } catch (Exception e) {
                 LOG.warnf(e, "ClinicalMemoryService: storeAeRegrade (drug) failed for trialId=%s — ignored", trialId);
             }
@@ -113,7 +113,7 @@ public class ClinicalMemoryService {
                 tenantId, null,
                 "AE " + aeId + " escalation completed: safetyReview=" + safetyReview + ", dsmb=" + dsmbEscalated,
                 Map.of(MemoryAttributeKeys.ACTOR_ID, ACTOR, MemoryAttributeKeys.OUTCOME, outcome,
-                    ClinicalMemoryAttributes.GRADE, grade.name()), null));
+                    ClinicalMemoryAttributes.GRADE, grade.name()), null, null, null, null));
         } catch (Exception e) {
             LOG.warnf(e, "ClinicalMemoryService: storeAeOutcome failed for aeId=%s — ignored", aeId);
         }
@@ -128,7 +128,7 @@ public class ClinicalMemoryService {
                 ClinicalMemoryDomains.SITE,
                 tenantId, null,
                 "Protocol deviation " + deviationId + ": type=" + deviationType + ", severity=" + severity,
-                Map.of(MemoryAttributeKeys.ACTOR_ID, ACTOR, MemoryAttributeKeys.OUTCOME, severity.name()), null));
+                Map.of(MemoryAttributeKeys.ACTOR_ID, ACTOR, MemoryAttributeKeys.OUTCOME, severity.name()), null, null, null, null));
         } catch (Exception e) {
             LOG.warnf(e, "ClinicalMemoryService: storeDeviationReport failed for deviationId=%s — ignored", deviationId);
         }
@@ -144,7 +144,7 @@ public class ClinicalMemoryService {
                 ClinicalMemoryDomains.SITE,
                 tenantId, null,
                 "PI decision for deviation " + deviationId + " (" + deviationType + "): " + status,
-                Map.of(MemoryAttributeKeys.ACTOR_ID, ACTOR, MemoryAttributeKeys.OUTCOME, outcome), null));
+                Map.of(MemoryAttributeKeys.ACTOR_ID, ACTOR, MemoryAttributeKeys.OUTCOME, outcome), null, null, null, null));
         } catch (Exception e) {
             LOG.warnf(e, "ClinicalMemoryService: storePiDecision failed for deviationId=%s — ignored", deviationId);
         }
@@ -196,7 +196,7 @@ public class ClinicalMemoryService {
                 "IRB " + decision + " for deviation type " + deviationType + " at site " + siteStr,
                 Map.of(MemoryAttributeKeys.ACTOR_ID, ACTOR,
                     MemoryAttributeKeys.OUTCOME, decision.name(),
-                    ClinicalMemoryAttributes.SITE_ID, siteStr), null));
+                    ClinicalMemoryAttributes.SITE_ID, siteStr), null, null, null, null));
         } catch (Exception e) {
             LOG.warnf(e, "ClinicalMemoryService: storeIrbDecision failed for approvalId=%s — ignored", approvalId);
         }

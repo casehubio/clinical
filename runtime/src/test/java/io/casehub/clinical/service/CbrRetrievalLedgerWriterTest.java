@@ -3,9 +3,13 @@ package io.casehub.clinical.service;
 import io.casehub.clinical.ledger.CbrRetrievalLedgerEntry;
 import io.casehub.ledger.api.model.LedgerEntryType;
 import io.casehub.ledger.api.spi.LedgerEntryRepository;
+import io.casehub.neocortex.cognitive.Confidence;
 import io.casehub.neocortex.memory.MemoryDomain;
+import io.casehub.neocortex.cognitive.Confidence;
 import io.casehub.neocortex.memory.cbr.CbrQuery;
+import io.casehub.neocortex.cognitive.Confidence;
 import io.casehub.neocortex.memory.cbr.CbrRetrievalTrace;
+import io.casehub.neocortex.cognitive.Confidence;
 import io.casehub.neocortex.memory.cbr.FeatureValue;
 import io.casehub.platform.api.identity.ActorType;
 import io.casehub.platform.api.path.Path;
@@ -47,7 +51,7 @@ class CbrRetrievalLedgerWriterTest {
             Path.root(), "clinical-ae", Map.of("grade", FeatureValue.of(3)), 10);
 
         var trace = new CbrRetrievalTrace("trace-abc", query, List.of(
-            new CbrRetrievalTrace.TracedCase("case-1", 0.92, false, Map.of(), 0.85, null, null, null)
+            new CbrRetrievalTrace.TracedCase("case-1", 0.92, false, Map.of(), Confidence.unknown(0.85), null, null, null)
         ), Instant.now());
 
         UUID subjectId = UUID.randomUUID();

@@ -3,6 +3,7 @@ package io.casehub.clinical.cbr;
 import io.casehub.api.spi.CaseOutcomeEvent;
 import io.casehub.api.spi.CaseOutcomeObserver;
 import io.casehub.clinical.entity.AdverseEvent;
+import io.casehub.neocortex.cognitive.Confidence;
 import io.casehub.clinical.entity.ClinicalTrial;
 import io.casehub.clinical.entity.PatientEnrollment;
 import io.casehub.clinical.entity.TrialSite;
@@ -149,10 +150,7 @@ public class ClinicalCaseOutcomeObserver implements CaseOutcomeObserver {
         String              problem  = AeCbrFeatureBuilder.buildProblemSummary(ctx);
         String              solution = AeCbrFeatureBuilder.buildSolutionSummary(ctx);
 
-        var cbrCase = new PlanCbrCase(
-                problem, solution, event.outcomeLabel(), 1.0,
-                FeatureValue.toFeatureMap(features), planTraces,
-                null, null);
+        var cbrCase = new PlanCbrCase(problem, solution, event.outcomeLabel(), Confidence.unknown(1.0), FeatureValue.toFeatureMap(features), planTraces, null, null);
 
         cbrService.storeIdempotent(
                 cbrCase, "clinical-ae", aeId.toString(),
@@ -168,10 +166,7 @@ public class ClinicalCaseOutcomeObserver implements CaseOutcomeObserver {
             if (!trajectory.isEmpty()) {
                 Map<String, Object> trajFeatures = new java.util.LinkedHashMap<>(features);
                 trajFeatures.put("aeTrajectory", trajectory);
-                var trajCbrCase = new PlanCbrCase(
-                        problem, solution, event.outcomeLabel(), 1.0,
-                        FeatureValue.toFeatureMap(trajFeatures), planTraces,
-                        null, null);
+                var trajCbrCase = new PlanCbrCase(problem, solution, event.outcomeLabel(), Confidence.unknown(1.0), FeatureValue.toFeatureMap(trajFeatures), planTraces, null, null);
                 cbrService.storeIdempotent(
                         trajCbrCase, "clinical-ae-trajectory", aeId + "-trajectory",
                         ClinicalCbrDomains.AE_TRAJECTORY, ae.tenantId,

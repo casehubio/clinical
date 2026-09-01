@@ -85,17 +85,9 @@ class ClinicalDrugContextTest {
     }
 
     private static Memory signalFromSite(CtcaeGrade grade, UUID siteId) {
-        return new Memory(
-            UUID.randomUUID().toString(),
-            "trial:" + UUID.randomUUID(),
-            ClinicalMemoryDomains.DRUG,
-            "test-tenant",
-            null,
-            "AE signal",
-            Map.of(ClinicalMemoryAttributes.GRADE, grade.name(),
+        return new Memory(UUID.randomUUID().toString(), "trial:" + UUID.randomUUID(), ClinicalMemoryDomains.DRUG, "test-tenant", null, "AE signal", Map.of(ClinicalMemoryAttributes.GRADE, grade.name(),
                 ClinicalMemoryAttributes.SITE_ID, siteId.toString(),
                 MemoryAttributeKeys.OUTCOME, "REPORTED",
-                MemoryAttributeKeys.ACTOR_ID, "clinical-service"),
-            Instant.now(), null);
+                MemoryAttributeKeys.ACTOR_ID, "clinical-service"), Instant.now(), null, null, null, null);
     }
 }

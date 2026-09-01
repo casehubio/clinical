@@ -65,11 +65,7 @@ public class ClinicalCbrService {
     private <C extends CbrCase> io.casehub.neocortex.memory.cbr.CbrRetrievalTrace buildTrace(
             CbrQuery query, List<ScoredCbrCase<C>> cases) {
         List<io.casehub.neocortex.memory.cbr.CbrRetrievalTrace.TracedCase> tracedCases = cases.stream()
-                                                                                              .map(sc -> new io.casehub.neocortex.memory.cbr.CbrRetrievalTrace.TracedCase(
-                                                                                                      sc.caseId(), sc.score(), sc.reranked(),
-                                                                                                      sc.featureSimilarities(),
-                                                                                                      sc.cbrCase().confidence(),
-                                                                                                      null, null, null))
+                                                                                              .map(sc -> new io.casehub.neocortex.memory.cbr.CbrRetrievalTrace.TracedCase(sc.caseId(), sc.score(), sc.reranked(), sc.featureSimilarities(), sc.cbrCase().confidence(), null, null, null))
                                                                                               .toList();
         return new io.casehub.neocortex.memory.cbr.CbrRetrievalTrace(
                 java.util.UUID.randomUUID().toString(), query, tracedCases, clock.instant());

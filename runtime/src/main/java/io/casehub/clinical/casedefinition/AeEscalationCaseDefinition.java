@@ -6,7 +6,10 @@ import io.casehub.api.model.ContextChangeTrigger;
 import io.casehub.api.model.Goal;
 import io.casehub.api.model.GoalExpression;
 import io.casehub.api.model.GoalKind;
-import io.casehub.api.model.HumanTaskTarget;
+import io.casehub.api.model.HumanRoutingConfig;
+import io.casehub.api.model.JudgmentTarget;
+import io.casehub.api.spi.routing.CandidateSetSpec;
+import io.casehub.api.spi.routing.StaticSetStrategy;
 import java.time.Duration;
 import java.util.Set;
 
@@ -39,10 +42,10 @@ public final class AeEscalationCaseDefinition {
                 Binding.builder()
                     .name("safety-review")
                     .on(new ContextChangeTrigger(".requiresSeniorMonitor == true and .safetyReview == null"))
-                    .humanTask(HumanTaskTarget.inline()
+                    .judgment(JudgmentTarget.builder()
                         .title("Senior safety monitor review — adverse event")
                         .expiresIn(Duration.ofHours(24))
-                        .candidateGroups(Set.of("senior-safety-monitors"))
+                        .human(new HumanRoutingConfig(null, new CandidateSetSpec.Inline(StaticSetStrategy.of("senior-safety-monitors")), null, null, null))
                         .inputMapping("{ aeId: .aeId, grade: .grade, enrollmentId: .enrollmentId }")
                         .outputMapping("{ safetyReview: . }")
                         .build())
@@ -50,10 +53,10 @@ public final class AeEscalationCaseDefinition {
                 Binding.builder()
                     .name("dsmb-escalation")
                     .on(new ContextChangeTrigger(".requiresDsmbEscalation == true and .dsmbEscalation == null"))
-                    .humanTask(HumanTaskTarget.inline()
+                    .judgment(JudgmentTarget.builder()
                         .title("DSMB escalation — Grade 4+ adverse event")
                         .expiresIn(Duration.ofHours(24))
-                        .candidateGroups(Set.of("dsmb"))
+                        .human(new HumanRoutingConfig(null, new CandidateSetSpec.Inline(StaticSetStrategy.of("dsmb")), null, null, null))
                         .inputMapping("{ aeId: .aeId, grade: .grade, enrollmentId: .enrollmentId }")
                         .outputMapping("{ dsmbEscalation: . }")
                         .build())

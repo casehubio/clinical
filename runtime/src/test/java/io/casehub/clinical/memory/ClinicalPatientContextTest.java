@@ -105,29 +105,13 @@ class ClinicalPatientContextTest {
     }
 
     private static Memory memoryWithGrade(String grade) {
-        return new Memory(
-            UUID.randomUUID().toString(),
-            "patient:" + UUID.randomUUID(),
-            new MemoryDomain("clinical-patient"),
-            "test-tenant",
-            null,
-            "AE report",
-            Map.of(ClinicalMemoryAttributes.GRADE, grade,
+        return new Memory(UUID.randomUUID().toString(), "patient:" + UUID.randomUUID(), new MemoryDomain("clinical-patient"), "test-tenant", null, "AE report", Map.of(ClinicalMemoryAttributes.GRADE, grade,
                 MemoryAttributeKeys.OUTCOME, "REPORTED",
-                MemoryAttributeKeys.ACTOR_ID, "clinical-service"),
-            Instant.now(), null);
+                MemoryAttributeKeys.ACTOR_ID, "clinical-service"), Instant.now(), null, null, null, null);
     }
 
     private static Memory memoryWithOutcome(String outcome) {
-        return new Memory(
-            UUID.randomUUID().toString(),
-            "patient:" + UUID.randomUUID(),
-            new MemoryDomain("clinical-patient"),
-            "test-tenant",
-            null,
-            "AE outcome",
-            Map.of(MemoryAttributeKeys.OUTCOME, outcome,
-                MemoryAttributeKeys.ACTOR_ID, "clinical-service"),
-            Instant.now(), null);
+        return new Memory(UUID.randomUUID().toString(), "patient:" + UUID.randomUUID(), new MemoryDomain("clinical-patient"), "test-tenant", null, "AE outcome", Map.of(MemoryAttributeKeys.OUTCOME, outcome,
+                MemoryAttributeKeys.ACTOR_ID, "clinical-service"), Instant.now(), null, null, null, null);
     }
 }

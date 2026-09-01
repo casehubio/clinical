@@ -5,6 +5,7 @@ import io.casehub.clinical.api.model.TrialStatus;
 import io.casehub.clinical.entity.ClinicalTrial;
 import io.casehub.clinical.entity.PatientEnrollment;
 import io.casehub.clinical.entity.TrialSite;
+import io.casehub.neocortex.cognitive.Confidence;
 import io.casehub.neocortex.memory.cbr.FeatureValue;
 import io.casehub.neocortex.memory.cbr.PlanCbrCase;
 import jakarta.enterprise.context.ApplicationScoped;
@@ -64,9 +65,7 @@ public class TrialCompletionSiteTrajectoryWriter {
                 " in " + (trial.phase != null ? trial.phase.name() : "UNKNOWN") + " trial";
         String solution = "Enrollment: " + trajectory.size() + " weeks tracked";
 
-        var cbrCase = new PlanCbrCase(problem, solution, "COMPLETED", 1.0,
-                FeatureValue.toFeatureMap(features), List.of(),
-                null, null);
+        var cbrCase = new PlanCbrCase(problem, solution, "COMPLETED", Confidence.unknown(1.0), FeatureValue.toFeatureMap(features), List.of(), null, null);
 
         io.casehub.platform.api.path.Path scope = io.casehub.platform.api.path.Path.of(trial.id.toString(), site.id.toString());
         cbrService.storeIdempotent(cbrCase, "clinical-site-enrollment", site.id.toString(),

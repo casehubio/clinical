@@ -1,9 +1,13 @@
 package io.casehub.clinical.cbr;
 
 import io.casehub.clinical.api.ClinicalGroups;
+import io.casehub.neocortex.cognitive.Confidence;
 import io.casehub.neocortex.memory.cbr.CbrCaseMemoryStore;
+import io.casehub.neocortex.cognitive.Confidence;
 import io.casehub.neocortex.memory.cbr.CbrQuery;
+import io.casehub.neocortex.cognitive.Confidence;
 import io.casehub.neocortex.memory.cbr.FeatureValue;
+import io.casehub.neocortex.cognitive.Confidence;
 import io.casehub.neocortex.memory.cbr.PlanCbrCase;
 import io.casehub.platform.api.path.Path;
 import io.casehub.platform.testing.FixedCurrentPrincipal;
@@ -35,10 +39,7 @@ class CbrRetrievalAuditIntegrationTest {
 
     @Test
     void retrieveWithAudit_producesTraceIdAndExplanation() {
-        var cbrCase = new PlanCbrCase(
-            "Grade 3 Neutropenia", "Safety review: CONTINUE", "COMPLETED", 1.0,
-            FeatureValue.toFeatureMap(Map.of("grade", 3, "eventType", List.of("Neutropenia"))),
-            List.of(), null, null);
+        var cbrCase = new PlanCbrCase("Grade 3 Neutropenia", "Safety review: CONTINUE", "COMPLETED", Confidence.unknown(1.0), FeatureValue.toFeatureMap(Map.of("grade", 3, "eventType", List.of("Neutropenia"))), List.of(), null, null);
 
         store.store(cbrCase, "clinical-ae", "ae-" + UUID.randomUUID(),
             ClinicalCbrDomains.AE, principal.tenancyId(), null, Path.root());

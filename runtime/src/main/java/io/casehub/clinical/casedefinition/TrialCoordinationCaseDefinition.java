@@ -3,7 +3,10 @@ package io.casehub.clinical.casedefinition;
 import io.casehub.api.model.Binding;
 import io.casehub.api.model.CaseDefinition;
 import io.casehub.api.model.ContextChangeTrigger;
-import io.casehub.api.model.HumanTaskTarget;
+import io.casehub.api.model.HumanRoutingConfig;
+import io.casehub.api.model.JudgmentTarget;
+import io.casehub.api.spi.routing.CandidateSetSpec;
+import io.casehub.api.spi.routing.StaticSetStrategy;
 import java.time.Duration;
 import java.util.Set;
 
@@ -22,10 +25,10 @@ public final class TrialCoordinationCaseDefinition {
                 Binding.builder()
                     .name("dsmb-rollup")
                     .on(new ContextChangeTrigger("[.grade4Active // {} | to_entries[] | select(.value == true)] | length >= 2"))
-                    .humanTask(HumanTaskTarget.inline()
+                    .judgment(JudgmentTarget.builder()
                         .title("DSMB review — simultaneous Grade 4+ events at multiple sites")
                         .expiresIn(Duration.ofHours(48))
-                        .candidateGroups(Set.of("dsmb"))
+                        .human(new HumanRoutingConfig(null, new io.casehub.api.spi.routing.CandidateSetSpec.Inline(StaticSetStrategy.of("dsmb")), null, null, null))
                         .inputMapping("{ trialId: .trialId, activeSites: [.grade4Active // {} | to_entries[] | select(.value == true) | .key] }")
                         .outputMapping("{ dsmbReview: . }")
                         .build())

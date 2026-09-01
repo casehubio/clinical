@@ -15,8 +15,11 @@ import io.casehub.clinical.cbr.ClinicalCbrDomains;
 import io.casehub.clinical.cbr.ClinicalCbrService;
 import io.casehub.clinical.ledger.ConsentWithdrawalLedgerEntry;
 import io.casehub.ledger.api.spi.LedgerEntryRepository;
+import io.casehub.neocortex.cognitive.Confidence;
 import io.casehub.neocortex.memory.cbr.CbrCaseMemoryStore;
+import io.casehub.neocortex.cognitive.Confidence;
 import io.casehub.neocortex.memory.cbr.CbrQuery;
+import io.casehub.neocortex.cognitive.Confidence;
 import io.casehub.neocortex.memory.cbr.TextualCbrCase;
 import io.casehub.platform.api.path.Path;
 import io.quarkus.test.junit.QuarkusTest;
@@ -100,7 +103,7 @@ class ConsentWithdrawalServiceTest {
         Path patientScope = Path.of(trialId.toString(), siteId.toString(), patientId);
 
         cbrService.storeIdempotent(
-            new TextualCbrCase("AE for patient", "escalated", "resolved", 1.0, null, null),
+            new TextualCbrCase("AE for patient", "escalated", "resolved", Confidence.unknown(1.0), null, null),
             "clinical-ae", "ae-" + enrollmentId,
             ClinicalCbrDomains.AE, "default", null, patientScope);
 

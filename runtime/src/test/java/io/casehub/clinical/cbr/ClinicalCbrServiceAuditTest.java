@@ -2,6 +2,7 @@ package io.casehub.clinical.cbr;
 
 import io.casehub.clinical.service.CbrRetrievalLedgerWriter;
 import io.casehub.neocortex.memory.MemoryDomain;
+import io.casehub.neocortex.cognitive.Confidence;
 import io.casehub.neocortex.memory.cbr.*;
 import io.casehub.platform.api.path.Path;
 import org.junit.jupiter.api.BeforeEach;

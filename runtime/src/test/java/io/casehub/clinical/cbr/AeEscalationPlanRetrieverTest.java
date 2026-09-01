@@ -5,6 +5,7 @@ import io.casehub.clinical.entity.AdverseEvent;
 import io.casehub.clinical.entity.ClinicalTrial;
 import io.casehub.clinical.entity.PatientEnrollment;
 import io.casehub.clinical.entity.TrialSite;
+import io.casehub.neocortex.cognitive.Confidence;
 import io.casehub.neocortex.memory.cbr.*;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -50,8 +51,7 @@ class AeEscalationPlanRetrieverTest {
 
     @Test
     void retrieve_withSimilarCase_adaptsAndReturns() {
-        var planCase = new PlanCbrCase("problem", "solution", "COMPLETED", 1.0,
-                Map.of("grade", FeatureValue.number(3)), List.of(), null, null);
+        var planCase = new PlanCbrCase("problem", "solution", "COMPLETED", Confidence.unknown(1.0), Map.of("grade", FeatureValue.number(3)), List.of(), null, null);
         var scored = new ScoredCbrCase<>(planCase, "case-1", 0.87);
         when(cbrService.retrieveWithAudit(any(), eq(PlanCbrCase.class), any(), any()))
                 .thenReturn(new AuditedRetrievalResult<>(List.of(scored), "trace-1", "expl"));
@@ -81,8 +81,7 @@ class AeEscalationPlanRetrieverTest {
 
     @Test
     void retrieve_adapterThrows_returnsNone() {
-        var planCase = new PlanCbrCase("problem", "solution", "COMPLETED", 1.0,
-                Map.of("grade", FeatureValue.number(3)), List.of(), null, null);
+        var planCase = new PlanCbrCase("problem", "solution", "COMPLETED", Confidence.unknown(1.0), Map.of("grade", FeatureValue.number(3)), List.of(), null, null);
         var scored = new ScoredCbrCase<>(planCase, "case-1", 0.87);
         when(cbrService.retrieveWithAudit(any(), eq(PlanCbrCase.class), any(), any()))
                 .thenReturn(new AuditedRetrievalResult<>(List.of(scored), "trace-1", null));

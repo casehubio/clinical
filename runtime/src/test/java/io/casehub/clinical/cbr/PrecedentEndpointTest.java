@@ -21,9 +21,13 @@ import io.casehub.clinical.entity.PatientEnrollment;
 import io.casehub.clinical.entity.ProtocolAmendment;
 import io.casehub.clinical.entity.ProtocolDeviation;
 import io.casehub.clinical.entity.TrialSite;
+import io.casehub.neocortex.cognitive.Confidence;
 import io.casehub.neocortex.memory.cbr.FeatureValue;
+import io.casehub.neocortex.cognitive.Confidence;
 import io.casehub.neocortex.memory.cbr.PlanCbrCase;
+import io.casehub.neocortex.cognitive.Confidence;
 import io.casehub.neocortex.memory.cbr.PlanTrace;
+import io.casehub.neocortex.cognitive.Confidence;
 import io.casehub.neocortex.memory.cbr.TextualCbrCase;
 import io.casehub.platform.testing.FixedCurrentPrincipal;
 import io.quarkus.test.junit.QuarkusTest;
@@ -165,12 +169,7 @@ class PrecedentEndpointTest {
                     new PlanTrace("safety-review", "safety-monitoring", "officer-alpha", "COMPLETED", 1, Map.of(), null)
                                             );
 
-            PlanCbrCase cbrCase = new PlanCbrCase(
-                    "Grade 3 Neutropenia in PHASE_III trial, unexpected=true, suspected=true",
-                    "Safety review: CONTINUE_MONITORING. DSMB escalated: false. IND report: true. SUSAR oversight: true.",
-                    "COMPLETED",
-                    1.0,
-                    FeatureValue.toFeatureMap(Map.ofEntries(
+            PlanCbrCase cbrCase = new PlanCbrCase("Grade 3 Neutropenia in PHASE_III trial, unexpected=true, suspected=true", "Safety review: CONTINUE_MONITORING. DSMB escalated: false. IND report: true. SUSAR oversight: true.", "COMPLETED", Confidence.unknown(1.0), FeatureValue.toFeatureMap(Map.ofEntries(
                             Map.entry("grade", 3),
                             Map.entry("eventType", List.of("Neutropenia")),
                             Map.entry("trialPhase", "PHASE_III"),
@@ -182,9 +181,7 @@ class PrecedentEndpointTest {
                             Map.entry("dsmbEscalated", "false"),
                             Map.entry("indReportFiled", "true"),
                             Map.entry("susarOversight", "true")
-                                                           )),
-                    traces, null, null
-            );
+                                                           )), traces, null, null);
 
             cbrService.storeIdempotent(
                     cbrCase,
@@ -205,20 +202,13 @@ class PrecedentEndpointTest {
                 new PlanTrace("pi-oversight", "pi-authorisation", "pi-smith", "APPROVED", 1, Map.of(), null)
             );
 
-            PlanCbrCase cbrCase = new PlanCbrCase(
-                "CONSENT_TIMING_DELAY deviation, severity: MINOR",
-                "PI decision: APPROVED, IRB decision: N/A",
-                "RESOLVED",
-                1.0,
-                FeatureValue.toFeatureMap(Map.of(
+            PlanCbrCase cbrCase = new PlanCbrCase("CONSENT_TIMING_DELAY deviation, severity: MINOR", "PI decision: APPROVED, IRB decision: N/A", "RESOLVED", Confidence.unknown(1.0), FeatureValue.toFeatureMap(Map.of(
                     "deviationType", "CONSENT_TIMING_DELAY",
                     "severity", "MINOR",
                     "escalationRequirement", "NONE",
                     "piDecision", "APPROVED",
                     "irbDecision", "N/A"
-                )),
-                planTrace, null, null
-            );
+                )), planTrace, null, null);
 
             cbrService.storeIdempotent(
                 cbrCase,
@@ -235,12 +225,7 @@ class PrecedentEndpointTest {
     private void populateAmendmentPrecedents() {
         // Store 2 amendment precedents (textual, no features)
         for (int i = 0; i < 2; i++) {
-            TextualCbrCase cbrCase = new TextualCbrCase(
-                "Add imaging endpoint to protocol",
-                "Advisor recommended: APPROVE_WITH_CONDITIONS",
-                "APPROVED",
-                1.0, null, null
-            );
+            TextualCbrCase cbrCase = new TextualCbrCase("Add imaging endpoint to protocol", "Advisor recommended: APPROVE_WITH_CONDITIONS", "APPROVED", Confidence.unknown(1.0), null, null);
 
             cbrService.storeIdempotent(
                 cbrCase,

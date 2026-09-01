@@ -174,12 +174,9 @@ class ClinicalMemoryServiceTest {
     @Test
     void queryPatientContext_returns_populated_context() {
         UUID enrollmentId = UUID.randomUUID();
-        Memory m = new Memory(UUID.randomUUID().toString(), "patient:" + enrollmentId,
-            ClinicalMemoryDomains.PATIENT, "tenant-1", null, "AE report",
-            Map.of(ClinicalMemoryAttributes.GRADE, "GRADE_3",
+        Memory m = new Memory(UUID.randomUUID().toString(), "patient:" + enrollmentId, ClinicalMemoryDomains.PATIENT, "tenant-1", null, "AE report", Map.of(ClinicalMemoryAttributes.GRADE, "GRADE_3",
                 MemoryAttributeKeys.OUTCOME, "REPORTED",
-                MemoryAttributeKeys.ACTOR_ID, "clinical-service"),
-            Instant.now(), null);
+                MemoryAttributeKeys.ACTOR_ID, "clinical-service"), Instant.now(), null, null, null, null);
         when(store.query(any(MemoryQuery.class))).thenReturn(List.of(m));
 
         ClinicalPatientContext ctx = service.queryPatientContext(enrollmentId, "tenant-1");
@@ -202,10 +199,7 @@ class ClinicalMemoryServiceTest {
     @Test
     void querySiteContext_returns_populated_context() {
         UUID siteId = UUID.randomUUID();
-        Memory m = new Memory(UUID.randomUUID().toString(), "site:" + siteId,
-            ClinicalMemoryDomains.SITE, "tenant-1", null, "EXPIRED deviation",
-            Map.of(MemoryAttributeKeys.OUTCOME, "TIMELINE_BREACH", MemoryAttributeKeys.ACTOR_ID, "clinical-service"),
-            Instant.now(), null);
+        Memory m = new Memory(UUID.randomUUID().toString(), "site:" + siteId, ClinicalMemoryDomains.SITE, "tenant-1", null, "EXPIRED deviation", Map.of(MemoryAttributeKeys.OUTCOME, "TIMELINE_BREACH", MemoryAttributeKeys.ACTOR_ID, "clinical-service"), Instant.now(), null, null, null, null);
         when(store.query(any(MemoryQuery.class))).thenReturn(List.of(m));
 
         ClinicalSiteContext ctx = service.querySiteContext(siteId, "tenant-1");
@@ -245,13 +239,10 @@ class ClinicalMemoryServiceTest {
     void queryDrugContext_returns_populated_context() {
         UUID trialId = UUID.randomUUID();
         UUID siteId = UUID.randomUUID();
-        Memory m = new Memory(UUID.randomUUID().toString(), "trial:" + trialId,
-            ClinicalMemoryDomains.DRUG, "tenant-1", null, "AE signal",
-            Map.of(ClinicalMemoryAttributes.GRADE, "GRADE_3",
+        Memory m = new Memory(UUID.randomUUID().toString(), "trial:" + trialId, ClinicalMemoryDomains.DRUG, "tenant-1", null, "AE signal", Map.of(ClinicalMemoryAttributes.GRADE, "GRADE_3",
                 ClinicalMemoryAttributes.SITE_ID, siteId.toString(),
                 MemoryAttributeKeys.OUTCOME, "REPORTED",
-                MemoryAttributeKeys.ACTOR_ID, "clinical-service"),
-            Instant.now(), null);
+                MemoryAttributeKeys.ACTOR_ID, "clinical-service"), Instant.now(), null, null, null, null);
         when(store.query(any(MemoryQuery.class))).thenReturn(List.of(m));
 
         ClinicalDrugContext ctx = service.queryDrugContext(trialId, "tenant-1");
@@ -311,12 +302,9 @@ class ClinicalMemoryServiceTest {
     @Test
     void queryIrbContext_returns_populated_context() {
         UUID siteId = UUID.randomUUID();
-        Memory m = new Memory(UUID.randomUUID().toString(), "deviation-type:CONSENT_VIOLATION",
-            ClinicalMemoryDomains.IRB, "tenant-1", null, "IRB APPROVED",
-            Map.of(MemoryAttributeKeys.OUTCOME, "APPROVED",
+        Memory m = new Memory(UUID.randomUUID().toString(), "deviation-type:CONSENT_VIOLATION", ClinicalMemoryDomains.IRB, "tenant-1", null, "IRB APPROVED", Map.of(MemoryAttributeKeys.OUTCOME, "APPROVED",
                 ClinicalMemoryAttributes.SITE_ID, siteId.toString(),
-                MemoryAttributeKeys.ACTOR_ID, "clinical-service"),
-            Instant.now(), null);
+                MemoryAttributeKeys.ACTOR_ID, "clinical-service"), Instant.now(), null, null, null, null);
         when(store.query(any(MemoryQuery.class))).thenReturn(List.of(m));
 
         ClinicalIrbContext ctx = service.queryIrbContext("CONSENT_VIOLATION", "tenant-1");

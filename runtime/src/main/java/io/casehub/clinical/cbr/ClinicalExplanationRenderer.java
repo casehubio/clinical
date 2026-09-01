@@ -38,7 +38,7 @@ public class ClinicalExplanationRenderer implements ExplanationRenderer {
             }
 
             long withConfidence = trace.results().stream()
-                .filter(r -> r.confidence() != null && r.confidence() >= 0.70)
+                .filter(r -> r.confidence() != null && r.confidence().value() >= 0.70)
                 .count();
             long withoutConfidence = trace.results().stream()
                 .filter(r -> r.confidence() == null)

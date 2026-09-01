@@ -3,8 +3,11 @@ package io.casehub.clinical.cbr;
 import io.casehub.clinical.api.SiteEnrollmentAlertEvent;
 import io.casehub.clinical.api.model.TrialPhase;
 import io.casehub.clinical.entity.ClinicalTrial;
+import io.casehub.neocortex.cognitive.Confidence;
 import io.casehub.neocortex.memory.cbr.FeatureValue;
+import io.casehub.neocortex.cognitive.Confidence;
 import io.casehub.neocortex.memory.cbr.PlanCbrCase;
+import io.casehub.neocortex.cognitive.Confidence;
 import io.casehub.neocortex.memory.cbr.ScoredCbrCase;
 import jakarta.enterprise.event.Event;
 import org.junit.jupiter.api.BeforeEach;
@@ -108,7 +111,7 @@ class SiteEnrollmentAlertServiceTest {
     }
 
     private ScoredCbrCase<PlanCbrCase> scoredCase(String outcome, double score) {
-        var cbrCase = new PlanCbrCase("problem", "solution", outcome, 1.0, Map.of(), List.of(), null, null);
+        var cbrCase = new PlanCbrCase("problem", "solution", outcome, Confidence.unknown(1.0), Map.of(), List.of(), null, null);
         return new ScoredCbrCase<>(cbrCase, UUID.randomUUID().toString(), score);
     }
 }

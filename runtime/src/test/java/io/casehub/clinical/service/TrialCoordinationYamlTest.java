@@ -3,7 +3,8 @@ package io.casehub.clinical.service;
 import io.casehub.api.model.Binding;
 import io.casehub.api.model.CaseDefinition;
 import io.casehub.api.model.ContextChangeTrigger;
-import io.casehub.api.model.HumanTaskTarget;
+import io.casehub.api.model.HumanRoutingConfig;
+import io.casehub.api.model.JudgmentTarget;
 import io.casehub.api.model.converter.CaseDefinitionYamlMapper;
 import io.casehub.api.model.evaluator.JQExpressionEvaluator;
 import io.casehub.api.spi.routing.CandidateSetSpec;
@@ -45,10 +46,12 @@ class TrialCoordinationYamlTest {
         assertThat(jq.expression())
                 .isEqualTo("[.grade4Active // {} | to_entries[] | select(.value == true)] | length >= 2");
 
-        assertThat(dsmb.target()).isInstanceOf(HumanTaskTarget.class);
-        HumanTaskTarget task = (HumanTaskTarget) dsmb.target();
+        assertThat(dsmb.target()).isInstanceOf(JudgmentTarget.class);
+        JudgmentTarget task = (JudgmentTarget) dsmb.target();
         assertThat(task.title()).contains("DSMB");
-        CandidateSetSpec groups = task.candidateGroups();
+        assertThat(task.routingConfig()).isInstanceOf(HumanRoutingConfig.class);
+        HumanRoutingConfig routing = (HumanRoutingConfig) task.routingConfig();
+        CandidateSetSpec groups = routing.candidateGroups();
         assertThat(groups).isInstanceOf(CandidateSetSpec.Inline.class);
         CandidateSetSpec.Inline inline = (CandidateSetSpec.Inline) groups;
         assertThat(inline.strategy()).isInstanceOf(StaticSetStrategy.class);
