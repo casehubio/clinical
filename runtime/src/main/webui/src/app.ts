@@ -1,5 +1,5 @@
 import { page, tree, tabs } from "@casehubio/pages-ui";
-import { trialsDs, trialDatasets, patientDatasets } from "./datasets.js";
+import { trialsDs, trialDatasets, detailDatasets, patientDatasets } from "./datasets.js";
 import { trialList } from "./views/manage/trial-list.js";
 import { trialDetail } from "./views/manage/trial-detail.js";
 import { patientDetail } from "./views/manage/patient-detail.js";
@@ -29,8 +29,8 @@ export const app = page(
     ["Review", page("Review",
       tree(
         ["Work Queue", workQueue()],
-        ["Safety Workbench", safetyWorkbench()],
-        ["Protocol Workbench", protocolWorkbench()],
+        ["Safety Workbench", safetyWorkbench(trialId)],
+        ["Protocol Workbench", protocolWorkbench(trialId)],
         ["Operations", operations()],
       ),
     )],
@@ -39,6 +39,7 @@ export const app = page(
     datasets: [
       trialsDs,
       ...trialDatasets(trialId),
+      ...detailDatasets(trialId),
       ...(siteId && enrollmentId ? patientDatasets(trialId, siteId, enrollmentId) : []),
     ],
   },

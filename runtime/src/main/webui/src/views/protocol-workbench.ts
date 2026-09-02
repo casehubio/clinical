@@ -5,7 +5,7 @@ import {
 import type { Component } from "@casehubio/pages-ui";
 import type { DataSourceBinding } from "@casehubio/pages-data";
 
-export function protocolWorkbench(): Component {
+export function protocolWorkbench(trialId: string): Component {
   const deviationTable = dataTable({
     title: "Protocol Deviations",
     lookup: lookup("deviations"),
@@ -33,19 +33,45 @@ export function protocolWorkbench(): Component {
       html('<div id="dev-overview"><p style="color: var(--pages-neutral-9); font-style: italic; padding: 1rem;">Select a protocol deviation from the list to view details.</p></div>'),
     )],
     ["PI Commitment", panel("PI Commitment Lifecycle",
-      html('<commitment-lifecycle id="dev-commitment"></commitment-lifecycle>'),
+      html(`<commitment-lifecycle id="dev-commitment" data-trial-id="${trialId}" data-source-dataset="deviations"></commitment-lifecycle>`),
     )],
     ["IRB Review", panel("IRB Review",
       html(`<blocks-approval-gate id="irb-gate"
+        data-trial-id="${trialId}" data-source-dataset="deviations"
         prompt="Review protocol deviation for IRB approval"
         context-text="Protocol deviation requires ethics committee review — 72h deadline"
       ></blocks-approval-gate>`),
     )],
     ["Precedents", panel("Similar Past Deviations",
-      html('<cbr-precedents-panel id="dev-precedents" empty-message="No similar deviations found in case memory"></cbr-precedents-panel>'),
+      dataTable({
+        title: "Deviation Precedents",
+        lookup: lookup("dev-precedents"),
+        sortable: true,
+        pageSize: 10,
+        columns: [
+          { id: "similarity" as never, name: "Similarity", expression: '$string($round($number(value))) & "%"' },
+          { id: "severity" as never, name: "Severity" },
+          { id: "outcome" as never, name: "Outcome" },
+          { id: "resolutionTime" as never, name: "Resolution Time" },
+          { id: "reportedDate" as never, name: "Reported" },
+        ],
+      }),
     )],
     ["Audit Trail", panel("Ledger Entries",
-      html('<clinical-audit-trail id="dev-audit-trail"></clinical-audit-trail>'),
+      dataTable({
+        title: "Audit Trail",
+        lookup: lookup("ledger-entries"),
+        sortable: true,
+        pageSize: 25,
+        columns: [
+          { id: "occurredAt" as never, name: "Timestamp" },
+          { id: "entryType" as never, name: "Type" },
+          { id: "actorId" as never, name: "Actor" },
+          { id: "subjectId" as never, name: "Subject" },
+          { id: "digest" as never, name: "Digest", expression: 'value ? $substring(value, 0, 16) & "..." : ""' },
+        ],
+        filter: { enabled: true },
+      }),
     )],
   );
 

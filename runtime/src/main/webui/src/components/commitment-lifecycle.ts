@@ -1,6 +1,7 @@
 import { LitElement, html, css } from "lit";
 import { property, state } from "lit/decorators.js";
 import { emitPagesEvent } from "@casehubio/pages-component";
+import { onTableSelection } from "../selection-bridge.js";
 
 export interface StageDefinition {
   readonly key: string;
@@ -61,10 +62,23 @@ export class ClinicalCommitmentLifecycle extends LitElement {
   @state() private _commitment: CommitmentState | null = null;
   @state() private _loading = false;
   @state() private _error = "";
+  private _unsub?: () => void;
 
   connectedCallback() {
     super.connectedCallback();
     if (this.commitmentId) this._fetchCommitment();
+    const ds = this.getAttribute("data-source-dataset");
+    if (ds) {
+      this._unsub = onTableSelection(this, ds, (entityId, trialId) => {
+        this.commitmentId = entityId;
+        this.endpoint = `/api/trials/${trialId}/deviations/${entityId}/commitment`;
+      });
+    }
+  }
+
+  disconnectedCallback() {
+    super.disconnectedCallback();
+    this._unsub?.();
   }
 
   updated(changed: Map<string, unknown>) {

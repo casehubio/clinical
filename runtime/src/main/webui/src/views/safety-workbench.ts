@@ -5,7 +5,7 @@ import {
 import type { Component } from "@casehubio/pages-ui";
 import type { DataSourceBinding } from "@casehubio/pages-data";
 
-export function safetyWorkbench(): Component {
+export function safetyWorkbench(trialId: string): Component {
   const aeTable = dataTable({
     title: "Adverse Events",
     lookup: lookup("adverse-events"),
@@ -35,6 +35,7 @@ export function safetyWorkbench(): Component {
     )],
     ["SUSAR Evaluation", panel("SUSAR Evaluation",
       html(`<blocks-approval-gate id="susar-gate"
+        data-trial-id="${trialId}" data-source-dataset="adverse-events"
         prompt="Review SUSAR determination for this adverse event"
         context-text="Grade 4+ unexpected suspected adverse reaction — SUSAR criteria evaluation"
       ></blocks-approval-gate>`),
@@ -46,16 +47,41 @@ export function safetyWorkbench(): Component {
       html('<sla-breach-policy-indicator id="ae-sla-breach"></sla-breach-policy-indicator>'),
     )],
     ["Precedents", panel("Similar Past Cases",
-      html('<cbr-precedents-panel id="ae-precedents" empty-message="No similar adverse events found in case memory"></cbr-precedents-panel>'),
+      dataTable({
+        title: "AE Precedents",
+        lookup: lookup("ae-precedents"),
+        sortable: true,
+        pageSize: 10,
+        columns: [
+          { id: "similarity" as never, name: "Similarity", expression: '$string($round($number(value))) & "%"' },
+          { id: "grade" as never, name: "Grade" },
+          { id: "outcome" as never, name: "Outcome" },
+          { id: "resolutionTime" as never, name: "Resolution Time" },
+          { id: "reportedDate" as never, name: "Reported" },
+        ],
+      }),
     )],
     ["Audit Trail", panel("Ledger Entries",
-      html('<clinical-audit-trail id="ae-audit-trail"></clinical-audit-trail>'),
+      dataTable({
+        title: "Audit Trail",
+        lookup: lookup("ledger-entries"),
+        sortable: true,
+        pageSize: 25,
+        columns: [
+          { id: "occurredAt" as never, name: "Timestamp" },
+          { id: "entryType" as never, name: "Type" },
+          { id: "actorId" as never, name: "Actor" },
+          { id: "subjectId" as never, name: "Subject" },
+          { id: "digest" as never, name: "Digest", expression: 'value ? $substring(value, 0, 16) & "..." : ""' },
+        ],
+        filter: { enabled: true },
+      }),
     )],
     ["Grade History", panel("Grade History",
-      html('<clinical-ae-grade-history id="ae-grade-history"></clinical-ae-grade-history>'),
+      html(`<clinical-ae-grade-history id="ae-grade-history" data-trial-id="${trialId}" data-source-dataset="adverse-events"></clinical-ae-grade-history>`),
     )],
     ["Regrade", panel("Regrade Assessment",
-      html('<clinical-ae-regrade id="ae-regrade"></clinical-ae-regrade>'),
+      html(`<clinical-ae-regrade id="ae-regrade" data-trial-id="${trialId}" data-source-dataset="adverse-events"></clinical-ae-regrade>`),
     )],
   );
 

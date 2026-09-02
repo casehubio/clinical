@@ -1,5 +1,6 @@
 import { LitElement, html, css } from "lit";
 import { property, state } from "lit/decorators.js";
+import { onTableSelection } from "../selection-bridge.js";
 
 interface GradeChange {
   readonly id: string;
@@ -27,12 +28,24 @@ export class ClinicalAeGradeHistory extends LitElement {
   @state() private _history: GradeChange[] = [];
   @state() private _loading = false;
   @state() private _error = "";
+  private _unsub?: () => void;
 
   connectedCallback() {
     super.connectedCallback();
     if (this.demo) { this._history = this._getDemoData(); }
     else if (this.endpoint) { this._fetch(); }
     this.addEventListener("pages-regrade-completed", () => { this._fetch(); });
+    const ds = this.getAttribute("data-source-dataset");
+    if (ds) {
+      this._unsub = onTableSelection(this, ds, (entityId, trialId) => {
+        this.endpoint = `/api/trials/${trialId}/adverse-events/${entityId}/grade-history`;
+      });
+    }
+  }
+
+  disconnectedCallback() {
+    super.disconnectedCallback();
+    this._unsub?.();
   }
 
   private _getDemoData(): GradeChange[] {

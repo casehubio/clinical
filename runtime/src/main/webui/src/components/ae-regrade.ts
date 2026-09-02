@@ -1,5 +1,6 @@
 import { LitElement, html, css } from "lit";
 import { property, state } from "lit/decorators.js";
+import { onTableSelection } from "../selection-bridge.js";
 
 const GRADES = ["GRADE_1", "GRADE_2", "GRADE_3", "GRADE_4", "GRADE_5"];
 
@@ -22,6 +23,22 @@ export class ClinicalAeRegrade extends LitElement {
   @state() private _reason = "";
   @state() private _submitting = false;
   @state() private _result: "success" | "error" | null = null;
+  private _unsub?: () => void;
+
+  connectedCallback() {
+    super.connectedCallback();
+    const ds = this.getAttribute("data-source-dataset");
+    if (ds) {
+      this._unsub = onTableSelection(this, ds, (entityId, trialId) => {
+        this.endpoint = `/api/trials/${trialId}/adverse-events/${entityId}/regrade`;
+      });
+    }
+  }
+
+  disconnectedCallback() {
+    super.disconnectedCallback();
+    this._unsub?.();
+  }
 
   private async _submit() {
     if (!this._grade || !this._reason.trim()) return;

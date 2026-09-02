@@ -36,6 +36,16 @@ export function trialDatasets(trialId: string): DataSourceBinding[] {
   ];
 }
 
+export function detailDatasets(trialId: string): DataSourceBinding[] {
+  return [
+    restDataset("ae-precedents", `/api/trials/${trialId}/adverse-events/#{selection.adverse-events.id}/precedents`),
+    restDataset("ae-grade-history", `/api/trials/${trialId}/adverse-events/#{selection.adverse-events.id}/grade-history`),
+    restDataset("ae-governance", `/api/trials/${trialId}/adverse-events/#{selection.adverse-events.id}/governance`),
+    restDataset("dev-precedents", `/api/trials/${trialId}/deviations/#{selection.deviations.id}/precedents`),
+    restDataset("dev-responses", `/api/trials/${trialId}/deviations/#{selection.deviations.id}/responses`),
+  ];
+}
+
 export function patientDatasets(trialId: string, siteId: string, enrollmentId: string): DataSourceBinding[] {
   const base = `/api/trials/${trialId}/sites/${siteId}/patients/${enrollmentId}`;
   return [
