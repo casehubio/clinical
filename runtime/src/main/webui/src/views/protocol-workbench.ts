@@ -1,11 +1,9 @@
 import {
-  columns, dataTable, tabs, panel, markdown, html,
+  columns, dataTable, tabs, panel, html,
   lookup,
 } from "@casehubio/pages-ui";
 import type { Component } from "@casehubio/pages-ui";
 import type { DataSourceBinding } from "@casehubio/pages-data";
-import { getTrialId } from "../datasets.js";
-import { auditTrailStub } from "../stubs/audit-trail-viewer.js";
 
 export function protocolWorkbench(): Component {
   const deviationTable = dataTable({
@@ -13,6 +11,7 @@ export function protocolWorkbench(): Component {
     lookup: lookup("deviations"),
     sortable: true,
     pageSize: 25,
+    selection: "single",
     columns: [
       { id: "deviationType" as never, name: "Type" },
       { id: "severity" as never, name: "Severity", expression: 'value = "CRITICAL" ? "🔴 CRITICAL" : value = "MAJOR" ? "🟠 MAJOR" : "🟡 MINOR"' },
@@ -31,25 +30,22 @@ export function protocolWorkbench(): Component {
 
   const detailTabs = tabs(
     ["Overview", panel("Deviation Overview",
-      markdown("Select a protocol deviation from the list to view details."),
+      html('<div id="dev-overview"><p style="color: var(--pages-neutral-9); font-style: italic; padding: 1rem;">Select a protocol deviation from the list to view details.</p></div>'),
     )],
     ["PI Commitment", panel("PI Commitment Lifecycle",
-      html('<commitment-lifecycle></commitment-lifecycle>'),
+      html('<commitment-lifecycle id="dev-commitment"></commitment-lifecycle>'),
     )],
     ["IRB Review", panel("IRB Review",
-      markdown("IRB committee review status."),
-      html(`<approval-gate
-        endpoint="/demo/deviations/{deviationId}/approve-irb"
+      html(`<blocks-approval-gate id="irb-gate"
         prompt="Review protocol deviation for IRB approval"
-        context-text="CRITICAL protocol deviation requires ethics committee review — 72h deadline"
-        require-confirmation
-      ></approval-gate>`),
+        context-text="Protocol deviation requires ethics committee review — 72h deadline"
+      ></blocks-approval-gate>`),
     )],
     ["Precedents", panel("Similar Past Deviations",
-      html('<cbr-precedents-panel empty-message="No similar deviations found in case memory"></cbr-precedents-panel>'),
+      html('<cbr-precedents-panel id="dev-precedents" empty-message="No similar deviations found in case memory"></cbr-precedents-panel>'),
     )],
     ["Audit Trail", panel("Ledger Entries",
-      auditTrailStub("ledger-entries"),
+      html('<clinical-audit-trail id="dev-audit-trail"></clinical-audit-trail>'),
     )],
   );
 

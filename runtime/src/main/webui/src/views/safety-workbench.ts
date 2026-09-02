@@ -1,11 +1,9 @@
 import {
-  columns, dataTable, tabs, panel, markdown, html,
+  columns, dataTable, tabs, panel, html,
   lookup,
 } from "@casehubio/pages-ui";
 import type { Component } from "@casehubio/pages-ui";
 import type { DataSourceBinding } from "@casehubio/pages-data";
-import { getTrialId } from "../datasets.js";
-import { auditTrailStub } from "../stubs/audit-trail-viewer.js";
 
 export function safetyWorkbench(): Component {
   const aeTable = dataTable({
@@ -13,6 +11,7 @@ export function safetyWorkbench(): Component {
     lookup: lookup("adverse-events"),
     sortable: true,
     pageSize: 25,
+    selection: "single",
     columns: [
       { id: "grade" as never, name: "Grade", expression: '(value = "GRADE_4" or value = "GRADE_5") ? "🔴 " & value : value = "GRADE_3" ? "🟠 " & value : value' },
       { id: "eventType" as never, name: "Event Type" },
@@ -32,34 +31,31 @@ export function safetyWorkbench(): Component {
 
   const detailTabs = tabs(
     ["Overview", panel("AE Overview",
-      markdown("Select an adverse event from the list to view details."),
+      html('<div id="ae-overview"><p style="color: var(--pages-neutral-9); font-style: italic; padding: 1rem;">Select an adverse event from the list to view details.</p></div>'),
     )],
     ["SUSAR Evaluation", panel("SUSAR Evaluation",
-      markdown("SUSAR criteria assessment and approval gate."),
-      html(`<approval-gate
-        endpoint="/demo/adverse-events/{aeId}/approve-susar-gate"
+      html(`<blocks-approval-gate id="susar-gate"
         prompt="Review SUSAR determination for this adverse event"
         context-text="Grade 4+ unexpected suspected adverse reaction — SUSAR criteria evaluation"
-        require-confirmation
-      ></approval-gate>`),
+      ></blocks-approval-gate>`),
     )],
     ["Trust & Attestation", panel("Trust Feedback",
-      html(`<trust-feedback-display></trust-feedback-display>`),
+      html('<trust-feedback-display id="ae-trust-feedback"></trust-feedback-display>'),
     )],
     ["Regulatory", panel("Regulatory Status",
-      html(`<sla-breach-policy-indicator></sla-breach-policy-indicator>`),
+      html('<sla-breach-policy-indicator id="ae-sla-breach"></sla-breach-policy-indicator>'),
     )],
     ["Precedents", panel("Similar Past Cases",
-      html('<cbr-precedents-panel empty-message="No similar adverse events found in case memory"></cbr-precedents-panel>'),
+      html('<cbr-precedents-panel id="ae-precedents" empty-message="No similar adverse events found in case memory"></cbr-precedents-panel>'),
     )],
     ["Audit Trail", panel("Ledger Entries",
-      auditTrailStub("ledger-entries"),
+      html('<clinical-audit-trail id="ae-audit-trail"></clinical-audit-trail>'),
     )],
     ["Grade History", panel("Grade History",
-      html('<clinical-ae-grade-history></clinical-ae-grade-history>'),
+      html('<clinical-ae-grade-history id="ae-grade-history"></clinical-ae-grade-history>'),
     )],
     ["Regrade", panel("Regrade Assessment",
-      html('<clinical-ae-regrade></clinical-ae-regrade>'),
+      html('<clinical-ae-regrade id="ae-regrade"></clinical-ae-regrade>'),
     )],
   );
 
