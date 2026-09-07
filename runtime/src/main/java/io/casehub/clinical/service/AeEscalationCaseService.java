@@ -89,12 +89,7 @@ public class AeEscalationCaseService {
             LOG.warnf("AE not found for regrade escalation aeId=%s", aeId);
             return null;
         }
-        if (ae.engineCaseId != null) {
-            if (SEVERE_GRADES.contains(grade)) {
-                trialSafetySignalService.signalGrade4Active(siteId);
-            }
-            return null;
-        }
+        ae.engineCaseId = null;
         if (ae.workItemId != null) {
             LOG.infof("Cancelling Grade 1/2 WorkItem %s for aeId=%s — engine case taking over", ae.workItemId, aeId);
             ae.workItemId = null;

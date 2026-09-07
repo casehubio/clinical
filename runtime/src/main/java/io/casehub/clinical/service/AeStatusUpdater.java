@@ -4,8 +4,9 @@ import io.casehub.clinical.api.model.AeEscalationStatus;
 import io.casehub.clinical.entity.AdverseEvent;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.transaction.Transactional;
-import java.util.UUID;
 import org.jboss.logging.Logger;
+
+import java.util.UUID;
 
 /**
  * Writes AE escalation status back to the AdverseEvent entity.
@@ -20,24 +21,32 @@ public class AeStatusUpdater {
 
     private static final Logger LOG = Logger.getLogger(AeStatusUpdater.class);
 
-    /**
-     * Sets escalationStatus to COMPLETED if not already set.
-     * Returns true if the status was newly set; false if already COMPLETED (idempotent).
-     * Uses REQUIRES_NEW so the commit survives even if the caller's transaction rolls back.
-     */
+
+    public enum CompletionResult {
+        COMPLETED,
+        ALREADY_COMPLETED,
+        SUPERSEDED,
+        NOT_FOUND
+    }
+
     @Transactional(Transactional.TxType.REQUIRES_NEW)
-    public boolean markCompleted(UUID aeId) {
+    public CompletionResult markCompleted(UUID aeId, UUID expectedCaseId) {
         AdverseEvent ae = AdverseEvent.findById(aeId);
         if (ae == null) {
             LOG.warnf("AeStatusUpdater: AdverseEvent not found for aeId=%s — status not updated", aeId);
-            return false;
+            return CompletionResult.NOT_FOUND;
         }
         if (ae.escalationStatus == AeEscalationStatus.COMPLETED) {
             LOG.debugf("AeStatusUpdater: aeId=%s already COMPLETED — skipping", aeId);
-            return false;
+            return CompletionResult.ALREADY_COMPLETED;
+        }
+        if (!expectedCaseId.equals(ae.engineCaseId)) {
+            LOG.infof("Superseded escalation case %s completed for aeId=%s — current case is %s",
+                expectedCaseId, aeId, ae.engineCaseId);
+            return CompletionResult.SUPERSEDED;
         }
         ae.escalationStatus = AeEscalationStatus.COMPLETED;
         LOG.infof("AeStatusUpdater: escalationStatus set to COMPLETED for aeId=%s", aeId);
-        return true;
+        return CompletionResult.COMPLETED;
     }
 }

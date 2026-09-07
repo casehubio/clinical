@@ -22,12 +22,21 @@ public class AeEscalationLedgerWriter {
 
     @Transactional(Transactional.TxType.REQUIRES_NEW)
     public void writeCompletionEntry(
-            UUID aeId,
-            UUID enrollmentId,
-            CtcaeGrade grade,
-            String safetyReviewOutcome,
-            boolean dsmbEscalated,
-            Instant completedAt) {
+            UUID aeId, UUID enrollmentId, CtcaeGrade grade,
+            String safetyReviewOutcome, boolean dsmbEscalated, Instant completedAt) {
+        writeEntry(aeId, enrollmentId, grade, safetyReviewOutcome, dsmbEscalated, completedAt, "AeEscalationCase");
+    }
+
+    @Transactional(Transactional.TxType.REQUIRES_NEW)
+    public void writeSupersededCompletionEntry(
+            UUID aeId, UUID enrollmentId, CtcaeGrade grade,
+            String safetyReviewOutcome, boolean dsmbEscalated, Instant completedAt) {
+        writeEntry(aeId, enrollmentId, grade, safetyReviewOutcome, dsmbEscalated, completedAt, "AeEscalationCase-superseded");
+    }
+
+    private void writeEntry(UUID aeId, UUID enrollmentId, CtcaeGrade grade,
+                            String safetyReviewOutcome, boolean dsmbEscalated,
+                            Instant completedAt, String actorRole) {
         var entry = new AeEscalationLedgerEntry();
         entry.id = UUID.randomUUID();
         entry.subjectId = aeId;
@@ -35,7 +44,7 @@ public class AeEscalationLedgerWriter {
         entry.entryType = LedgerEntryType.EVENT;
         entry.actorId = ClinicalActors.CLINICAL_SERVICE;
         entry.actorType = ActorType.SYSTEM;
-        entry.actorRole = "AeEscalationCase";
+        entry.actorRole = actorRole;
         entry.occurredAt = clock.instant();
         entry.aeId = aeId;
         entry.enrollmentId = enrollmentId;
@@ -46,6 +55,7 @@ public class AeEscalationLedgerWriter {
         entry.attach(ClinicalComplianceSupplement.aeEscalation());
         ledgerEntryRepository.save(entry, "default");
     }
+
 
     /**
      * Called from AeEscalationListener observer fallback path.

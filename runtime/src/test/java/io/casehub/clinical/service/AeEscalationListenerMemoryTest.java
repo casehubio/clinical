@@ -54,7 +54,7 @@ class AeEscalationListenerMemoryTest {
         ObjectNode snapshot = buildSnapshot(aeId, enrollmentId, siteId, "GRADE_3",
                 "REVIEWED", "completed", "test-tenant");
 
-        when(statusUpdater.markCompleted(aeId)).thenReturn(true);
+        when(statusUpdater.markCompleted(eq(aeId), any())).thenReturn(AeStatusUpdater.CompletionResult.COMPLETED);
 
         listener.onCaseLifecycle(goalReached(caseId, snapshot));
 
@@ -80,7 +80,7 @@ class AeEscalationListenerMemoryTest {
         ObjectNode snapshot = buildSnapshot(aeId, enrollmentId, siteId, "GRADE_3",
                 "REVIEWED", "completed", null);
 
-        when(statusUpdater.markCompleted(aeId)).thenReturn(true);
+        when(statusUpdater.markCompleted(eq(aeId), any())).thenReturn(AeStatusUpdater.CompletionResult.COMPLETED);
 
         listener.onCaseLifecycle(goalReached(caseId, snapshot));
 

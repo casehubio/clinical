@@ -1,13 +1,5 @@
 package io.casehub.clinical.service;
 
-import static java.util.concurrent.TimeUnit.MILLISECONDS;
-import static java.util.concurrent.TimeUnit.SECONDS;
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.awaitility.Awaitility.await;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.never;
-import static org.mockito.Mockito.verify;
-
 import io.casehub.clinical.api.AdverseEventReportedEvent;
 import io.casehub.clinical.api.model.AeEscalationStatus;
 import io.casehub.clinical.api.model.AeOutcome;
@@ -17,19 +9,28 @@ import io.casehub.clinical.entity.AdverseEvent;
 import io.casehub.clinical.support.WorkItemCompletionCapture;
 import io.casehub.clinical.support.WorkItemQueries;
 import io.casehub.platform.testing.FixedCurrentPrincipal;
-import io.casehub.work.api.WorkItemLifecycleEvent;
 import io.casehub.work.api.WorkItem;
-import io.casehub.work.runtime.service.WorkItemService;
+import io.casehub.work.api.WorkItemLifecycleEvent;
 import io.casehub.work.engine.WorkItemLifecycleAdapter;
+import io.casehub.work.runtime.service.WorkItemService;
 import io.quarkus.test.junit.QuarkusTest;
 import io.quarkus.test.junit.mockito.InjectSpy;
 import jakarta.inject.Inject;
 import jakarta.transaction.Transactional;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+
 import java.time.Instant;
 import java.util.List;
 import java.util.UUID;
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Test;
+
+import static java.util.concurrent.TimeUnit.MILLISECONDS;
+import static java.util.concurrent.TimeUnit.SECONDS;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.awaitility.Awaitility.await;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.verify;
 
 @QuarkusTest
 class AeEscalationLifecycleTest {
@@ -157,6 +158,99 @@ class AeEscalationLifecycleTest {
                 .untilAsserted(() ->
                         assertThat(findAe(aeId).escalationStatus).isEqualTo(AeEscalationStatus.COMPLETED));
     }
+
+    @Test
+    void grade3_to_grade4_regrade_starts_fresh_case_with_dsmb() throws Exception {
+        aeEscalationCaseService.onAdverseEventReported(aeEvent(CtcaeGrade.GRADE_3));
+
+        await().atMost(5, SECONDS).pollInterval(100, MILLISECONDS)
+               .untilAsserted(() -> {
+                   List<WorkItem> items = aeWorkItems();
+                   assertThat(items.stream().anyMatch(wi -> wi.title().contains("Senior safety monitor")))
+                           .as("safety-review WorkItem for Grade 3").isTrue();
+               });
+
+        WorkItem safetyWorkItem = aeWorkItems().stream()
+                                               .filter(wi -> wi.title().contains("Senior safety monitor"))
+                                               .findFirst().orElseThrow();
+        String resolution = "{\"outcome\":\"REVIEWED\",\"reviewedAt\":\"2026-09-06T13:00:00Z\"}";
+        workItemService.completeFromSystem(safetyWorkItem.id(), "senior-monitor", resolution);
+
+        WorkItem completed = aeWorkItems().stream()
+                                          .filter(wi -> wi.title().contains("Senior safety monitor"))
+                                          .findFirst().orElseThrow();
+        lifecycleAdapter.onWorkItemLifecycle(
+                WorkItemLifecycleEvent.of("COMPLETED", completed, "senior-monitor", completed.resolution()));
+
+        await().atMost(10, SECONDS).pollInterval(100, MILLISECONDS)
+               .untilAsserted(() ->
+                                      assertThat(findAe(aeId).escalationStatus).isEqualTo(AeEscalationStatus.COMPLETED));
+
+        UUID originalCaseId = findAe(aeId).engineCaseId;
+        assertThat(originalCaseId).isNotNull();
+
+        aeEscalationCaseService.startEscalationForRegrade(
+                aeId, enrollmentId, siteId, CtcaeGrade.GRADE_4, principal.tenancyId());
+
+        AdverseEvent regraded = findAe(aeId);
+        assertThat(regraded.engineCaseId).isNotNull();
+        assertThat(regraded.engineCaseId).isNotEqualTo(originalCaseId);
+
+        await().atMost(5, SECONDS).pollInterval(100, MILLISECONDS)
+               .untilAsserted(() -> {
+                   List<WorkItem> items = aeWorkItems();
+                   assertThat(items.stream().anyMatch(wi -> wi.title().contains("DSMB")))
+                           .as("DSMB WorkItem for Grade 4 regrade").isTrue();
+               });
+
+        verify(trialSafetySignalService).signalGrade4Active(siteId);
+    }
+
+    @Test
+    void grade3_to_grade4_regrade_with_active_case_supersedes_old_case() throws Exception {
+        aeEscalationCaseService.onAdverseEventReported(aeEvent(CtcaeGrade.GRADE_3));
+
+        await().atMost(5, SECONDS).pollInterval(100, MILLISECONDS)
+               .untilAsserted(() -> {
+                   List<WorkItem> items = aeWorkItems();
+                   assertThat(items.stream().anyMatch(wi -> wi.title().contains("Senior safety monitor")))
+                           .as("safety-review WorkItem for Grade 3").isTrue();
+               });
+
+        UUID originalCaseId = findAe(aeId).engineCaseId;
+        assertThat(originalCaseId).isNotNull();
+        assertThat(findAe(aeId).escalationStatus)
+                .isIn(AeEscalationStatus.REQUESTED, AeEscalationStatus.COMPLETED);
+
+        aeEscalationCaseService.startEscalationForRegrade(
+                aeId, enrollmentId, siteId, CtcaeGrade.GRADE_4, principal.tenancyId());
+
+        AdverseEvent regraded = findAe(aeId);
+        assertThat(regraded.engineCaseId).isNotNull();
+        assertThat(regraded.engineCaseId).isNotEqualTo(originalCaseId);
+
+        await().atMost(5, SECONDS).pollInterval(100, MILLISECONDS)
+               .untilAsserted(() -> {
+                   List<WorkItem> items = aeWorkItems();
+                   assertThat(items.stream().anyMatch(wi -> wi.title().contains("DSMB")))
+                           .as("DSMB WorkItem for Grade 4 regrade").isTrue();
+               });
+
+        WorkItem oldSafetyWorkItem = aeWorkItems().stream()
+                                                  .filter(wi -> wi.title().contains("Senior safety monitor"))
+                                                  .findFirst().orElseThrow();
+        String resolution = "{\"outcome\":\"REVIEWED\",\"reviewedAt\":\"2026-09-06T13:00:00Z\"}";
+        workItemService.completeFromSystem(oldSafetyWorkItem.id(), "senior-monitor", resolution);
+
+        WorkItem completedOld = aeWorkItems().stream()
+                                             .filter(wi -> wi.id().equals(oldSafetyWorkItem.id()))
+                                             .findFirst().orElseThrow();
+        lifecycleAdapter.onWorkItemLifecycle(
+                WorkItemLifecycleEvent.of("COMPLETED", completedOld, "senior-monitor", completedOld.resolution()));
+
+        assertThat(findAe(aeId).escalationStatus).isNotEqualTo(AeEscalationStatus.COMPLETED);
+    }
+
 
     // ── helpers ───────────────────────────────────────────────────────────────
 

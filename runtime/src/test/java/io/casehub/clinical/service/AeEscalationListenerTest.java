@@ -22,7 +22,11 @@ import static org.assertj.core.api.Assertions.assertThatCode;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyBoolean;
 import static org.mockito.ArgumentMatchers.eq;
-import static org.mockito.Mockito.*;
+import static org.mockito.Mockito.doThrow;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoInteractions;
+import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
 class AeEscalationListenerTest {
@@ -45,7 +49,7 @@ class AeEscalationListenerTest {
         ObjectNode snapshot = buildSnapshot(aeId, enrollmentId, siteId, "GRADE_4",
                 "REVIEWED", "completed", "test-tenant", null);
 
-        when(statusUpdater.markCompleted(aeId)).thenReturn(true);
+        when(statusUpdater.markCompleted(eq(aeId), any())).thenReturn(AeStatusUpdater.CompletionResult.COMPLETED);
         when(completedEvents.fireAsync(any())).thenReturn(CompletableFuture.completedFuture(null));
 
         listener.onCaseLifecycle(new CaseLifecycleEvent(
@@ -72,7 +76,7 @@ class AeEscalationListenerTest {
         ObjectNode snapshot = buildSnapshot(aeId, enrollmentId, siteId, "GRADE_5",
                 "REVIEWED", "completed", "test-tenant", true);
 
-        when(statusUpdater.markCompleted(aeId)).thenReturn(true);
+        when(statusUpdater.markCompleted(eq(aeId), any())).thenReturn(AeStatusUpdater.CompletionResult.COMPLETED);
         when(completedEvents.fireAsync(any())).thenReturn(CompletableFuture.completedFuture(null));
 
         listener.onCaseLifecycle(new CaseLifecycleEvent(
@@ -104,7 +108,7 @@ class AeEscalationListenerTest {
         ObjectNode snapshot = MAPPER.createObjectNode();
         snapshot.put("aeId", aeId.toString());
 
-        when(statusUpdater.markCompleted(aeId)).thenReturn(true);
+        when(statusUpdater.markCompleted(eq(aeId), any())).thenReturn(AeStatusUpdater.CompletionResult.COMPLETED);
 
         assertThatCode(() -> listener.onCaseLifecycle(goalReachedEvent(caseId, snapshot)))
             .doesNotThrowAnyException();
@@ -121,7 +125,7 @@ class AeEscalationListenerTest {
         ObjectNode snapshot = MAPPER.createObjectNode();
         snapshot.put("aeId", aeId.toString());
 
-        when(statusUpdater.markCompleted(aeId)).thenReturn(false);
+        when(statusUpdater.markCompleted(eq(aeId), any())).thenReturn(AeStatusUpdater.CompletionResult.ALREADY_COMPLETED);
 
         listener.onCaseLifecycle(goalReachedEvent(caseId, snapshot));
 
@@ -137,7 +141,7 @@ class AeEscalationListenerTest {
         ObjectNode snapshot = buildSnapshot(aeId, enrollmentId, null, "GRADE_3",
                 null, null, null, null);
 
-        when(statusUpdater.markCompleted(aeId)).thenReturn(true);
+        when(statusUpdater.markCompleted(eq(aeId), any())).thenReturn(AeStatusUpdater.CompletionResult.COMPLETED);
         doThrow(new RuntimeException("ledger write failed"))
             .when(ledgerWriter).writeCompletionEntry(any(), any(), any(), any(), anyBoolean(), any());
 
@@ -155,7 +159,7 @@ class AeEscalationListenerTest {
         ObjectNode snapshot = buildSnapshot(aeId, enrollmentId, null, "GRADE_4",
                 null, null, null, null);
 
-        when(statusUpdater.markCompleted(aeId)).thenReturn(true);
+        when(statusUpdater.markCompleted(eq(aeId), any())).thenReturn(AeStatusUpdater.CompletionResult.COMPLETED);
         doThrow(new RuntimeException("ledger write failed"))
             .when(ledgerWriter).writeCompletionEntry(any(), any(), any(), any(), anyBoolean(), any());
         doThrow(new RuntimeException("fallback write failed"))
@@ -173,7 +177,7 @@ class AeEscalationListenerTest {
         ObjectNode snapshot = buildSnapshot(aeId, enrollmentId, null, "GRADE_3",
                 null, null, null, null);
 
-        when(statusUpdater.markCompleted(aeId)).thenReturn(true);
+        when(statusUpdater.markCompleted(eq(aeId), any())).thenReturn(AeStatusUpdater.CompletionResult.COMPLETED);
         doThrow(new RuntimeException("fireAsync failed"))
             .when(completedEvents).fireAsync(any());
 
@@ -182,6 +186,28 @@ class AeEscalationListenerTest {
 
         verify(ledgerWriter, never()).writeObserverFailureEntry(any(), any(), any());
     }
+
+    @Test
+    void superseded_case_writes_superseded_ledger_but_skips_memory_and_event() {
+        UUID caseId       = UUID.randomUUID();
+        UUID aeId         = UUID.randomUUID();
+        UUID enrollmentId = UUID.randomUUID();
+        UUID siteId       = UUID.randomUUID();
+
+        ObjectNode snapshot = buildSnapshot(aeId, enrollmentId, siteId, "GRADE_3",
+                                            "REVIEWED", null, "test-tenant", null);
+
+        when(statusUpdater.markCompleted(eq(aeId), eq(caseId)))
+                .thenReturn(AeStatusUpdater.CompletionResult.SUPERSEDED);
+
+        listener.onCaseLifecycle(goalReachedEvent(caseId, snapshot));
+
+        verify(ledgerWriter).writeSupersededCompletionEntry(eq(aeId), eq(enrollmentId),
+                                                            eq(CtcaeGrade.GRADE_3), eq("REVIEWED"), eq(false), any());
+        verifyNoInteractions(memoryService);
+        verifyNoInteractions(completedEvents);
+    }
+
 
     // --- helpers ---
 

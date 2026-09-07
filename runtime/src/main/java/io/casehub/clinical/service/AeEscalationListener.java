@@ -34,13 +34,13 @@ public class AeEscalationListener {
 
     public void onCaseLifecycle(@ObservesAsync CaseLifecycleEvent event) {
         LOG.debugf("AeEscalationListener: received eventType=%s caseStatus=%s caseId=%s", event.eventType(), event.caseStatus(), event.caseId());
-        if (!"GoalReached".equals(event.eventType()) && !"CaseCompleted".equals(event.eventType())) return;
+        if (!"GoalReached".equals(event.eventType()) && !"CaseCompleted".equals(event.eventType())) {return;}
 
         JsonNode snapshot = event.contextSnapshot();
-        if (snapshot == null) return;
+        if (snapshot == null) {return;}
 
         String aeIdStr = snapshot.path("aeId").asText(null);
-        if (aeIdStr == null) return;
+        if (aeIdStr == null) {return;}
 
         UUID aeId;
         try {
@@ -50,27 +50,39 @@ public class AeEscalationListener {
             return;
         }
 
-        boolean firstCompletion = statusUpdater.markCompleted(aeId);
-        if (!firstCompletion) return;
-        try { aeTrajectoryAlertService.evaluate(aeId, event.tenancyId()); } catch (Exception te) { LOG.warnf(te, "Trajectory alert evaluation failed for aeId=%s", aeId); }
+        AeStatusUpdater.CompletionResult result = statusUpdater.markCompleted(aeId, event.caseId());
+        if (result == AeStatusUpdater.CompletionResult.NOT_FOUND
+            || result == AeStatusUpdater.CompletionResult.ALREADY_COMPLETED) {return;}
 
         UUID enrollmentId = resolveUuid(snapshot.path("enrollmentId").asText(null));
         if (enrollmentId == null) {
             LOG.warnf("AeEscalationListener: enrollmentId missing from case context for aeId=%s — ledger write skipped", aeId);
             return;
         }
-        UUID siteId = resolveUuid(snapshot.path("siteId").asText(null));
-        CtcaeGrade grade = resolveGrade(snapshot.path("grade").asText(null));
-        String safetyReviewOutcome = snapshot.path("safetyReview").path(OUTCOME_KEY).asText(null);
+        UUID       siteId              = resolveUuid(snapshot.path("siteId").asText(null));
+        CtcaeGrade grade               = resolveGrade(snapshot.path("grade").asText(null));
+        String     safetyReviewOutcome = snapshot.path("safetyReview").path(OUTCOME_KEY).asText(null);
         boolean dsmbEscalated = !snapshot.path("dsmbEscalation").isMissingNode()
-                && !snapshot.path("dsmbEscalation").isNull();
-        boolean unexpected = snapshot.path("unexpected").asBoolean(false);
+                                && !snapshot.path("dsmbEscalation").isNull();
+        boolean unexpected  = snapshot.path("unexpected").asBoolean(false);
         Instant completedAt = Instant.now();
+
+        if (result == AeStatusUpdater.CompletionResult.SUPERSEDED) {
+            try {
+                ledgerWriter.writeSupersededCompletionEntry(aeId, enrollmentId, grade, safetyReviewOutcome, dsmbEscalated, completedAt);
+            } catch (Exception e) {
+                LOG.errorf(e, "AeEscalationListener: superseded ledger write failed for aeId=%s", aeId);
+            }
+            return;
+        }
 
         boolean ledgerWritten = false;
         try {
             ledgerWriter.writeCompletionEntry(aeId, enrollmentId, grade, safetyReviewOutcome, dsmbEscalated, completedAt);
             ledgerWritten = true;
+            try {aeTrajectoryAlertService.evaluate(aeId, event.tenancyId());} catch (Exception te) {
+                LOG.warnf(te, "Trajectory alert evaluation failed for aeId=%s", aeId);
+            }
             String tenantId = snapshot.path("tenantId").asText(null);
             if (tenantId != null) {
                 memoryService.storeAeOutcome(aeId, enrollmentId, grade, safetyReviewOutcome, dsmbEscalated, tenantId);
