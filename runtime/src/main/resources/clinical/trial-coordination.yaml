@@ -6,6 +6,10 @@ title: Clinical Trial Coordination — cross-site safety monitoring
 
 spec:
 
+  capabilities:
+    - name: trial-supervision
+      inputProjection: "{ trialId: .trialId, trialPhase: .trialPhase, totalSites: .totalSites, safetyMetrics: .safetyMetrics }"
+
   bindings:
     - name: dsmb-rollup
       on:
@@ -17,3 +21,9 @@ spec:
         candidateGroups: [dsmb]
         inputMapping: "{ trialId: .trialId, activeSites: [.grade4Active // {} | to_entries[] | select(.value == true) | .key] }"
         outputMapping: "{ dsmbReview: . }"
+
+    - name: trial-supervision-check
+      on:
+        contextChange:
+          filter: ".safetyMetrics != null"
+      capability: trial-supervision
