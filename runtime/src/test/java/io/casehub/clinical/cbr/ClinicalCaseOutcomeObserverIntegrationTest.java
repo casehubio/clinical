@@ -15,7 +15,7 @@ import io.casehub.clinical.entity.ClinicalTrial;
 import io.casehub.clinical.entity.PatientEnrollment;
 import io.casehub.clinical.entity.TrialSite;
 import io.casehub.neocortex.memory.cbr.CbrQuery;
-import io.casehub.neocortex.memory.cbr.PlanCbrCase;
+import io.casehub.neocortex.memory.cbr.FeatureVectorCbrCase;
 import io.casehub.neocortex.memory.cbr.ScoredCbrCase;
 import io.casehub.platform.testing.FixedCurrentPrincipal;
 import io.quarkus.test.junit.QuarkusTest;
@@ -102,7 +102,7 @@ class ClinicalCaseOutcomeObserverIntegrationTest {
     }
 
     @Test
-    void onOutcome_storesPlanCbrCaseWithFeatures() {
+    void onOutcome_storesFeatureVectorCbrCaseWithFeatures() {
         UUID caseId = UUID.randomUUID();
         Map<String, Object> snapshot = new HashMap<>();
         snapshot.put("aeId", aeId.toString());
@@ -117,10 +117,10 @@ class ClinicalCaseOutcomeObserverIntegrationTest {
 
         CbrQuery query = CbrQuery.of(principal.tenancyId(), ClinicalCbrDomains.AE,
             io.casehub.platform.api.path.Path.of(trialId.toString(), siteId.toString(), "PAT-CBR"), "clinical-ae", Map.of(), 10);
-        List<ScoredCbrCase<PlanCbrCase>> results = cbrService.retrieveSimilar(query, PlanCbrCase.class);
+        List<ScoredCbrCase<FeatureVectorCbrCase>> results = cbrService.retrieveSimilar(query, FeatureVectorCbrCase.class);
 
         assertThat(results).isNotEmpty();
-        PlanCbrCase stored = results.get(0).cbrCase();
+        FeatureVectorCbrCase stored = results.get(0).cbrCase();
         assertThat(stored.features()).containsKey("grade");
         assertThat(stored.features()).containsKey("eventType");
         assertThat(stored.problem()).contains("Grade 3", "Neutropenia");
@@ -145,7 +145,7 @@ class ClinicalCaseOutcomeObserverIntegrationTest {
         CbrQuery query = CbrQuery.of(principal.tenancyId(), ClinicalCbrDomains.AE,
                                      io.casehub.platform.api.path.Path.of(trialId.toString(), siteId.toString(), "PAT-CBR"), "clinical-ae", Map.of(), 10)
                                  .withNotBefore(before);
-        List<ScoredCbrCase<PlanCbrCase>> results = cbrService.retrieveSimilar(query, PlanCbrCase.class);
+        List<ScoredCbrCase<FeatureVectorCbrCase>> results = cbrService.retrieveSimilar(query, FeatureVectorCbrCase.class);
         assertThat(results).isEmpty();
     }
 }

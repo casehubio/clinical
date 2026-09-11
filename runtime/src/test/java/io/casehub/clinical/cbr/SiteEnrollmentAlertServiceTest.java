@@ -6,7 +6,7 @@ import io.casehub.clinical.entity.ClinicalTrial;
 import io.casehub.neocortex.cognitive.Confidence;
 import io.casehub.neocortex.memory.cbr.FeatureValue;
 import io.casehub.neocortex.cognitive.Confidence;
-import io.casehub.neocortex.memory.cbr.PlanCbrCase;
+import io.casehub.neocortex.memory.cbr.FeatureVectorCbrCase;
 import io.casehub.neocortex.cognitive.Confidence;
 import io.casehub.neocortex.memory.cbr.ScoredCbrCase;
 import jakarta.enterprise.event.Event;
@@ -58,7 +58,7 @@ class SiteEnrollmentAlertServiceTest {
     void noMatches_returnsEmpty() {
         when(trajectoryBuilder.buildTrajectory(eq(SITE_ID), eq(TRIAL_ID), any(), eq("t1")))
                 .thenReturn(List.of(Map.of("ts", FeatureValue.number(0), "periodCount", FeatureValue.number(5), "cumulativeCount", FeatureValue.number(5))));
-        when(cbrService.retrieveWithAudit(any(), eq(PlanCbrCase.class), any(), any()))
+        when(cbrService.retrieveWithAudit(any(), eq(FeatureVectorCbrCase.class), any(), any()))
                 .thenReturn(new AuditedRetrievalResult<>(List.of(), "trace-1", null));
 
         Optional<SiteEnrollmentAlertEvent> result = service.evaluate(SITE_ID, TRIAL_ID, "t1");
@@ -71,7 +71,7 @@ class SiteEnrollmentAlertServiceTest {
                 .thenReturn(List.of(Map.of("ts", FeatureValue.number(0), "periodCount", FeatureValue.number(1), "cumulativeCount", FeatureValue.number(1))));
         var match1 = scoredCase("ENROLLMENT_STALL", 0.8);
         var match2 = scoredCase("ENROLLMENT_STALL", 0.7);
-        when(cbrService.retrieveWithAudit(any(), eq(PlanCbrCase.class), any(), any()))
+        when(cbrService.retrieveWithAudit(any(), eq(FeatureVectorCbrCase.class), any(), any()))
                 .thenReturn(new AuditedRetrievalResult<>(List.of(match1, match2), "trace-1", null));
 
         Optional<SiteEnrollmentAlertEvent> result = service.evaluate(SITE_ID, TRIAL_ID, "t1");
@@ -94,7 +94,7 @@ class SiteEnrollmentAlertServiceTest {
     void cbrFailure_returnsEmptyGracefully() {
         when(trajectoryBuilder.buildTrajectory(eq(SITE_ID), eq(TRIAL_ID), any(), eq("t1")))
                 .thenReturn(List.of(Map.of("ts", FeatureValue.number(0), "periodCount", FeatureValue.number(1), "cumulativeCount", FeatureValue.number(1))));
-        when(cbrService.retrieveWithAudit(any(), eq(PlanCbrCase.class), any(), any()))
+        when(cbrService.retrieveWithAudit(any(), eq(FeatureVectorCbrCase.class), any(), any()))
                 .thenThrow(new RuntimeException("Store unavailable"));
 
         Optional<SiteEnrollmentAlertEvent> result = service.evaluate(SITE_ID, TRIAL_ID, "t1");
@@ -110,8 +110,8 @@ class SiteEnrollmentAlertServiceTest {
         return trial;
     }
 
-    private ScoredCbrCase<PlanCbrCase> scoredCase(String outcome, double score) {
-        var cbrCase = new PlanCbrCase("problem", "solution", outcome, Confidence.unknown(1.0), Map.of(), List.of(), null, null);
+    private ScoredCbrCase<FeatureVectorCbrCase> scoredCase(String outcome, double score) {
+        var cbrCase = new FeatureVectorCbrCase("problem", "solution", outcome, Confidence.unknown(1.0), Map.of(), null, null);
         return new ScoredCbrCase<>(cbrCase, UUID.randomUUID().toString(), score);
     }
 }

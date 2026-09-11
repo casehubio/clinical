@@ -7,7 +7,7 @@ import io.casehub.clinical.api.spi.AmendmentRecommendation;
 import io.casehub.clinical.entity.ProtocolAmendment;
 import io.casehub.neocortex.memory.cbr.CbrQuery;
 import io.casehub.neocortex.memory.cbr.ScoredCbrCase;
-import io.casehub.neocortex.memory.cbr.TextualCbrCase;
+import io.casehub.neocortex.memory.cbr.FeatureVectorCbrCase;
 import io.quarkus.test.junit.QuarkusTest;
 import jakarta.inject.Inject;
 import jakarta.transaction.Transactional;
@@ -71,10 +71,10 @@ class AmendmentResolutionCbrWriterIntegrationTest {
             10
         ).withProblem("Extend enrollment period by 6 months");
 
-        List<ScoredCbrCase<TextualCbrCase>> results = cbrService.retrieveSimilar(query, TextualCbrCase.class);
+        List<ScoredCbrCase<FeatureVectorCbrCase>> results = cbrService.retrieveSimilar(query, FeatureVectorCbrCase.class);
 
         assertThat(results).isNotEmpty();
-        ScoredCbrCase<TextualCbrCase> first = results.get(0);
+        ScoredCbrCase<FeatureVectorCbrCase> first = results.get(0);
         assertThat(first.cbrCase().problem()).isEqualTo("Extend enrollment period by 6 months");
         assertThat(first.cbrCase().solution()).isEqualTo("PROCEED");
         assertThat(first.cbrCase().outcome()).isEqualTo("APPROVED");
@@ -102,7 +102,7 @@ class AmendmentResolutionCbrWriterIntegrationTest {
             10
         ).withProblem("Extend enrollment period by 6 months");
 
-        List<ScoredCbrCase<TextualCbrCase>> results = cbrService.retrieveSimilar(query, TextualCbrCase.class);
+        List<ScoredCbrCase<FeatureVectorCbrCase>> results = cbrService.retrieveSimilar(query, FeatureVectorCbrCase.class);
         assertThat(results).hasSize(1);
     }
 }

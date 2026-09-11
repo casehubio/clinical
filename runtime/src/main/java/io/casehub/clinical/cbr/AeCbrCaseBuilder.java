@@ -8,8 +8,7 @@ import io.casehub.engine.common.internal.model.PlanItemRecord;
 import io.casehub.engine.common.spi.PlanItemStore;
 import io.casehub.neocortex.cognitive.Confidence;
 import io.casehub.neocortex.memory.cbr.FeatureValue;
-import io.casehub.neocortex.memory.cbr.PlanCbrCase;
-import io.casehub.neocortex.memory.cbr.PlanTrace;
+import io.casehub.neocortex.memory.cbr.FeatureVectorCbrCase;
 import io.casehub.platform.api.path.Path;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
@@ -72,16 +71,7 @@ public class AeCbrCaseBuilder {
             ? countEnrollmentsAtSite(site.id) : 0;
         int siteTargetEnrollment = site != null ? site.targetEnrollment : 0;
 
-        List<PlanTrace> planTraces = engineCaseId != null
-            ? buildPlanTraces(engineCaseId, tenantId) : List.of();
-
-        String agentId = planTraces.stream()
-            .filter(pt -> "safety-monitoring".equals(pt.capabilityName()))
-            .map(PlanTrace::workerName)
-            .filter(Objects::nonNull)
-            .findFirst()
-            .orElse(null);
-        double agentTrustScore = agentId != null ? findAgentTrustScore(agentId) : 0.5;
+        double agentTrustScore = 0.5;
 
         var ctx = new AeCbrContext(ae, enrollment, trial, safetyReviewOutcome,
             dsmbEscalated, priorAeCount, siteEnrollmentCount, siteTargetEnrollment, agentTrustScore);
@@ -93,7 +83,7 @@ public class AeCbrCaseBuilder {
         String problem = AeCbrFeatureBuilder.buildProblemSummary(ctx);
         String solution = AeCbrFeatureBuilder.buildSolutionSummary(ctx);
 
-        var cbrCase = new PlanCbrCase(problem, solution, "COMPLETED", Confidence.unknown(1.0), FeatureValue.toFeatureMap(features), planTraces, null, null);
+        var cbrCase = new FeatureVectorCbrCase(problem, solution, "COMPLETED", Confidence.unknown(1.0), FeatureValue.toFeatureMap(features), null, null);
 
         cbrService.storeIdempotent(
             cbrCase, "clinical-ae", ae.id.toString(),
@@ -109,7 +99,7 @@ public class AeCbrCaseBuilder {
             if (!trajectory.isEmpty()) {
                 Map<String, Object> trajFeatures = new java.util.LinkedHashMap<>(features);
                 trajFeatures.put("aeTrajectory", trajectory);
-                var trajCbrCase = new PlanCbrCase(problem, solution, "COMPLETED", Confidence.unknown(1.0), FeatureValue.toFeatureMap(trajFeatures), planTraces, null, null);
+                var trajCbrCase = new FeatureVectorCbrCase(problem, solution, "COMPLETED", Confidence.unknown(1.0), FeatureValue.toFeatureMap(trajFeatures), null, null);
                 cbrService.storeIdempotent(
                     trajCbrCase, "clinical-ae-trajectory", ae.id + "-trajectory",
                     ClinicalCbrDomains.AE_TRAJECTORY, tenantId,
@@ -127,21 +117,6 @@ public class AeCbrCaseBuilder {
 
     long countEnrollmentsAtSite(UUID siteId) {
         return PatientEnrollment.count("siteId", siteId);
-    }
-
-    private List<PlanTrace> buildPlanTraces(UUID caseId, String tenancyId) {
-        List<PlanItemRecord> planItems = planItemStore.findByCaseId(caseId, tenancyId);
-        return planItems.stream()
-            .filter(pi -> pi.status().isTerminal())
-            .filter(pi -> pi.executorName() != null)
-            .filter(pi -> BINDING_CAPABILITY_MAP.containsKey(pi.bindingName()))
-            .map(pi -> new PlanTrace(
-                pi.bindingName(),
-                BINDING_CAPABILITY_MAP.get(pi.bindingName()),
-                pi.executorName(),
-                pi.status().name(),
-                0, Map.of(), null))
-            .toList();
     }
 
     private double findAgentTrustScore(String actorId) {

@@ -12,8 +12,7 @@ import io.casehub.engine.common.spi.PlanItemStore;
 import io.casehub.neocortex.memory.cbr.CbrCaseMemoryStore;
 import io.casehub.neocortex.memory.cbr.CbrOutcome;
 import io.casehub.neocortex.memory.cbr.FeatureValue;
-import io.casehub.neocortex.memory.cbr.PlanCbrCase;
-import io.casehub.neocortex.memory.cbr.PlanTrace;
+import io.casehub.neocortex.memory.cbr.FeatureVectorCbrCase;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 import jakarta.transaction.Transactional;
@@ -132,16 +131,7 @@ public class ClinicalCaseOutcomeObserver implements CaseOutcomeObserver {
                                      ? String.valueOf(snapshot.get("safetyReview")) : null;
         boolean dsmbEscalated = "true".equals(String.valueOf(snapshot.get("dsmbEscalation")));
 
-        List<PlanTrace> planTraces = buildPlanTraces(event.caseId(), event.tenancyId());
-
-        String agentId = planTraces.stream()
-                                   .filter(pt -> "safety-monitoring".equals(pt.capabilityName()))
-                                   .map(PlanTrace::workerName)
-                                   .filter(java.util.Objects::nonNull)
-                                   .findFirst()
-                                   .orElse(null);
-        double agentTrustScore = agentId != null
-                                 ? entityResolver.findAgentTrustScore(agentId) : 0.5;
+        double agentTrustScore = 0.5;
 
         var ctx = new AeCbrContext(ae, enrollment, trial, safetyReviewOutcome,
                                    dsmbEscalated, priorAeCount, siteEnrollmentCount, siteTargetEnrollment, agentTrustScore);
@@ -150,7 +140,7 @@ public class ClinicalCaseOutcomeObserver implements CaseOutcomeObserver {
         String              problem  = AeCbrFeatureBuilder.buildProblemSummary(ctx);
         String              solution = AeCbrFeatureBuilder.buildSolutionSummary(ctx);
 
-        var cbrCase = new PlanCbrCase(problem, solution, event.outcomeLabel(), Confidence.unknown(1.0), FeatureValue.toFeatureMap(features), planTraces, null, null);
+        var cbrCase = new FeatureVectorCbrCase(problem, solution, event.outcomeLabel(), Confidence.unknown(1.0), FeatureValue.toFeatureMap(features), null, null);
 
         cbrService.storeIdempotent(
                 cbrCase, "clinical-ae", aeId.toString(),
@@ -158,15 +148,15 @@ public class ClinicalCaseOutcomeObserver implements CaseOutcomeObserver {
                 event.caseId() != null ? event.caseId().toString() : null,
                 scope);
 
-        LOG.infof("Stored CBR case for AE %s: grade=%s, eventType=%s, planTraces=%d, agentTrust=%.2f",
-                  aeId, ae.grade, ae.eventType, planTraces.size(), agentTrustScore);
+        LOG.infof("Stored CBR case for AE %s: grade=%s, eventType=%s, agentTrust=%.2f",
+                  aeId, ae.grade, ae.eventType, agentTrustScore);
 
         try {
             List<Map<String, FeatureValue>> trajectory = trajectoryBuilder.buildTrajectory(ae, ae.tenantId);
             if (!trajectory.isEmpty()) {
                 Map<String, Object> trajFeatures = new java.util.LinkedHashMap<>(features);
                 trajFeatures.put("aeTrajectory", trajectory);
-                var trajCbrCase = new PlanCbrCase(problem, solution, event.outcomeLabel(), Confidence.unknown(1.0), FeatureValue.toFeatureMap(trajFeatures), planTraces, null, null);
+                var trajCbrCase = new FeatureVectorCbrCase(problem, solution, event.outcomeLabel(), Confidence.unknown(1.0), FeatureValue.toFeatureMap(trajFeatures), null, null);
                 cbrService.storeIdempotent(
                         trajCbrCase, "clinical-ae-trajectory", aeId + "-trajectory",
                         ClinicalCbrDomains.AE_TRAJECTORY, ae.tenantId,
@@ -177,23 +167,6 @@ public class ClinicalCaseOutcomeObserver implements CaseOutcomeObserver {
         } catch (Exception e) {
             LOG.warnf(e, "Trajectory CBR case storage failed for AE %s — point-in-time case was stored successfully", aeId);
         }}
-
-    private List<PlanTrace> buildPlanTraces(UUID caseId, String tenancyId) {
-        List<PlanItemRecord> planItems = planItemStore.findByCaseId(caseId, tenancyId);
-
-        return planItems.stream()
-                        .filter(pi -> pi.status().isTerminal())
-                        .filter(pi -> pi.executorName() != null)
-                        .filter(pi -> BINDING_CAPABILITY_MAP.containsKey(pi.bindingName()))
-                        .map(pi -> new PlanTrace(
-                                pi.bindingName(),
-                                BINDING_CAPABILITY_MAP.get(pi.bindingName()),
-                                pi.executorName(),
-                                pi.status().name(),
-                                0,
-                                Map.of(),
-                                null))
-                        .toList();}
 
     private void recordOutcome(String entityId, CaseOutcomeEvent event) {
         double successRate = switch (event.outcomeLabel()) {

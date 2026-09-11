@@ -9,7 +9,7 @@ import static org.mockito.Mockito.when;
 
 import io.casehub.neocortex.memory.cbr.CbrCaseMemoryStore;
 import io.casehub.neocortex.memory.cbr.FeatureValue;
-import io.casehub.neocortex.memory.cbr.PlanCbrCase;
+import io.casehub.neocortex.memory.cbr.FeatureVectorCbrCase;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
@@ -55,7 +55,7 @@ class SiteEnrollmentTrajectoryJobTest {
 
         job.snapshotSite(siteId, trialId, trialStart, 100, "PHASE_III", tenantId);
 
-        ArgumentCaptor<PlanCbrCase> caseCaptor = ArgumentCaptor.forClass(PlanCbrCase.class);
+        ArgumentCaptor<FeatureVectorCbrCase> caseCaptor = ArgumentCaptor.forClass(FeatureVectorCbrCase.class);
         verify(cbrService).storeIdempotent(
             caseCaptor.capture(),
             eq("clinical-site-enrollment"),
@@ -65,7 +65,7 @@ class SiteEnrollmentTrajectoryJobTest {
             eq(null),
             any());
 
-        PlanCbrCase stored = caseCaptor.getValue();
+        FeatureVectorCbrCase stored = caseCaptor.getValue();
         assertThat(stored.problem()).contains("PHASE_III");
         assertThat(stored.outcome()).isEqualTo("IN_PROGRESS");
 
@@ -103,10 +103,10 @@ class SiteEnrollmentTrajectoryJobTest {
 
         job.snapshotSite(siteId, trialId, trialStart, 50, "PHASE_II", tenantId);
 
-        ArgumentCaptor<PlanCbrCase> captor = ArgumentCaptor.forClass(PlanCbrCase.class);
+        ArgumentCaptor<FeatureVectorCbrCase> captor = ArgumentCaptor.forClass(FeatureVectorCbrCase.class);
         verify(cbrService).storeIdempotent(captor.capture(), any(), any(), any(), any(), any(), any());
 
-        PlanCbrCase stored = captor.getValue();
+        FeatureVectorCbrCase stored = captor.getValue();
         FeatureValue progress = stored.features().get("enrollmentProgress");
         assertThat(progress).isInstanceOf(FeatureValue.NumberVal.class);
         assertThat(((FeatureValue.NumberVal) progress).value()).isCloseTo(0.04, org.assertj.core.data.Offset.offset(0.01));

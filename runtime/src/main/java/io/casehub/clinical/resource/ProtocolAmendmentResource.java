@@ -9,7 +9,7 @@ import io.casehub.clinical.entity.ProtocolAmendment;
 import io.casehub.clinical.service.ProtocolAmendmentService;
 import io.casehub.neocortex.memory.cbr.CbrQuery;
 import io.casehub.neocortex.memory.cbr.ScoredCbrCase;
-import io.casehub.neocortex.memory.cbr.TextualCbrCase;
+import io.casehub.neocortex.memory.cbr.FeatureVectorCbrCase;
 import io.casehub.platform.api.identity.CurrentPrincipal;
 import jakarta.annotation.security.RolesAllowed;
 import jakarta.inject.Inject;
@@ -103,7 +103,7 @@ public class ProtocolAmendmentResource {
                 10
                                     ).withVectorWeight(0.0);
 
-        var result = cbrService.retrieveWithAudit(query, TextualCbrCase.class, amendmentId, principal.actorId());
+        var result = cbrService.retrieveWithAudit(query, FeatureVectorCbrCase.class, amendmentId, principal.actorId());
         List<AmendmentPrecedentResponse> precedents = result.cases().stream()
                                                             .map(this::mapToAmendmentResponse)
                                                             .toList();
@@ -111,8 +111,8 @@ public class ProtocolAmendmentResource {
                 result.traceId(), result.explanation(), precedents)).build();
     }
 
-    private AmendmentPrecedentResponse mapToAmendmentResponse(ScoredCbrCase<TextualCbrCase> scored) {
-        TextualCbrCase c = scored.cbrCase();
+    private AmendmentPrecedentResponse mapToAmendmentResponse(ScoredCbrCase<FeatureVectorCbrCase> scored) {
+        FeatureVectorCbrCase c = scored.cbrCase();
         // Phase 1: all returned with score 1.0 (no text embeddings)
         return new AmendmentPrecedentResponse(
                 scored.score(),

@@ -39,12 +39,12 @@ class ClinicalCbrServiceAuditTest {
     void retrieveWithAudit_callsRetrieveThenRenderThenWrite() {
         CbrQuery query = CbrQuery.of("t1", new MemoryDomain("clinical-ae"),
             Path.root(), "clinical-ae", Map.of(), 10);
-        var scored = new ScoredCbrCase<>(mock(PlanCbrCase.class), "c1", 0.9);
-        when(store.retrieveSimilar(query, PlanCbrCase.class)).thenReturn(List.of(scored));
+        var scored = new ScoredCbrCase<>(mock(FeatureVectorCbrCase.class), "c1", 0.9);
+        when(store.retrieveSimilar(query, FeatureVectorCbrCase.class)).thenReturn(List.of(scored));
         when(renderer.render(any())).thenReturn("explanation-text");
 
         UUID subjectId = UUID.randomUUID();
-        var result = service.retrieveWithAudit(query, PlanCbrCase.class, subjectId, "actor-1");
+        var result = service.retrieveWithAudit(query, FeatureVectorCbrCase.class, subjectId, "actor-1");
 
         assertThat(result.cases()).hasSize(1);
         assertThat(result.traceId()).isNotNull();
@@ -59,10 +59,10 @@ class ClinicalCbrServiceAuditTest {
     void retrieveWithAudit_renderThrows_explanationNullButLedgerWritten() {
         CbrQuery query = CbrQuery.of("t1", new MemoryDomain("clinical-ae"),
             Path.root(), "clinical-ae", Map.of(), 10);
-        when(store.retrieveSimilar(query, PlanCbrCase.class)).thenReturn(List.of());
+        when(store.retrieveSimilar(query, FeatureVectorCbrCase.class)).thenReturn(List.of());
         when(renderer.render(any())).thenThrow(new RuntimeException("render failed"));
 
-        var result = service.retrieveWithAudit(query, PlanCbrCase.class, UUID.randomUUID(), "actor-1");
+        var result = service.retrieveWithAudit(query, FeatureVectorCbrCase.class, UUID.randomUUID(), "actor-1");
 
         assertThat(result.explanation()).isNull();
         verify(writer).record(any(), isNull(), any(), eq("actor-1"));
@@ -72,12 +72,12 @@ class ClinicalCbrServiceAuditTest {
     void retrieveWithAudit_writerThrows_propagatesToCaller() {
         CbrQuery query = CbrQuery.of("t1", new MemoryDomain("clinical-ae"),
             Path.root(), "clinical-ae", Map.of(), 10);
-        when(store.retrieveSimilar(query, PlanCbrCase.class)).thenReturn(List.of());
+        when(store.retrieveSimilar(query, FeatureVectorCbrCase.class)).thenReturn(List.of());
         when(renderer.render(any())).thenReturn("text");
         doThrow(new RuntimeException("ledger write failed")).when(writer).record(any(), any(), any(), any());
 
         assertThatThrownBy(() ->
-            service.retrieveWithAudit(query, PlanCbrCase.class, UUID.randomUUID(), "actor-1"))
+            service.retrieveWithAudit(query, FeatureVectorCbrCase.class, UUID.randomUUID(), "actor-1"))
             .hasMessageContaining("ledger write failed");
     }
 
@@ -85,10 +85,10 @@ class ClinicalCbrServiceAuditTest {
     void retrieveWithAudit_emptyResults_stillWritesLedgerEntry() {
         CbrQuery query = CbrQuery.of("t1", new MemoryDomain("clinical-ae"),
             Path.root(), "clinical-ae", Map.of(), 10);
-        when(store.retrieveSimilar(query, PlanCbrCase.class)).thenReturn(List.of());
+        when(store.retrieveSimilar(query, FeatureVectorCbrCase.class)).thenReturn(List.of());
         when(renderer.render(any())).thenReturn("0 cases");
 
-        service.retrieveWithAudit(query, PlanCbrCase.class, UUID.randomUUID(), "actor-1");
+        service.retrieveWithAudit(query, FeatureVectorCbrCase.class, UUID.randomUUID(), "actor-1");
 
         verify(writer).record(any(), eq("0 cases"), any(), any());
     }
@@ -97,9 +97,9 @@ class ClinicalCbrServiceAuditTest {
     void retrieveSimilar_unchanged_noAudit() {
         CbrQuery query = CbrQuery.of("t1", new MemoryDomain("clinical-ae"),
             Path.root(), "clinical-ae", Map.of(), 10);
-        when(store.retrieveSimilar(query, PlanCbrCase.class)).thenReturn(List.of());
+        when(store.retrieveSimilar(query, FeatureVectorCbrCase.class)).thenReturn(List.of());
 
-        service.retrieveSimilar(query, PlanCbrCase.class);
+        service.retrieveSimilar(query, FeatureVectorCbrCase.class);
 
         verifyNoInteractions(renderer);
         verifyNoInteractions(writer);

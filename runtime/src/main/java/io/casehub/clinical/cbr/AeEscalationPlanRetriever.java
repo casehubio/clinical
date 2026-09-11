@@ -69,14 +69,14 @@ public class AeEscalationPlanRetriever {
                     .withScopeDecay(cbrConfig.aeScopeDecay())
                     .withTemporalDecay(cbrConfig.aeTemporalDecay());
 
-            AuditedRetrievalResult<PlanCbrCase> result = cbrService.retrieveWithAudit(
-                    query, PlanCbrCase.class, ae.id, "system:ae-escalation");
+            AuditedRetrievalResult<ResolvedCase> result = cbrService.retrieveWithAudit(
+                    query, ResolvedCase.class, ae.id, "system:ae-escalation");
 
             if (result.cases().isEmpty()) {
                 return EscalationPlanRecommendation.none();
             }
 
-            ScoredCbrCase<PlanCbrCase> topCase = result.cases().get(0);
+            ScoredCbrCase<ResolvedCase> topCase = result.cases().get(0);
             AdaptedPlan adapted = planAdapter.adapt("clinical-ae", topCase, featureMap);
 
             return new EscalationPlanRecommendation(

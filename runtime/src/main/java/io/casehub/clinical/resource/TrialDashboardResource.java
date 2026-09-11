@@ -25,7 +25,7 @@ import io.casehub.ledger.runtime.model.ActorTrustScore;
 import io.casehub.ledger.runtime.repository.ActorTrustScoreRepository;
 import io.casehub.neocortex.memory.cbr.CbrQuery;
 import io.casehub.neocortex.memory.cbr.FeatureValue;
-import io.casehub.neocortex.memory.cbr.PlanCbrCase;
+import io.casehub.neocortex.memory.cbr.FeatureVectorCbrCase;
 import io.casehub.neocortex.memory.cbr.ScoredCbrCase;
 import io.casehub.platform.api.identity.CurrentPrincipal;
 import jakarta.annotation.security.RolesAllowed;
@@ -557,7 +557,7 @@ public class TrialDashboardResource {
                                  .withWeight("indReportFiled", 0.0)
                                  .withWeight("susarOversight", 0.0);
 
-        var result = cbrService.retrieveWithAudit(query, PlanCbrCase.class, aeId, principal.actorId());
+        var result = cbrService.retrieveWithAudit(query, FeatureVectorCbrCase.class, aeId, principal.actorId());
         List<AePrecedentResponse> precedents = result.cases().stream()
                                                      .map(this::mapToAeResponse)
                                                      .toList();
@@ -593,7 +593,7 @@ public class TrialDashboardResource {
                                  .withWeight("piDecision", 0.0)
                                  .withWeight("irbDecision", 0.0);
 
-        var result = cbrService.retrieveWithAudit(query, PlanCbrCase.class, devId, principal.actorId());
+        var result = cbrService.retrieveWithAudit(query, FeatureVectorCbrCase.class, devId, principal.actorId());
         List<DeviationPrecedentResponse> precedents = result.cases().stream()
                                                             .map(this::mapToDeviationResponse)
                                                             .toList();
@@ -677,7 +677,7 @@ public class TrialDashboardResource {
                                                                    trajQueryScope, "clinical-ae-trajectory", features, limit)
                                                                                                  .withMinSimilarity(minScore)
                                                                                                  .withFilter("eventType", io.casehub.neocortex.memory.cbr.CbrFilter.contains(ae.eventType != null ? ae.eventType : "UNKNOWN"));
-        var result = cbrService.retrieveWithAudit(query, io.casehub.neocortex.memory.cbr.PlanCbrCase.class, ae.enrollmentId, io.casehub.clinical.api.ClinicalActors.CLINICAL_SERVICE);
+        var result = cbrService.retrieveWithAudit(query, io.casehub.neocortex.memory.cbr.FeatureVectorCbrCase.class, ae.enrollmentId, io.casehub.clinical.api.ClinicalActors.CLINICAL_SERVICE);
         var matches = result.cases().stream().map(sc -> {
             io.casehub.neocortex.memory.cbr.FeatureValue trajVal   = sc.cbrCase().features().get("aeTrajectory");
             java.util.List<TrajectoryObservation>        matchTraj = java.util.List.of();
@@ -767,18 +767,15 @@ public class TrialDashboardResource {
         return value != null ? String.valueOf(value) : fallback;
     }
 
-    private AePrecedentResponse mapToAeResponse(ScoredCbrCase<PlanCbrCase> scored) {
-        PlanCbrCase         c        = scored.cbrCase();
+    private AePrecedentResponse mapToAeResponse(ScoredCbrCase<FeatureVectorCbrCase> scored) {
+        FeatureVectorCbrCase         c        = scored.cbrCase();
         Map<String, Object> features = FeatureValue.toRawMap(c.features());
 
         Object gradeObj = features.get("grade");
         int    gradeInt = gradeObj instanceof Number ? ((Number) gradeObj).intValue() : 0;
         String gradeStr = gradeInt > 0 && gradeInt <= 5 ? "GRADE_" + gradeInt : "UNKNOWN";
 
-        List<PlanStepResponse> steps = c.planTrace().stream()
-                                        .map(trace -> new PlanStepResponse(
-                                                trace.bindingName(), trace.capabilityName(), trace.workerName(), trace.stepOutcome()))
-                                        .toList();
+        List<PlanStepResponse> steps = List.of();
 
         return new AePrecedentResponse(
                 scored.score(),
@@ -799,19 +796,11 @@ public class TrialDashboardResource {
         );
     }
 
-    private DeviationPrecedentResponse mapToDeviationResponse(ScoredCbrCase<PlanCbrCase> scored) {
-        PlanCbrCase         c        = scored.cbrCase();
+    private DeviationPrecedentResponse mapToDeviationResponse(ScoredCbrCase<FeatureVectorCbrCase> scored) {
+        FeatureVectorCbrCase         c        = scored.cbrCase();
         Map<String, Object> features = FeatureValue.toRawMap(c.features());
 
-        // Map plan traces to step responses
-        List<PlanStepResponse> steps = c.planTrace().stream()
-                                        .map(trace -> new PlanStepResponse(
-                                                trace.bindingName(),
-                                                trace.capabilityName(),
-                                                trace.workerName(),
-                                                trace.stepOutcome()
-                                        ))
-                                        .toList();
+        List<PlanStepResponse> steps = List.of();
 
         return new DeviationPrecedentResponse(
                 scored.score(),

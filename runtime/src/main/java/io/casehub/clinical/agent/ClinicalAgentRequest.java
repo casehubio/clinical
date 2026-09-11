@@ -1,0 +1,9 @@
+package io.casehub.clinical.agent;
+
+public record ClinicalAgentRequest<T>(
+        String systemPrompt,
+        String userPrompt,
+        Class<T> responseClass,
+        T fallbackValue,
+        String configKey,
+        String correlationId) {}

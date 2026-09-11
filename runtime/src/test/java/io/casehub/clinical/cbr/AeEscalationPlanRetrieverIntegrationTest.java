@@ -64,13 +64,12 @@ class AeEscalationPlanRetrieverIntegrationTest {
     void roundTrip_storeAndRetrieve() {
         Instant before = Instant.now();
 
-        var trace = new PlanTrace("safety-review", "safety-monitoring", "worker-1", "COMPLETED", 0, Map.of(), null);
         var features = Map.<String, Object>of(
                 "grade", 3, "eventType", List.of("hepatotoxicity"),
                 "trialPhase", "PHASE_III", "unexpected", "false",
                 "suspected", "false", "treatmentArm", "UNASSIGNED",
                 "priorAeCount", "NONE");
-        var cbrCase = new PlanCbrCase("Grade 3 hepatotoxicity", "Safety review completed", "COMPLETED", Confidence.unknown(1.0), FeatureValue.toFeatureMap(features), List.of(trace), null, null);
+        var cbrCase = new FeatureVectorCbrCase("Grade 3 hepatotoxicity", "Safety review completed", "COMPLETED", Confidence.unknown(1.0), FeatureValue.toFeatureMap(features), null, null);
 
         cbrService.storeIdempotent(cbrCase, "clinical-ae", "past-ae-1",
                 ClinicalCbrDomains.AE, "test-tenant", null,

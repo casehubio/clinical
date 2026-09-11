@@ -15,18 +15,13 @@ public class ClinicalPlanAdapter implements PlanAdapter {
     private static final Set<String> SAFETY_CAPABILITIES = Set.of("safety-monitoring", "data-safety-monitoring");
 
     @Override
-    public AdaptedPlan adapt(String caseType, ScoredCbrCase<PlanCbrCase> retrieved,
+    public AdaptedPlan adapt(String caseType, ScoredCbrCase<ResolvedCase> retrieved,
                              Map<String, FeatureValue> currentFeatures) {
         if (!CASE_TYPE_AE.equals(caseType)) {
             return passThrough(retrieved);
         }
 
         List<AdaptedStep> steps = new ArrayList<>();
-        boolean gradeEscalated = isGradeEscalated(currentFeatures, retrieved.cbrCase().features());
-
-        for (PlanTrace trace : retrieved.cbrCase().planTrace()) {
-            steps.add(adaptStep(trace, retrieved.score(), gradeEscalated));
-        }
 
         if (shouldAddSusar(currentFeatures, retrieved.cbrCase().features())) {
             steps.add(new AdaptedStep("susar-oversight", "susar-review", null, null,
@@ -35,41 +30,6 @@ public class ClinicalPlanAdapter implements PlanAdapter {
         }
 
         return new AdaptedPlan(steps);
-    }
-
-    private AdaptedStep adaptStep(PlanTrace trace, double similarity, boolean gradeEscalated) {
-        String outcome = trace.stepOutcome();
-
-        if ("FAILED".equals(outcome) || "TERMINATED".equals(outcome)) {
-            return new AdaptedStep(trace.bindingName(), trace.capabilityName(),
-                    trace.workerName(), trace.stepOutcome(), 0, trace.parameters(),
-                    AdaptationAction.SUPPRESSED, "Step failed in past similar case.");
-        }
-
-        if ("COMPLETED".equals(outcome)) {
-            int priority = 10;
-            String reason = "Step succeeded in past similar case (similarity: %.2f).".formatted(similarity);
-
-            if (gradeEscalated && SAFETY_CAPABILITIES.contains(trace.capabilityName())) {
-                priority += 5;
-                reason += " Higher severity than precedent — elevated urgency.";
-            }
-
-            return new AdaptedStep(trace.bindingName(), trace.capabilityName(),
-                    trace.workerName(), trace.stepOutcome(), priority, trace.parameters(),
-                    AdaptationAction.BOOSTED, reason);
-        }
-
-        int priority = 0;
-        String reason = null;
-        if (gradeEscalated && SAFETY_CAPABILITIES.contains(trace.capabilityName())) {
-            priority = 5;
-            reason = "Higher severity than precedent — elevated urgency.";
-        }
-
-        return new AdaptedStep(trace.bindingName(), trace.capabilityName(),
-                trace.workerName(), trace.stepOutcome(), priority, trace.parameters(),
-                AdaptationAction.RETAINED, reason);
     }
 
     private boolean isGradeEscalated(Map<String, FeatureValue> current, Map<String, FeatureValue> past) {
@@ -92,12 +52,7 @@ public class ClinicalPlanAdapter implements PlanAdapter {
         return val instanceof FeatureValue.StringVal s && "true".equals(s.value());
     }
 
-    private AdaptedPlan passThrough(ScoredCbrCase<PlanCbrCase> retrieved) {
-        List<AdaptedStep> steps = retrieved.cbrCase().planTrace().stream()
-                .map(t -> new AdaptedStep(t.bindingName(), t.capabilityName(),
-                        t.workerName(), t.stepOutcome(), 0, t.parameters(),
-                        AdaptationAction.RETAINED, null))
-                .toList();
-        return new AdaptedPlan(steps);
+    private AdaptedPlan passThrough(ScoredCbrCase<ResolvedCase> retrieved) {
+        return new AdaptedPlan(List.of());
     }
 }

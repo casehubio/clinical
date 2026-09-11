@@ -9,7 +9,7 @@ import io.casehub.clinical.entity.AdverseEvent;
 import io.casehub.neocortex.cognitive.Confidence;
 import io.casehub.neocortex.memory.cbr.FeatureValue;
 import io.casehub.neocortex.cognitive.Confidence;
-import io.casehub.neocortex.memory.cbr.PlanCbrCase;
+import io.casehub.neocortex.memory.cbr.FeatureVectorCbrCase;
 import io.casehub.neocortex.cognitive.Confidence;
 import io.casehub.neocortex.memory.cbr.ScoredCbrCase;
 import jakarta.enterprise.event.Event;
@@ -61,7 +61,7 @@ class AeTrajectoryAlertServiceTest {
     @Test
     void noMatches_returnsEmpty() {
         when(trajectoryBuilder.buildPartialTrajectory(any(), eq("t1"))).thenReturn(List.of(Map.of()));
-        when(cbrService.retrieveWithAudit(any(), eq(PlanCbrCase.class), any(), any()))
+        when(cbrService.retrieveWithAudit(any(), eq(FeatureVectorCbrCase.class), any(), any()))
                 .thenReturn(new AuditedRetrievalResult<>(List.of(), "trace-1", null));
 
         Optional<AeTrajectoryAlertEvent> result = service.evaluate(TEST_AE_ID, "t1");
@@ -73,7 +73,7 @@ class AeTrajectoryAlertServiceTest {
     void singleMatch_belowMinMatches_returnsEmpty() {
         when(trajectoryBuilder.buildPartialTrajectory(any(), eq("t1"))).thenReturn(List.of(Map.of()));
         var match1 = scoredCase("FAULTED", 0.9);
-        when(cbrService.retrieveWithAudit(any(), eq(PlanCbrCase.class), any(), any()))
+        when(cbrService.retrieveWithAudit(any(), eq(FeatureVectorCbrCase.class), any(), any()))
                 .thenReturn(new AuditedRetrievalResult<>(List.of(match1), "trace-1", null));
 
         Optional<AeTrajectoryAlertEvent> result = service.evaluate(TEST_AE_ID, "t1");
@@ -85,7 +85,7 @@ class AeTrajectoryAlertServiceTest {
         when(trajectoryBuilder.buildPartialTrajectory(any(), eq("t1"))).thenReturn(List.of(Map.of()));
         var match1 = scoredCase("COMPLETED", 0.7);
         var match2 = scoredCase("FAULTED", 0.65);
-        when(cbrService.retrieveWithAudit(any(), eq(PlanCbrCase.class), any(), any()))
+        when(cbrService.retrieveWithAudit(any(), eq(FeatureVectorCbrCase.class), any(), any()))
                 .thenReturn(new AuditedRetrievalResult<>(List.of(match1, match2), "trace-1", null));
 
         Optional<AeTrajectoryAlertEvent> result = service.evaluate(TEST_AE_ID, "t1");
@@ -98,7 +98,7 @@ class AeTrajectoryAlertServiceTest {
         var match1 = scoredCase("FAULTED", 0.8);
         var match2 = scoredCase("FAULTED", 0.7);
         var match3 = scoredCase("COMPLETED", 0.5);
-        when(cbrService.retrieveWithAudit(any(), eq(PlanCbrCase.class), any(), any()))
+        when(cbrService.retrieveWithAudit(any(), eq(FeatureVectorCbrCase.class), any(), any()))
                 .thenReturn(new AuditedRetrievalResult<>(List.of(match1, match2, match3), "trace-1", null));
 
         Optional<AeTrajectoryAlertEvent> result = service.evaluate(TEST_AE_ID, "t1");
@@ -112,7 +112,7 @@ class AeTrajectoryAlertServiceTest {
     @Test
     void cbrRetrievalFailure_returnsEmptyGracefully() {
         when(trajectoryBuilder.buildPartialTrajectory(any(), eq("t1"))).thenReturn(List.of(Map.of()));
-        when(cbrService.retrieveWithAudit(any(), eq(PlanCbrCase.class), any(), any()))
+        when(cbrService.retrieveWithAudit(any(), eq(FeatureVectorCbrCase.class), any(), any()))
                 .thenThrow(new RuntimeException("CBR store unavailable"));
 
         Optional<AeTrajectoryAlertEvent> result = service.evaluate(TEST_AE_ID, "t1");
@@ -150,8 +150,8 @@ class AeTrajectoryAlertServiceTest {
         return ae;
     }
 
-    private ScoredCbrCase<PlanCbrCase> scoredCase(String outcome, double score) {
-        var cbrCase = new PlanCbrCase("problem", "solution", outcome, Confidence.unknown(1.0), Map.of(), List.of(), null, null);
+    private ScoredCbrCase<FeatureVectorCbrCase> scoredCase(String outcome, double score) {
+        var cbrCase = new FeatureVectorCbrCase("problem", "solution", outcome, Confidence.unknown(1.0), Map.of(), null, null);
         return new ScoredCbrCase<>(cbrCase, UUID.randomUUID().toString(), score);
     }
 }

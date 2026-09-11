@@ -17,7 +17,7 @@ import io.casehub.clinical.entity.TrialSite;
 import io.casehub.neocortex.memory.cbr.CbrCaseMemoryStore;
 import io.casehub.neocortex.memory.cbr.CbrQuery;
 import io.casehub.neocortex.memory.cbr.FeatureValue;
-import io.casehub.neocortex.memory.cbr.PlanCbrCase;
+import io.casehub.neocortex.memory.cbr.FeatureVectorCbrCase;
 import io.casehub.neocortex.memory.cbr.ScoredCbrCase;
 import io.casehub.platform.testing.FixedCurrentPrincipal;
 import io.quarkus.test.TestTransaction;
@@ -136,10 +136,10 @@ class DeviationResolutionCbrWriterIntegrationTest {
             10
         );
 
-        List<ScoredCbrCase<PlanCbrCase>> results = memoryStore.retrieveSimilar(query, PlanCbrCase.class);
+        List<ScoredCbrCase<FeatureVectorCbrCase>> results = memoryStore.retrieveSimilar(query, FeatureVectorCbrCase.class);
         assertThat(results).isNotEmpty();
 
-        PlanCbrCase retrieved = results.get(0).cbrCase();
+        FeatureVectorCbrCase retrieved = results.get(0).cbrCase();
         assertThat(retrieved.problem()).contains("CONSENT_TIMING_DELAY", "MINOR");
         assertThat(retrieved.solution()).contains("PI decision: APPROVED");
         assertThat(retrieved.outcome()).isEqualTo("RESOLVED");
@@ -149,9 +149,7 @@ class DeviationResolutionCbrWriterIntegrationTest {
             .containsEntry("piDecision", "APPROVED")
             .containsEntry("irbDecision", "N/A");
 
-        assertThat(retrieved.planTrace()).hasSize(1);
-        assertThat(retrieved.planTrace().get(0).bindingName()).isEqualTo("pi-oversight");
-        assertThat(retrieved.planTrace().get(0).stepOutcome()).isEqualTo("APPROVED");
+
     }
 
     @Test
@@ -222,11 +220,11 @@ class DeviationResolutionCbrWriterIntegrationTest {
             10
         );
 
-        List<ScoredCbrCase<PlanCbrCase>> results = memoryStore.retrieveSimilar(query, PlanCbrCase.class);
+        List<ScoredCbrCase<FeatureVectorCbrCase>> results = memoryStore.retrieveSimilar(query, FeatureVectorCbrCase.class);
         assertThat(results).isNotEmpty();
 
         // Find the case for this specific deviation
-        PlanCbrCase retrieved = results.stream()
+        FeatureVectorCbrCase retrieved = results.stream()
             .map(ScoredCbrCase::cbrCase)
             .filter(c -> FeatureValue.toRawMap(c.features()).get("deviationType").equals("INFORMED_CONSENT_VIOLATION"))
             .findFirst()
@@ -236,10 +234,7 @@ class DeviationResolutionCbrWriterIntegrationTest {
             .containsEntry("piDecision", "ESCALATED")
             .containsEntry("irbDecision", "APPROVED");
 
-        assertThat(retrieved.planTrace()).hasSize(2);
-        assertThat(retrieved.planTrace().get(0).stepOutcome()).isEqualTo("ESCALATED");
-        assertThat(retrieved.planTrace().get(1).stepOutcome()).isEqualTo("APPROVED");
-        assertThat(retrieved.planTrace().get(1).bindingName()).isEqualTo("irb-committee");
+
     }
 
     @Test
@@ -286,10 +281,10 @@ class DeviationResolutionCbrWriterIntegrationTest {
             10
         );
 
-        List<ScoredCbrCase<PlanCbrCase>> results = memoryStore.retrieveSimilar(query, PlanCbrCase.class);
+        List<ScoredCbrCase<FeatureVectorCbrCase>> results = memoryStore.retrieveSimilar(query, FeatureVectorCbrCase.class);
         assertThat(results).isNotEmpty();
 
-        PlanCbrCase retrieved = results.get(0).cbrCase();
+        FeatureVectorCbrCase retrieved = results.get(0).cbrCase();
         assertThat(FeatureValue.toRawMap(retrieved.features()))
             .containsEntry("piDecision", "REJECTED")
             .containsEntry("severity", "MAJOR")

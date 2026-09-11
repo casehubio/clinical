@@ -6,7 +6,7 @@ import io.casehub.clinical.entity.ClinicalTrial;
 import io.casehub.clinical.entity.PatientEnrollment;
 import io.casehub.neocortex.memory.cbr.CbrQuery;
 import io.casehub.neocortex.memory.cbr.FeatureValue;
-import io.casehub.neocortex.memory.cbr.PlanCbrCase;
+import io.casehub.neocortex.memory.cbr.FeatureVectorCbrCase;
 import io.casehub.neocortex.memory.cbr.ScoredCbrCase;
 import io.casehub.platform.api.path.Path;
 import jakarta.enterprise.context.ApplicationScoped;
@@ -90,8 +90,8 @@ public class SiteEnrollmentAlertService {
                     .withScopeDecay(cbrConfig.siteEnrollmentScopeDecay())
                     .withTemporalDecay(cbrConfig.siteEnrollmentTemporalDecay());
 
-            AuditedRetrievalResult<PlanCbrCase> result = cbrService.retrieveWithAudit(
-                    query, PlanCbrCase.class, siteId, ClinicalActors.CLINICAL_SERVICE);
+            AuditedRetrievalResult<FeatureVectorCbrCase> result = cbrService.retrieveWithAudit(
+                    query, FeatureVectorCbrCase.class, siteId, ClinicalActors.CLINICAL_SERVICE);
 
             if (result.cases().size() < minMatches) return Optional.empty();
 
@@ -113,7 +113,7 @@ public class SiteEnrollmentAlertService {
 
     record Prediction(String outcome, double probability) {}
 
-    private Prediction predictOutcome(List<ScoredCbrCase<PlanCbrCase>> cases) {
+    private Prediction predictOutcome(List<ScoredCbrCase<FeatureVectorCbrCase>> cases) {
         Map<String, Double> scoresByOutcome = cases.stream()
                 .filter(c -> c.cbrCase().outcome() != null)
                 .collect(Collectors.groupingBy(

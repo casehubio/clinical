@@ -8,8 +8,7 @@ import io.casehub.clinical.entity.IrbApproval;
 import io.casehub.clinical.entity.ProtocolDeviation;
 import io.casehub.neocortex.memory.cbr.FeatureValue;
 import io.casehub.neocortex.cognitive.Confidence;
-import io.casehub.neocortex.memory.cbr.PlanCbrCase;
-import io.casehub.neocortex.memory.cbr.PlanTrace;
+import io.casehub.neocortex.memory.cbr.FeatureVectorCbrCase;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.enterprise.event.ObservesAsync;
 import jakarta.inject.Inject;
@@ -120,33 +119,6 @@ public class DeviationResolutionCbrWriter {
             ? irbApproval.decision.name()
             : "N/A");
 
-        // Plan trace — reconstruct from entity state
-        List<PlanTrace> trace = new ArrayList<>();
-
-        // PI oversight binding (always present)
-        trace.add(new PlanTrace(
-            "pi-oversight",
-            "pi-authorisation",
-            null,
-            deviation.piApprovalStatus.name(),
-            1,
-            Map.of(),
-            null
-        ));
-
-        // IRB committee binding (CRITICAL only, after IRB decides)
-        if (irbApproval != null && irbApproval.decision != IrbDecision.PENDING) {
-            trace.add(new PlanTrace(
-                "irb-committee",
-                "irb-consultation",
-                null,
-                irbApproval.decision.name(),
-                2,
-                Map.of(),
-                null
-            ));
-        }
-
         // Problem and solution summaries
         String problem = String.format(
             "%s deviation (severity: %s, escalation: %s)",
@@ -163,7 +135,7 @@ public class DeviationResolutionCbrWriter {
                 : ""
         );
 
-        PlanCbrCase cbrCase = new PlanCbrCase(problem, solution, "RESOLVED", Confidence.unknown(1.0), FeatureValue.toFeatureMap(features), trace, null, null);
+        FeatureVectorCbrCase cbrCase = new FeatureVectorCbrCase(problem, solution, "RESOLVED", Confidence.unknown(1.0), FeatureValue.toFeatureMap(features), null, null);
 
         cbrService.storeIdempotent(
             cbrCase,

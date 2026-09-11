@@ -6,7 +6,7 @@ import io.casehub.clinical.entity.AdverseEvent;
 import io.casehub.neocortex.memory.cbr.CbrFilter;
 import io.casehub.neocortex.memory.cbr.CbrQuery;
 import io.casehub.neocortex.memory.cbr.FeatureValue;
-import io.casehub.neocortex.memory.cbr.PlanCbrCase;
+import io.casehub.neocortex.memory.cbr.FeatureVectorCbrCase;
 import io.casehub.neocortex.memory.cbr.ScoredCbrCase;
 import io.casehub.platform.api.path.Path;
 import jakarta.enterprise.context.ApplicationScoped;
@@ -85,8 +85,8 @@ public class AeTrajectoryAlertService {
                     .withTemporalDecay(cbrConfig.aeTrajectoryTemporalDecay())
                     .withFilter("eventType", CbrFilter.contains(ae.eventType != null ? ae.eventType : "UNKNOWN"));
 
-            AuditedRetrievalResult<PlanCbrCase> result = cbrService.retrieveWithAudit(
-                    query, PlanCbrCase.class, ae.enrollmentId, ClinicalActors.CLINICAL_SERVICE);
+            AuditedRetrievalResult<FeatureVectorCbrCase> result = cbrService.retrieveWithAudit(
+                    query, FeatureVectorCbrCase.class, ae.enrollmentId, ClinicalActors.CLINICAL_SERVICE);
 
             if (result.cases().size() < minMatches) return Optional.empty();
 
@@ -108,7 +108,7 @@ public class AeTrajectoryAlertService {
 
     record Prediction(String outcome, double probability) {}
 
-    Prediction predictOutcome(List<ScoredCbrCase<PlanCbrCase>> cases) {
+    Prediction predictOutcome(List<ScoredCbrCase<FeatureVectorCbrCase>> cases) {
         Map<String, Double> scoresByOutcome = cases.stream()
                 .filter(c -> c.cbrCase().outcome() != null)
                 .collect(Collectors.groupingBy(

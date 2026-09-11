@@ -8,7 +8,7 @@ import io.casehub.neocortex.memory.cbr.CbrQuery;
 import io.casehub.neocortex.cognitive.Confidence;
 import io.casehub.neocortex.memory.cbr.FeatureValue;
 import io.casehub.neocortex.cognitive.Confidence;
-import io.casehub.neocortex.memory.cbr.PlanCbrCase;
+import io.casehub.neocortex.memory.cbr.FeatureVectorCbrCase;
 import io.casehub.platform.api.path.Path;
 import io.casehub.platform.testing.FixedCurrentPrincipal;
 import io.quarkus.test.junit.QuarkusTest;
@@ -39,7 +39,7 @@ class CbrRetrievalAuditIntegrationTest {
 
     @Test
     void retrieveWithAudit_producesTraceIdAndExplanation() {
-        var cbrCase = new PlanCbrCase("Grade 3 Neutropenia", "Safety review: CONTINUE", "COMPLETED", Confidence.unknown(1.0), FeatureValue.toFeatureMap(Map.of("grade", 3, "eventType", List.of("Neutropenia"))), List.of(), null, null);
+        var cbrCase = new FeatureVectorCbrCase("Grade 3 Neutropenia", "Safety review: CONTINUE", "COMPLETED", Confidence.unknown(1.0), FeatureValue.toFeatureMap(Map.of("grade", 3, "eventType", List.of("Neutropenia"))), null, null);
 
         store.store(cbrCase, "clinical-ae", "ae-" + UUID.randomUUID(),
             ClinicalCbrDomains.AE, principal.tenancyId(), null, Path.root());
@@ -49,7 +49,7 @@ class CbrRetrievalAuditIntegrationTest {
             FeatureValue.toFeatureMap(Map.of("grade", 3, "eventType", List.of("Neutropenia"))), 10)
             .withVectorWeight(0.0);
 
-        var result = cbrService.retrieveWithAudit(query, PlanCbrCase.class,
+        var result = cbrService.retrieveWithAudit(query, FeatureVectorCbrCase.class,
             UUID.randomUUID(), principal.actorId());
 
         assertThat(result.traceId()).isNotNull();
@@ -63,7 +63,7 @@ class CbrRetrievalAuditIntegrationTest {
             Path.root(), "clinical-ae", Map.of(), 10)
             .withVectorWeight(0.0);
 
-        var result = cbrService.retrieveWithAudit(query, PlanCbrCase.class,
+        var result = cbrService.retrieveWithAudit(query, FeatureVectorCbrCase.class,
             UUID.randomUUID(), principal.actorId());
 
         assertThat(result.traceId()).isNotNull();

@@ -65,8 +65,8 @@ class ClinicalCbrServiceTest {
         final var query = CbrQuery.of("tenant-1", new MemoryDomain("clinical-ae"),
             io.casehub.platform.api.path.Path.root(), "clinical-ae", FeatureValue.toFeatureMap(Map.of("grade", 3.0)), 5);
         final var expected = List.of(
-            new ScoredCbrCase<>(new FeatureVectorCbrCase("p1", "s1", "o1", Confidence.unknown(0.9), Map.of(), null, null), 0.95),
-            new ScoredCbrCase<>(new FeatureVectorCbrCase("p2", "s2", "o2", Confidence.unknown(0.8), Map.of(), null, null), 0.85)
+            new ScoredCbrCase<>(new FeatureVectorCbrCase("p1", "s1", "o1", Confidence.unknown(0.9), Map.of(), null, null), "clinical-ae", 0.95),
+            new ScoredCbrCase<>(new FeatureVectorCbrCase("p2", "s2", "o2", Confidence.unknown(0.8), Map.of(), null, null), "clinical-ae", 0.85)
         );
 
         when(store.retrieveSimilar(query, FeatureVectorCbrCase.class)).thenReturn(expected);

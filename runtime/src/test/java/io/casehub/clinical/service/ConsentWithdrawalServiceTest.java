@@ -20,7 +20,7 @@ import io.casehub.neocortex.memory.cbr.CbrCaseMemoryStore;
 import io.casehub.neocortex.cognitive.Confidence;
 import io.casehub.neocortex.memory.cbr.CbrQuery;
 import io.casehub.neocortex.cognitive.Confidence;
-import io.casehub.neocortex.memory.cbr.TextualCbrCase;
+import io.casehub.neocortex.memory.cbr.FeatureVectorCbrCase;
 import io.casehub.platform.api.path.Path;
 import io.quarkus.test.junit.QuarkusTest;
 import jakarta.inject.Inject;
@@ -103,14 +103,14 @@ class ConsentWithdrawalServiceTest {
         Path patientScope = Path.of(trialId.toString(), siteId.toString(), patientId);
 
         cbrService.storeIdempotent(
-            new TextualCbrCase("AE for patient", "escalated", "resolved", Confidence.unknown(1.0), null, null),
+            new FeatureVectorCbrCase("AE for patient", "escalated", "resolved", Confidence.unknown(1.0), Map.of(), null, null),
             "clinical-ae", "ae-" + enrollmentId,
             ClinicalCbrDomains.AE, "default", null, patientScope);
 
         var before = cbrStore.retrieveSimilar(
             CbrQuery.of("default", ClinicalCbrDomains.AE, patientScope, "clinical-ae", Map.of(), 10)
                 .withProblem("AE for patient"),
-            TextualCbrCase.class);
+            FeatureVectorCbrCase.class);
         assertThat(before).isNotEmpty();
 
         service.withdraw(enrollmentId, "default");
@@ -118,7 +118,7 @@ class ConsentWithdrawalServiceTest {
         var after = cbrStore.retrieveSimilar(
             CbrQuery.of("default", ClinicalCbrDomains.AE, patientScope, "clinical-ae", Map.of(), 10)
                 .withProblem("AE for patient"),
-            TextualCbrCase.class);
+            FeatureVectorCbrCase.class);
         assertThat(after).isEmpty();
     }
 

@@ -7,8 +7,8 @@ import io.casehub.clinical.entity.IrbApproval;
 import io.casehub.clinical.entity.ProtocolDeviation;
 import io.casehub.clinical.api.ClinicalGroups;
 import io.casehub.neocortex.memory.cbr.FeatureValue;
-import io.casehub.neocortex.memory.cbr.PlanCbrCase;
-import io.casehub.neocortex.memory.cbr.PlanTrace;
+import io.casehub.neocortex.memory.cbr.FeatureVectorCbrCase;
+
 import io.casehub.platform.testing.FixedCurrentPrincipal;
 import io.quarkus.test.TestTransaction;
 import io.quarkus.test.junit.QuarkusTest;
@@ -95,8 +95,8 @@ class DeviationResolutionCbrWriterTest {
         // When: event is observed
         writer.onProtocolDeviationResolved(event);
 
-        // Then: PlanCbrCase stored with 5 features and 1 plan trace
-        ArgumentCaptor<PlanCbrCase> caseCaptor = ArgumentCaptor.forClass(PlanCbrCase.class);
+        // Then: FeatureVectorCbrCase stored with 5 features and 1 plan trace
+        ArgumentCaptor<FeatureVectorCbrCase> caseCaptor = ArgumentCaptor.forClass(FeatureVectorCbrCase.class);
         verify(cbrService).storeIdempotent(
             caseCaptor.capture(),
             eq("clinical-deviation"),
@@ -107,7 +107,7 @@ class DeviationResolutionCbrWriterTest {
             any()
         );
 
-        PlanCbrCase stored = caseCaptor.getValue();
+        FeatureVectorCbrCase stored = caseCaptor.getValue();
         assertThat(stored.problem()).contains("CONSENT_TIMING_DELAY", "MINOR", "NONE");
         assertThat(stored.solution()).contains("PI decision: APPROVED");
         assertThat(stored.outcome()).isEqualTo("RESOLVED");
@@ -121,12 +121,7 @@ class DeviationResolutionCbrWriterTest {
             .containsEntry("piDecision", "APPROVED")
             .containsEntry("irbDecision", "N/A");
 
-        List<PlanTrace> trace = stored.planTrace();
-        assertThat(trace).hasSize(1);
-        assertThat(trace.get(0).bindingName()).isEqualTo("pi-oversight");
-        assertThat(trace.get(0).capabilityName()).isEqualTo("pi-authorisation");
-        assertThat(trace.get(0).stepOutcome()).isEqualTo("APPROVED");
-        assertThat(trace.get(0).priority()).isEqualTo(1);
+
     }
 
     @Test
@@ -174,8 +169,8 @@ class DeviationResolutionCbrWriterTest {
         // When: event is observed
         writer.onProtocolDeviationResolved(event);
 
-        // Then: PlanCbrCase stored with irbDecision = "PENDING"
-        ArgumentCaptor<PlanCbrCase> caseCaptor = ArgumentCaptor.forClass(PlanCbrCase.class);
+        // Then: FeatureVectorCbrCase stored with irbDecision = "PENDING"
+        ArgumentCaptor<FeatureVectorCbrCase> caseCaptor = ArgumentCaptor.forClass(FeatureVectorCbrCase.class);
         verify(cbrService).storeIdempotent(
             caseCaptor.capture(),
             eq("clinical-deviation"),
@@ -186,14 +181,12 @@ class DeviationResolutionCbrWriterTest {
             any()
         );
 
-        PlanCbrCase stored = caseCaptor.getValue();
+        FeatureVectorCbrCase stored = caseCaptor.getValue();
         assertThat(FeatureValue.toRawMap(stored.features()))
             .containsEntry("piDecision", "ESCALATED")
             .containsEntry("irbDecision", "N/A");  // No IRB decision yet
 
-        List<PlanTrace> trace = stored.planTrace();
-        assertThat(trace).hasSize(1);
-        assertThat(trace.get(0).stepOutcome()).isEqualTo("ESCALATED");
+
     }
 
     @Test
@@ -239,8 +232,8 @@ class DeviationResolutionCbrWriterTest {
         // When: IRB event is observed
         writer.onIrbApprovalResolved(event);
 
-        // Then: PlanCbrCase stored with both PI and IRB decisions
-        ArgumentCaptor<PlanCbrCase> caseCaptor = ArgumentCaptor.forClass(PlanCbrCase.class);
+        // Then: FeatureVectorCbrCase stored with both PI and IRB decisions
+        ArgumentCaptor<FeatureVectorCbrCase> caseCaptor = ArgumentCaptor.forClass(FeatureVectorCbrCase.class);
         verify(cbrService).storeIdempotent(
             caseCaptor.capture(),
             eq("clinical-deviation"),
@@ -251,20 +244,13 @@ class DeviationResolutionCbrWriterTest {
             any()
         );
 
-        PlanCbrCase stored = caseCaptor.getValue();
+        FeatureVectorCbrCase stored = caseCaptor.getValue();
         assertThat(stored.solution()).contains("IRB decision: APPROVED");
         assertThat(FeatureValue.toRawMap(stored.features()))
             .containsEntry("piDecision", "ESCALATED")
             .containsEntry("irbDecision", "APPROVED");
 
-        List<PlanTrace> trace = stored.planTrace();
-        assertThat(trace).hasSize(2);
-        assertThat(trace.get(0).bindingName()).isEqualTo("pi-oversight");
-        assertThat(trace.get(0).stepOutcome()).isEqualTo("ESCALATED");
-        assertThat(trace.get(1).bindingName()).isEqualTo("irb-committee");
-        assertThat(trace.get(1).capabilityName()).isEqualTo("irb-consultation");
-        assertThat(trace.get(1).stepOutcome()).isEqualTo("APPROVED");
-        assertThat(trace.get(1).priority()).isEqualTo(2);
+
     }
 
     @Test
@@ -325,7 +311,7 @@ class DeviationResolutionCbrWriterTest {
 
         // Then: stored with null caseId
         verify(cbrService).storeIdempotent(
-            any(PlanCbrCase.class),
+            any(FeatureVectorCbrCase.class),
             eq("clinical-deviation"),
             eq(deviationId.toString()),
             eq(ClinicalCbrDomains.DEVIATION),

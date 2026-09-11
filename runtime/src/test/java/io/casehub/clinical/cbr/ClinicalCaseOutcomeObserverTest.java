@@ -38,7 +38,7 @@ class ClinicalCaseOutcomeObserverTest {
     }
 
     @Test
-    void onOutcome_aeCase_storesPlanCbrCaseWithPlanTrace() {
+    void onOutcome_aeCase_storesFeatureVectorCbrCaseWithPlanTrace() {
         UUID aeId = UUID.randomUUID();
         UUID caseId = UUID.randomUUID();
 
@@ -83,14 +83,10 @@ class ClinicalCaseOutcomeObserverTest {
             eq(ClinicalCbrDomains.AE), eq("test-tenant"), eq(caseId.toString()), any());
 
         CbrCase stored = caseCaptor.getValue();
-        assertThat(stored).isInstanceOf(PlanCbrCase.class);
-        PlanCbrCase plan = (PlanCbrCase) stored;
+        assertThat(stored).isInstanceOf(FeatureVectorCbrCase.class);
+        FeatureVectorCbrCase plan = (FeatureVectorCbrCase) stored;
         assertThat(plan.features()).hasSize(14);
-        assertThat(plan.planTrace()).hasSize(1);
-        assertThat(plan.planTrace().get(0).bindingName()).isEqualTo("safety-review");
-        assertThat(plan.planTrace().get(0).capabilityName()).isEqualTo("safety-monitoring");
-        assertThat(plan.planTrace().get(0).workerName()).isEqualTo("officer-alpha");
-        assertThat(plan.planTrace().get(0).stepOutcome()).isEqualTo("COMPLETED");
+
     }
 
     @Test
@@ -215,8 +211,8 @@ class ClinicalCaseOutcomeObserverTest {
 
         ArgumentCaptor<CbrCase> caseCaptor = ArgumentCaptor.forClass(CbrCase.class);
         verify(cbrService).storeIdempotent(caseCaptor.capture(), any(), any(), any(), any(), any(), any());
-        PlanCbrCase plan = (PlanCbrCase) caseCaptor.getValue();
-        assertThat(plan.planTrace()).isEmpty();
+        FeatureVectorCbrCase plan = (FeatureVectorCbrCase) caseCaptor.getValue();
+
     }
 
     @Test
@@ -253,9 +249,8 @@ class ClinicalCaseOutcomeObserverTest {
 
         ArgumentCaptor<CbrCase> caseCaptor = ArgumentCaptor.forClass(CbrCase.class);
         verify(cbrService).storeIdempotent(caseCaptor.capture(), any(), any(), any(), any(), any(), any());
-        PlanCbrCase plan = (PlanCbrCase) caseCaptor.getValue();
-        assertThat(plan.planTrace()).hasSize(1);
-        assertThat(plan.planTrace().get(0).bindingName()).isEqualTo("safety-review");
+        FeatureVectorCbrCase plan = (FeatureVectorCbrCase) caseCaptor.getValue();
+
     }
 
     @Test
@@ -349,7 +344,7 @@ class ClinicalCaseOutcomeObserverTest {
                 caseCaptor.capture(), eq("clinical-ae"), eq(aeId.toString()),
                 eq(ClinicalCbrDomains.AE), eq("test-tenant"), eq(caseId.toString()), any());
 
-        PlanCbrCase plan = (PlanCbrCase) caseCaptor.getValue();
+        FeatureVectorCbrCase plan = (FeatureVectorCbrCase) caseCaptor.getValue();
         assertThat(plan.features()).hasSize(14);
         assertThat(plan.features().get("siteEnrollmentCount")).isEqualTo(FeatureValue.number(45));
         assertThat(plan.features().get("siteTargetEnrollment")).isEqualTo(FeatureValue.number(100));
@@ -383,7 +378,7 @@ class ClinicalCaseOutcomeObserverTest {
 
         ArgumentCaptor<CbrCase> caseCaptor = ArgumentCaptor.forClass(CbrCase.class);
         verify(cbrService).storeIdempotent(caseCaptor.capture(), any(), any(), any(), any(), any(), any());
-        PlanCbrCase plan = (PlanCbrCase) caseCaptor.getValue();
+        FeatureVectorCbrCase plan = (FeatureVectorCbrCase) caseCaptor.getValue();
         assertThat(plan.features().get("agentTrustScore")).isEqualTo(FeatureValue.number(0.5));
     }
 

@@ -71,9 +71,9 @@ public class CbrCompactionJob {
         try {
             var query = CbrQuery.of(tenant, ClinicalCbrDomains.AE, Path.root(),
                                     "clinical-ae", Map.of(), 10000).withMinSimilarity(0.0);
-            List<ScoredCbrCase<PlanCbrCase>> allCases = store.retrieveSimilar(query, PlanCbrCase.class);
+            List<ScoredCbrCase<FeatureVectorCbrCase>> allCases = store.retrieveSimilar(query, FeatureVectorCbrCase.class);
 
-            for (ScoredCbrCase<PlanCbrCase> scored : allCases) {
+            for (ScoredCbrCase<FeatureVectorCbrCase> scored : allCases) {
                 String mergeKey = computeMergeKey(scored.cbrCase().features());
                 CbrCaseSummary summary = new CbrCaseSummary(
                         scored.caseId(), scored.caseId(), "clinical-ae", null, null,
@@ -98,7 +98,7 @@ public class CbrCompactionJob {
                     store.eraseEntity(c.summary().entityId(), tenant);
                 }
 
-                PlanCbrCase merged = createMergedRepresentative(group);
+                FeatureVectorCbrCase merged = createMergedRepresentative(group);
                 store.store(merged, "clinical-ae", entityId,
                             ClinicalCbrDomains.AE, tenant, null, Path.root());
 
@@ -114,7 +114,7 @@ public class CbrCompactionJob {
                       tenant, totalCompacted, groups.values().stream().filter(g -> g.size() >= minGroupSize).count());
         }}
 
-    private PlanCbrCase createMergedRepresentative(List<CaseWithFeatures> group) {
+    private FeatureVectorCbrCase createMergedRepresentative(List<CaseWithFeatures> group) {
         Map<String, FeatureValue> merged = new LinkedHashMap<>();
 
         for (String field : MERGE_KEY_FIELDS) {
@@ -144,7 +144,7 @@ public class CbrCompactionJob {
             .max(Comparator.comparing(c -> c.summary().storedAt()))
             .orElse(group.get(0));
 
-        return new PlanCbrCase(mostRecent.planCase().problem(), mostRecent.planCase().solution(), mostRecent.planCase().outcome(), Confidence.unknown(weightedConfidence), merged, List.of(), null, null);
+        return new FeatureVectorCbrCase(mostRecent.planCase().problem(), mostRecent.planCase().solution(), mostRecent.planCase().outcome(), Confidence.unknown(weightedConfidence), merged, null, null);
     }
 
     private FeatureValue weightedAverage(List<CaseWithFeatures> group, String field) {
@@ -184,7 +184,7 @@ public class CbrCompactionJob {
         return group.get(0).planCase().features().get(field);
     }
 
-    private long getMergeCount(PlanCbrCase planCase) {
+    private long getMergeCount(FeatureVectorCbrCase planCase) {
         FeatureValue mc = planCase.features().get("mergeCount");
         if (mc instanceof FeatureValue.NumberVal n) return (long) n.value();
         return 1;
@@ -210,5 +210,5 @@ public class CbrCompactionJob {
         }
     }
 
-    record CaseWithFeatures(CbrCaseSummary summary, PlanCbrCase planCase) {}
+    record CaseWithFeatures(CbrCaseSummary summary, FeatureVectorCbrCase planCase) {}
 }

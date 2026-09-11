@@ -9,7 +9,7 @@ import io.casehub.clinical.entity.PatientEnrollment;
 import io.casehub.clinical.entity.TrialSite;
 import io.casehub.engine.common.spi.PlanItemStore;
 import io.casehub.neocortex.memory.cbr.FeatureValue;
-import io.casehub.neocortex.memory.cbr.PlanCbrCase;
+import io.casehub.neocortex.memory.cbr.FeatureVectorCbrCase;
 import io.casehub.platform.api.path.Path;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -88,35 +88,35 @@ class AeCbrCaseBuilderTest {
         builder.buildAndStore(ae, enrollment, site, trial,
             "RESOLVED", true, null, ae.engineCaseId, ae.tenantId);
 
-        verify(cbrService).storeIdempotent(any(PlanCbrCase.class), eq("clinical-ae"),
+        verify(cbrService).storeIdempotent(any(FeatureVectorCbrCase.class), eq("clinical-ae"),
             eq(ae.id.toString()), eq(ClinicalCbrDomains.AE), eq("default"),
             eq(ae.engineCaseId.toString()), any(Path.class));
     }
 
     @Test
     void buildAndStore_withRegradeSource_setsFeature() {
-        ArgumentCaptor<PlanCbrCase> captor = ArgumentCaptor.forClass(PlanCbrCase.class);
+        ArgumentCaptor<FeatureVectorCbrCase> captor = ArgumentCaptor.forClass(FeatureVectorCbrCase.class);
 
         builder.buildAndStore(ae, enrollment, site, trial,
             null, false, "regrade", ae.engineCaseId, ae.tenantId);
 
         verify(cbrService).storeIdempotent(captor.capture(), eq("clinical-ae"),
             eq(ae.id.toString()), any(), any(), any(), any());
-        PlanCbrCase stored = captor.getValue();
+        FeatureVectorCbrCase stored = captor.getValue();
         assertEquals(FeatureValue.string("regrade"),
             stored.features().get("regradeSource"));
     }
 
     @Test
     void buildAndStore_withoutRegradeSource_noRegradeSourceFeature() {
-        ArgumentCaptor<PlanCbrCase> captor = ArgumentCaptor.forClass(PlanCbrCase.class);
+        ArgumentCaptor<FeatureVectorCbrCase> captor = ArgumentCaptor.forClass(FeatureVectorCbrCase.class);
 
         builder.buildAndStore(ae, enrollment, site, trial,
             "RESOLVED", true, null, ae.engineCaseId, ae.tenantId);
 
         verify(cbrService).storeIdempotent(captor.capture(), eq("clinical-ae"),
             eq(ae.id.toString()), any(), any(), any(), any());
-        PlanCbrCase stored = captor.getValue();
+        FeatureVectorCbrCase stored = captor.getValue();
         assertNull(stored.features().get("regradeSource"));
     }
 
