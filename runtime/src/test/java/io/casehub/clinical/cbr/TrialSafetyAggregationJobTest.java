@@ -10,6 +10,7 @@ import static org.mockito.Mockito.when;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.casehub.clinical.api.DsmbSafetySignalEvent;
 import io.casehub.clinical.api.model.CtcaeGrade;
+import io.casehub.clinical.service.DefaultSafetySignalAnalyzer;
 import io.casehub.clinical.service.DsmbBatchSignalNotifier;
 import io.casehub.neocortex.memory.cbr.FeatureVectorCbrCase;
 import io.casehub.work.api.spi.WorkItemStore;
@@ -55,7 +56,8 @@ class TrialSafetyAggregationJobTest {
 
         job = new TrialSafetyAggregationJob(cbrService, clock, signalEvent,
             mock(WorkItemService.class), mock(WorkItemStore.class),
-            mock(DsmbBatchSignalNotifier.class), new ObjectMapper());
+            mock(DsmbBatchSignalNotifier.class), new ObjectMapper(),
+            new DefaultSafetySignalAnalyzer());
         job.tenantId = "default";
         job.gradeThresholdMinGrade = 3;
         job.gradeThresholdMinSites = 3;

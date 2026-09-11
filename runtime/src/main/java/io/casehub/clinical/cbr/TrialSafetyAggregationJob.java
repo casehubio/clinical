@@ -5,6 +5,9 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import io.casehub.clinical.api.ClinicalActors;
 import io.casehub.clinical.api.DsmbSafetySignalEvent;
 import io.casehub.clinical.api.model.CtcaeGrade;
+import io.casehub.clinical.api.spi.SafetySignalAnalyzer;
+import io.casehub.clinical.api.spi.SignalAnalysis;
+import io.casehub.clinical.api.spi.TrialSafetyContext;
 import io.casehub.clinical.entity.AdverseEvent;
 import io.casehub.clinical.entity.ClinicalTrial;
 import io.casehub.clinical.entity.TrialSafetySignal;
@@ -50,6 +53,7 @@ public class TrialSafetyAggregationJob {
     private final WorkItemStore workItemStore;
     private final DsmbBatchSignalNotifier dsmbNotifier;
     private final ObjectMapper objectMapper;
+    private final SafetySignalAnalyzer safetySignalAnalyzer;
 
     @ConfigProperty(name = "casehub.clinical.trial-safety.tenant-id", defaultValue = "default")
     String tenantId;
@@ -82,7 +86,8 @@ public class TrialSafetyAggregationJob {
                                       WorkItemService workItemService,
                                       WorkItemStore workItemStore,
                                       DsmbBatchSignalNotifier dsmbNotifier,
-                                      ObjectMapper objectMapper) {
+                                      ObjectMapper objectMapper,
+                                      SafetySignalAnalyzer safetySignalAnalyzer) {
         this.cbrService = cbrService;
         this.clock = clock;
         this.signalEvent = signalEvent;
@@ -90,6 +95,7 @@ public class TrialSafetyAggregationJob {
         this.workItemStore = workItemStore;
         this.dsmbNotifier = dsmbNotifier;
         this.objectMapper = objectMapper;
+        this.safetySignalAnalyzer = safetySignalAnalyzer;
     }
 
     @Scheduled(every = "${casehub.clinical.trial-safety.interval:24h}",
@@ -141,6 +147,16 @@ public class TrialSafetyAggregationJob {
         });
 
         List<DetectedSignal> signals = detectSignals(trialId, siteData, trialPhase, tenantId);
+
+        if (!signals.isEmpty()) {
+            try {
+                TrialSafetyContext ctx = buildAnalysisContext(trialId, trialPhase, siteData, signals);
+                SignalAnalysis analysis = safetySignalAnalyzer.analyze(ctx);
+                signals = enrichSignals(signals, analysis);
+            } catch (Exception e) {
+                LOG.warnf(e, "LLM safety signal analysis failed for trial %s — proceeding with rule-based signals", trialId);
+            }
+        }
 
         for (DetectedSignal signal : signals) {
             storeCbrCase(trialId, signal, siteData.size(), trialPhase, tenantId);
@@ -356,6 +372,43 @@ public class TrialSafetyAggregationJob {
             }
         });
     }
+
+
+    private TrialSafetyContext buildAnalysisContext(UUID trialId, String trialPhase,
+                                                    Map<UUID, List<SiteAeSummary>> siteData,
+                                                    List<DetectedSignal> signals) {
+        Map<UUID, List<TrialSafetyContext.SiteAeSummary>> apiSiteData = new HashMap<>();
+        for (var entry : siteData.entrySet()) {
+            apiSiteData.put(entry.getKey(), entry.getValue().stream()
+                                                 .map(s -> new TrialSafetyContext.SiteAeSummary(s.grade().name(), s.eventType(), s.count()))
+                                                 .toList());
+        }
+        List<TrialSafetyContext.DetectedSignalSummary> apiSignals = signals.stream()
+                                                                           .map(s -> new TrialSafetyContext.DetectedSignalSummary(
+                                                                                   s.signalType(),
+                                                                                   s.affectedSites().stream().map(UUID::toString).toList(),
+                                                                                   s.summary(),
+                                                                                   s.dominantGrade() != null ? s.dominantGrade().name() : null,
+                                                                                   s.dominantEventType()))
+                                                                           .toList();
+        return new TrialSafetyContext(trialId, trialPhase, apiSiteData, apiSignals);
+    }
+
+    private List<DetectedSignal> enrichSignals(List<DetectedSignal> signals, SignalAnalysis analysis) {
+        if (analysis == null || analysis.signals() == null) {return signals;}
+        List<DetectedSignal> enriched = new ArrayList<>(signals.size());
+        for (DetectedSignal signal : signals) {
+            String enrichedSummary = analysis.signals().stream()
+                                             .filter(a -> signal.signalType().equals(a.signalType()))
+                                             .findFirst()
+                                             .map(a -> signal.summary() + " | LLM: " + a.narrative())
+                                             .orElse(signal.summary());
+            enriched.add(new DetectedSignal(signal.signalType(), signal.affectedSites(),
+                                            enrichedSummary, signal.dominantGrade(), signal.dominantEventType()));
+        }
+        return enriched;
+    }
+
 
     record SiteAeSummary(CtcaeGrade grade, String eventType, int count) {}
 
