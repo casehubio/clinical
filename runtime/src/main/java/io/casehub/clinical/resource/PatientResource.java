@@ -6,6 +6,7 @@ import io.casehub.clinical.api.model.ConsentStatus;
 import io.casehub.clinical.api.model.CriterionResult;
 import io.casehub.clinical.api.model.CtcaeGrade;
 import io.casehub.clinical.api.model.EnrollmentStatus;
+import io.casehub.clinical.api.model.EvaluateScreenRequest;
 import io.casehub.clinical.api.model.EventActuality;
 import io.casehub.clinical.entity.AdverseEvent;
 import io.casehub.clinical.entity.PatientEnrollment;
@@ -170,6 +171,35 @@ public class PatientResource {
             enrollment.screeningResult != null ? enrollment.screeningResult.name() : null
         )).build();
     }
+
+    @POST
+    @Path("/{enrollmentId}/evaluate-and-screen")
+    @Transactional
+    @RolesAllowed({ClinicalGroups.INVESTIGATOR, ClinicalGroups.COORDINATOR})
+    public Response evaluateAndScreen(@PathParam("trialId") UUID trialId,
+                                      @PathParam("siteId") UUID siteId,
+                                      @PathParam("enrollmentId") UUID enrollmentId,
+                                      @Valid EvaluateScreenRequest req) {
+        TrialSite site = TrialSite.findByIdForTenant(siteId, principal);
+        if (site == null || !site.trialId.equals(trialId)) {return Response.status(Response.Status.NOT_FOUND).build();}
+        PatientEnrollment enrollment = PatientEnrollment.findByIdForTenant(enrollmentId, principal);
+        if (enrollment == null || !enrollment.siteId.equals(siteId)) {
+            return Response.status(Response.Status.NOT_FOUND).build();
+        }
+        if (enrollment.screeningResult != null) {
+            return Response.status(Response.Status.CONFLICT)
+                           .entity("{\"error\":\"Patient already screened\"}")
+                           .build();
+        }
+
+        eligibilityScreeningService.evaluateAndScreen(enrollment, req.protocolCriteria());
+
+        return Response.ok(new ScreenResponse(
+                enrollment.enrollmentStatus.name(),
+                enrollment.screeningResult != null ? enrollment.screeningResult.name() : null
+        )).build();
+    }
+
 
     @POST
     @Path("/{enrollmentId}/adverse-events")

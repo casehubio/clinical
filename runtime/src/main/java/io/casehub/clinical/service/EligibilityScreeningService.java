@@ -4,6 +4,7 @@ import io.casehub.clinical.api.EligibilityScreeningEvent;
 import io.casehub.clinical.api.model.CriterionResult;
 import io.casehub.clinical.api.model.EligibilityScreeningResult;
 import io.casehub.clinical.api.model.EnrollmentStatus;
+import io.casehub.clinical.api.spi.EligibilityCriteriaEvaluator;
 import io.casehub.clinical.entity.PatientEnrollment;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.enterprise.event.Event;
@@ -18,6 +19,7 @@ public class EligibilityScreeningService {
 
     @Inject EligibilityScreeningLedgerWriter ledgerWriter;
     @Inject Event<EligibilityScreeningEvent> screeningEvents;
+    @Inject EligibilityCriteriaEvaluator criteriaEvaluator;
 
     @Transactional
     public void screen(PatientEnrollment enrollment, List<CriterionResult> criteria) {
@@ -38,6 +40,14 @@ public class EligibilityScreeningService {
                 enrollment.id, enrollment.tenantId, result, criteria));
         }
     }
+
+    @Transactional
+    public void evaluateAndScreen(PatientEnrollment enrollment, List<String> protocolCriteria) {
+        List<CriterionResult> criteria = criteriaEvaluator.evaluate(
+                enrollment.id, enrollment.tenantId, protocolCriteria);
+        screen(enrollment, criteria);
+    }
+
 
     /**
      * Determines the screening result from a list of criterion assessments.
