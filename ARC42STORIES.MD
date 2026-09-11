@@ -180,7 +180,7 @@ See `../parent/docs/PLATFORM.md` Capability Ownership table for the full boundar
 
 ### Layer Architecture View
 
-Current delivery state — Layers 1–10 complete (Layer 9 showcase: 2026-06-18; Layer 10 IND deadline enforcement: 2026-06-22).
+Current delivery state — Layers 1–11 complete (Layer 9 showcase: 2026-06-18; Layer 10 IND deadline enforcement: 2026-06-22; Layer 11 live LLM agent execution: 2026-09-11).
 
 ```mermaid
 C4Container
