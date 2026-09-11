@@ -15,6 +15,7 @@ casehub-clinical/
     src/main/java/io/casehub/clinical/
       casedefinition/  — CaseDefinition equivalence tests for YAML validation
       cbr/             — case-based reasoning: feature extraction, trajectory, alert, retrieval
+      agent/           — ClinicalAgentSupport shared utility, response records, InvocationMetrics
       config/          — WorkCoreStrategyRegistrar
       demo/            — DemoDataSeeder, DemoActionResource, DemoCurrentPrincipal, DevSchemaInitializer
       entity/          — Panache Active Record entities (10 entities)
@@ -41,6 +42,8 @@ Trial case (ClinicalTrialCaseHub, trial-coordination.yaml)
   +-- runtime.signal() for Grade 4+ AE cross-site tracking
   +-- contextChange.filter binding for DSMB rollup
       -> fires when >= 2 sites have active Grade 4+ AEs simultaneously
+  +-- trial-supervision capability binding via augment()
+      -> fires on safetyMetrics context change; LlmTrialSupervisionAdvisor assesses operational health
 
 Per-AE cases:
   +-- AeEscalationCaseHub (ae-escalation.yaml) — Grade 3+ only
@@ -130,7 +133,10 @@ All in `io.casehub.clinical.ledger` package, qhorus datasource:
 | `DeviationResponsePolicy` | PI response deadline + downstream action per severity | `DefaultDeviationResponsePolicy` — MINOR: 7d/NONE; MAJOR: 72h/SPONSOR_NOTIFICATION; CRITICAL: 24h/IRB_REVIEW |
 | `IrbCommitteeAssignmentPolicy` | Maps deviation context to IRB committee assignment | `DefaultIrbCommitteeAssignmentPolicy @DefaultBean` |
 | `PiIdentityResolver` | Resolves PI identity for deviation oversight | `DefaultPiIdentityResolver @DefaultBean` |
-| `ProtocolAmendmentAdvisor` | Protocol amendment analysis (LLM supervisor slot) | `DefaultProtocolAmendmentAdvisor @DefaultBean` (always PROCEED); displaced by `LlmProtocolAmendmentAdvisor @ApplicationScoped` when `AgentProvider` available |
+| `ProtocolAmendmentAdvisor` | Protocol amendment analysis (LLM supervisor slot) | `DefaultProtocolAmendmentAdvisor @DefaultBean` (always PROCEED); displaced by `LlmProtocolAmendmentAdvisor @ApplicationScoped` |
+| `EligibilityCriteriaEvaluator` | LLM-backed eligibility criteria evaluation | `DefaultEligibilityCriteriaEvaluator @DefaultBean` (all MET); displaced by `LlmEligibilityCriteriaEvaluator @ApplicationScoped` |
+| `SafetySignalAnalyzer` | DSMB-level safety signal narrative analysis | `DefaultSafetySignalAnalyzer @DefaultBean` (pass-through); displaced by `LlmSafetySignalAnalyzer @ApplicationScoped` |
+| `TrialSupervisionAdvisor` | Trial-wide operational health assessment | `DefaultTrialSupervisionAdvisor @DefaultBean` (REVIEW_REQUIRED); displaced by `LlmTrialSupervisionAdvisor @ApplicationScoped` |
 | `SponsorNotifier` (`api/`) | Protocol deviation sponsor notification delivery | `DurableSponsorNotifier` — persists + async retry |
 | `SafetyOfficerNotifier` (`api/`) | Grade 3+ adverse event notification | `DefaultSafetyOfficerNotifier` — dispatches via casehub-connectors-core |
 | `ClinicalPlanAdapter` (`cbr/`) | CBR plan reuse — adapts clinical plan steps | Implements blocks `PlanAdapter` SPI |
@@ -154,7 +160,7 @@ SPI interface in `api/`, implementation in `runtime/service/`, connector deliver
 
 ### SUSAR Oversight
 
-Dedicated `ClinicalSusarOversightCaseHub` + `susar-oversight.yaml` with capability binding via `spec.capabilities` + programmatic `.function()` registration. Three-phase `SusarOversightCaseService` with idempotency guard. Gate discrimination uses `AdverseEvent.findBySusarOversightCaseId` to avoid `CaseInstanceCache` race condition. `SusarCriteriaEvaluator @DefaultBean` implements `SusarEvaluatorFunction` — evaluates: grade in {GRADE_4, GRADE_5} AND unexpected AND suspected.
+Dedicated `ClinicalSusarOversightCaseHub` + `susar-oversight.yaml` with capability binding via `spec.capabilities` + programmatic `.function()` registration. Three-phase `SusarOversightCaseService` with idempotency guard. Gate discrimination uses `AdverseEvent.findBySusarOversightCaseId` to avoid `CaseInstanceCache` race condition. `SusarCriteriaEvaluator @DefaultBean` implements `SusarEvaluatorFunction` (rule-based: grade in {GRADE_4, GRADE_5} AND unexpected AND suspected); displaced by `LlmSusarCriteriaEvaluator @ApplicationScoped` which adds ICH E2A causality reasoning via `ClinicalAgentSupport`. Fallback: `susarRequired=true` (conservative escalation).
 
 ### ActionRiskClassifier
 
@@ -181,7 +187,17 @@ Dedicated `ClinicalSusarOversightCaseHub` + `susar-oversight.yaml` with capabili
 
 ### LLM Protocol Amendment Advisor
 
-`LlmProtocolAmendmentAdvisor @ApplicationScoped` displaces `DefaultProtocolAmendmentAdvisor @DefaultBean`. Invokes `AgentProvider` with a GCP/FDA/DSMB system prompt. Input: proposed change + trial blackboard snapshot (phase, status, AE counts, Grade 3+ count, Grade 5 present, prior amendments). Output: `AmendmentRecommendation` (PROCEED, REFER_TO_DSMB, HALT). Falls back to PROCEED on empty response or invocation failure.
+`LlmProtocolAmendmentAdvisor @ApplicationScoped` displaces `DefaultProtocolAmendmentAdvisor @DefaultBean`. Invokes `ClinicalAgentSupport` (shared LLM utility) with a GCP/FDA/DSMB system prompt. Input: proposed change + trial blackboard snapshot (phase, status, AE counts, Grade 3+ count, Grade 5 present, prior amendments). Output: `AmendmentRecommendation` (PROCEED, REFER_TO_DSMB, HALT). Falls back to PROCEED on empty response or invocation failure.
+
+### LLM Agent Architecture
+
+All five LLM agents follow the same per-agent SPI pattern via `ClinicalAgentSupport` (`io.casehub.clinical.agent`):
+
+- **SPI interface** in `api/spi/` — defines the contract
+- **`@DefaultBean` stub** in `runtime/service/` — safe default when no LLM available
+- **`@ApplicationScoped` LLM impl** in `runtime/service/` — displaces stub via CDI priority; calls `ClinicalAgentSupport.invoke()`
+
+`ClinicalAgentSupport` handles prompt building, `AgentProvider` invocation, JSON extraction (including markdown fence handling), Jackson parsing, `InvocationMetrics` capture, and per-agent conservative fallback. Config key per agent (`casehub.clinical.agent.<key>.model/timeout`). `InvocationMetrics` serialized to `ComplianceSupplement.detail` for EU AI Act Art.12.
 
 ### Multi-Tenancy
 
@@ -352,7 +368,7 @@ Issues: https://github.com/casehubio/clinical/issues
 
 ## Current State
 
-**Status:** Active — Layers 1-10 complete. CBR Phases 1-7 complete. LLM advisor wired. Demo UI complete.
+**Status:** Active — Layers 1-10 complete. CBR Phases 1-7 complete. 5 LLM agents active (amendment, eligibility, SUSAR, DSMB, supervision). Demo UI complete.
 
 All tutorial layers are production-grade. The harness demonstrates that GCP, FDA, and EMA requirements are structurally satisfied by CaseHub's foundation where workflow-based LLM coordination cannot provide equivalent compliance guarantees.
 

@@ -75,11 +75,12 @@ Defined in `ClinicalTrustDimensions` (`api/`):
 - **Trust routing** — `ClinicalTrustRoutingPolicyProvider` with per-capability policies: SAFETY_MONITORING threshold=0.75 (20-min observations, 0.70 safety-accuracy quality floor), ELIGIBILITY_SCREENING threshold=0.70 (15 min), PROTOCOL_REVIEW threshold=0.65 (25 min)
 - **Regulatory submission** — `RegulatorySubmissionCaseService` triggers on Grade 3+ unexpected AE; IND expedited safety reporting (Grade 3: 15-day, Grade 4/5: 7-day); `regulatory-submission.yaml` with `expiresAtExpression` for absolute FDA deadline
 - **IND deadline enforcement** — `ClinicalIndReportingBreachPolicy` is a stateless two-tier `SlaBreachPolicy`: escalates to regulatory-leadership at 48h; `RegulatorySubmissionCompletedListener` / `RegulatorySubmissionBreachListener` handle lifecycle
-- **Eligibility screening** — `EligibilityScreeningService` evaluates criteria; MARGINAL results trigger IRB consultation via `eligibility-screening.yaml` engine case (72h SLA); `EligibilityScreeningLedgerEntry` records decision
-- **Protocol amendment** — `ProtocolAmendmentService` proposes amendments; `ProtocolAmendmentAdvisor` SPI provides LLM supervisor slot; `LlmProtocolAmendmentAdvisor` (displaces `DefaultProtocolAmendmentAdvisor @DefaultBean`) invokes `AgentProvider` with GCP/FDA/DSMB system prompt; recommendations: PROCEED, REFER_TO_DSMB, HALT
+- **Eligibility screening** — `EligibilityScreeningService` evaluates criteria; `EligibilityCriteriaEvaluator` SPI (LLM-backed via `LlmEligibilityCriteriaEvaluator`) evaluates protocol criteria text against patient data; `evaluateAndScreen()` combines LLM evaluation with screening; fallback: all MARGINAL (triggers IRB). MARGINAL results trigger IRB consultation via `eligibility-screening.yaml` engine case (72h SLA); `EligibilityScreeningLedgerEntry` records decision
+- **Protocol amendment** — `ProtocolAmendmentService` proposes amendments; `ProtocolAmendmentAdvisor` SPI provides LLM supervisor slot; `LlmProtocolAmendmentAdvisor` (displaces `DefaultProtocolAmendmentAdvisor @DefaultBean`) invokes `ClinicalAgentSupport` with GCP/FDA/DSMB system prompt; recommendations: PROCEED, REFER_TO_DSMB, HALT
 - **GDPR consent withdrawal** — `ConsentWithdrawalService` pseudonymises patientId, calls `LedgerErasureService.erase()` with `GDPR_ART_17_REQUEST`, erases patient memories; `GdprErasureService` provides patient-scoped erasure across all enrollments
 - **Safety officer notification** — `SafetyOfficerNotificationListener` observes `AdverseEventReportedEvent` (Grade 3+ only, fires once per AE); `DefaultSafetyOfficerNotifier` dispatches via connectors; Grade 5 carries `[CRITICAL]` prefix
-- **Trial-level safety aggregation** — `TrialSafetyAggregationJob` (24h scheduled) detects cross-site AE patterns (grade threshold, cross-site cluster); stores `TrialSafetySignal` entities; fires `DsmbSafetySignalEvent`; stores CBR cases in `TRIAL_SAFETY` domain
+- **Trial-level safety aggregation** — `TrialSafetyAggregationJob` (24h scheduled) detects cross-site AE patterns (grade threshold, cross-site cluster); `SafetySignalAnalyzer` SPI (LLM-backed via `LlmSafetySignalAnalyzer`) enriches rule-based signals with DSMB-level narrative; stores `TrialSafetySignal` entities; fires `DsmbSafetySignalEvent`; stores CBR cases in `TRIAL_SAFETY` domain
+- **Trial supervision** — `TrialSupervisionAdvisor` SPI (LLM-backed via `LlmTrialSupervisionAdvisor`) assesses trial-wide operational health; registered as `trial-supervision` capability worker in `ClinicalTrialCaseHub.augment()`; fires on `safetyMetrics` context changes
 - **Trial activation** — `TrialActivationService` performs three-phase activation (commit status, startCase outside @Transactional, commit caseId) to avoid Agroal pool deadlock
 
 ### REST API
@@ -107,6 +108,7 @@ Defined in `ClinicalTrustDimensions` (`api/`):
 | `POST` | `/trials/{t}/sites/{s}/patients` | Enroll patient | INVESTIGATOR, COORDINATOR |
 | `GET` | `/trials/{t}/sites/{s}/patients/{e}` | Get patient enrollment | all |
 | `POST` | `/trials/{t}/sites/{s}/patients/{e}/screen` | Screen patient against eligibility criteria | INVESTIGATOR, COORDINATOR |
+| `POST` | `/trials/{t}/sites/{s}/patients/{e}/evaluate-and-screen` | LLM-evaluated eligibility screening (accepts protocol criteria text) | INVESTIGATOR, COORDINATOR |
 | `POST` | `/trials/{t}/sites/{s}/patients/{e}/adverse-events` | Report adverse event | INVESTIGATOR, COORDINATOR |
 | `GET` | `/trials/{t}/sites/{s}/patients/{e}/adverse-events/{ae}` | Get adverse event | all |
 | `POST` | `/trials/{t}/sites/{s}/patients/{e}/adverse-events/{ae}/regrade` | Regrade adverse event (CTCAE grade change) | INVESTIGATOR, COORDINATOR |
@@ -247,7 +249,7 @@ Seven engine case definitions in `runtime/src/main/resources/clinical/`:
 
 | File | CaseHub class | Purpose |
 |------|---------------|---------|
-| `trial-coordination.yaml` | `ClinicalTrialCaseHub` | Trial-level case; DSMB rollup binding fires on Grade 4+ cross-site pattern |
+| `trial-coordination.yaml` | `ClinicalTrialCaseHub` | Trial-level case; DSMB rollup binding + trial-supervision capability worker via `augment()` |
 | `ae-escalation.yaml` | `ClinicalAdverseEventCaseHub` | Grade 3+ AE escalation; safety-review + dsmb-escalation humanTasks |
 | `deviation-review.yaml` | `ClinicalDeviationCaseHub` | IRB gate for CRITICAL deviation + PI approval; 72h WorkItem |
 | `susar-oversight.yaml` | `ClinicalSusarOversightCaseHub` | SUSAR criteria evaluation; capability binding + programmatic function |
@@ -267,7 +269,9 @@ casehub-clinical
   -> casehub-platform-expression          (runtime scope — JQEvaluator for engine expression evaluation)
   -> casehub-platform-config              (YAML-backed SingleValuePreference for retry policy)
   -> casehub-platform-oidc                (RBAC: OidcCurrentPrincipal, @RolesAllowed enforcement)
-  -> casehub-platform-agent-api           (AgentProvider SPI for LlmProtocolAmendmentAdvisor)
+  -> casehub-platform-agent-api           (AgentProvider SPI for LLM agent implementations)
+  -> casehub-platform-agent-router       (runtime scope — RoutingAgentProvider for backend selection)
+  -> casehub-platform-agent-claude       (runtime scope — ClaudeAgentProvider backend)
   -> casehub-ledger                       (FDA Merkle audit, GDPR erasure, EU AI Act Art.12, trust scoring)
   -> casehub-work                         (IRB/PI WorkItems with SLA and escalation)
   -> casehub-qhorus                       (COMMAND to PI, commitment lifecycle, safety agent channels)

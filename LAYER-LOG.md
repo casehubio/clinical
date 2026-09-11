@@ -876,3 +876,43 @@ Layer 10 closes the structural gap identified in Layer 7: `RegulatorySubmissionC
 | No SLA breach escalation | When deadline passes, nothing escalates to regulatory leadership | `ClinicalIndReportingBreachPolicy` → `EscalateTo("regulatory-leadership", 48h)` |
 | `RegulatorySubmissionStatus` has no terminal failure state | Can't distinguish deadline missed from pending | `DEADLINE_MISSED` enum value |
 | No tamper-evident audit for filed/breached IND reports | FDA auditors cannot verify filing or breach independently | `IndReportFiledLedgerEntry` + `IndReportBreachLedgerEntry` in Merkle chain |
+
+---
+
+## Layer 11 — Live LLM Agent Execution (AgentProvider activation)
+
+**Completed:** 2026-09-11 (casehubio/clinical#160)
+**Issues:** casehubio/clinical#160
+**Navigation:** `git log --grep="#160" --oneline`
+**Spec:** workspace `specs/issue-160-live-llm-agent-execution/2026-09-11-live-llm-agent-execution-design.md`
+**Key files:**
+- `runtime/src/main/java/io/casehub/clinical/agent/ClinicalAgentSupport.java` — shared LLM invocation utility: prompt building, JSON extraction (markdown fence handling), Jackson parsing, InvocationMetrics capture, per-agent conservative fallback
+- `runtime/src/main/java/io/casehub/clinical/agent/ClinicalAgentRequest.java` — request record (systemPrompt, userPrompt, responseClass, fallbackValue, configKey, correlationId)
+- `runtime/src/main/java/io/casehub/clinical/agent/ClinicalAgentResult.java` — result record (response, rawText, metrics, fallbackUsed, failureReason)
+- `runtime/src/main/java/io/casehub/clinical/agent/InvocationMetrics.java` — sourced from AgentEvent.InvocationComplete; serialized to ComplianceSupplement.detail for EU AI Act Art.12
+- `api/src/main/java/io/casehub/clinical/api/spi/EligibilityCriteriaEvaluator.java` — SPI: evaluate patient against protocol criteria text
+- `runtime/src/main/java/io/casehub/clinical/service/LlmEligibilityCriteriaEvaluator.java` — enriches prompt with labs, vitals, concomitant meds; fallback: all MARGINAL (triggers IRB)
+- `runtime/src/main/java/io/casehub/clinical/service/LlmSusarCriteriaEvaluator.java` — displaces rule-based SusarCriteriaEvaluator; ICH E2A causality reasoning; fallback: susarRequired=true
+- `api/src/main/java/io/casehub/clinical/api/spi/SafetySignalAnalyzer.java` — SPI: DSMB-level signal narrative analysis
+- `runtime/src/main/java/io/casehub/clinical/service/LlmSafetySignalAnalyzer.java` — enriches rule-based signals in TrialSafetyAggregationJob; fallback: FLAG_FOR_REVIEW
+- `api/src/main/java/io/casehub/clinical/api/spi/TrialSupervisionAdvisor.java` — SPI: trial-wide operational health assessment
+- `runtime/src/main/java/io/casehub/clinical/service/LlmTrialSupervisionAdvisor.java` — registered as trial-supervision worker in ClinicalTrialCaseHub.augment(); fallback: REVIEW_REQUIRED
+- `runtime/src/main/resources/clinical/trial-coordination.yaml` — gains trial-supervision capability binding
+
+### What it adds
+
+Layer 11 activates real LLM agents making clinical decisions governed by the CaseHub platform. Prior layers built the trust routing, oversight gates, and Merkle audit infrastructure — but every agent decision was pre-seeded by `DemoDataSeeder`. This layer adds `casehub-platform-agent-router` and `casehub-platform-agent-claude` to the classpath, activating `RoutingAgentProvider` which discovers `ClaudeAgentProvider` (Vertex-authenticated).
+
+Five agents follow the same per-agent SPI pattern: interface in `api/spi/`, `@DefaultBean` stub with safe default, `@ApplicationScoped` LLM implementation that displaces the stub via CDI priority. All route through `ClinicalAgentSupport` — a shared utility that handles `AgentProvider.invoke()`, JSON fence extraction, Jackson deserialization, `InvocationMetrics` capture, and per-agent fallback.
+
+Each agent's fallback is domain-appropriate and conservative: eligibility returns all MARGINAL (triggers IRB human review), SUSAR returns `susarRequired=true` (escalates to safety officer), DSMB returns FLAG_FOR_REVIEW (flags for human review), supervision returns REVIEW_REQUIRED (creates WorkItem). False escalations cost human review time; false suppressions risk patient safety.
+
+### Accountability gaps closed
+
+| Gap | What breaks | Closed by |
+|-----|-------------|-----------|
+| No LLM-backed eligibility evaluation | Protocol criteria evaluated as hardcoded stubs; no patient data reasoning | `LlmEligibilityCriteriaEvaluator` with labs, vitals, meds context; new `evaluate-and-screen` endpoint |
+| No causality reasoning in SUSAR assessment | Rule-based Grade 4/5 threshold only; no temporal/dose-response analysis | `LlmSusarCriteriaEvaluator` with ICH E2A causality and expectedness reasoning |
+| No narrative enrichment of safety signals | Rule-based signals lack interpretive context for DSMB review | `LlmSafetySignalAnalyzer` augments rule-based signals with DSMB-level narrative |
+| No trial-wide operational health monitoring | No cross-site enrollment lag, protocol adherence, or performance outlier detection | `LlmTrialSupervisionAdvisor` via `ClinicalTrialCaseHub.augment()` trial-supervision worker |
+| Agent decisions lack EU AI Act Art.12 traceability | No record of model, tokens, cost, duration per agent invocation | `InvocationMetrics.toJson()` serialized to `ComplianceSupplement.detail` |
