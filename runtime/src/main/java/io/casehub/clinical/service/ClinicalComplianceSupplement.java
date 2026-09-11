@@ -158,5 +158,13 @@ public final class ClinicalComplianceSupplement {
         return s;
     }
 
+    public static ComplianceSupplement withMetrics(ComplianceSupplement base,
+                                                   io.casehub.clinical.agent.InvocationMetrics metrics) {
+        if (metrics != null) {
+            base.detail = metrics.toJson();
+        }
+        return base;
+    }
+
 
 }

@@ -1,17 +1,16 @@
 package io.casehub.clinical.service;
 
+import io.casehub.clinical.agent.ClinicalAgentRequest;
+import io.casehub.clinical.agent.ClinicalAgentResult;
+import io.casehub.clinical.agent.ClinicalAgentSupport;
 import io.casehub.clinical.api.spi.AmendmentRecommendation;
 import io.casehub.clinical.api.spi.ProtocolAmendmentAdvisor;
 import io.casehub.clinical.api.spi.ProtocolAmendmentContext;
-import io.casehub.platform.agent.AgentEvent;
-import io.casehub.platform.agent.AgentProvider;
-import io.casehub.platform.agent.AgentSessionConfig;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 import org.jboss.logging.Logger;
 
 import java.util.Map;
-import java.util.stream.Collectors;
 
 @ApplicationScoped
 public class LlmProtocolAmendmentAdvisor implements ProtocolAmendmentAdvisor {
@@ -32,30 +31,34 @@ public class LlmProtocolAmendmentAdvisor implements ProtocolAmendmentAdvisor {
             Respond with JSON only: {"recommendation": "<PROCEED|REFER_TO_DSMB|HALT>", "reasoning": "<one paragraph>"}
             """;
 
-    private final AgentProvider agentProvider;
+    private final ClinicalAgentSupport agentSupport;
 
     @Inject
-    public LlmProtocolAmendmentAdvisor(AgentProvider agentProvider) {
-        this.agentProvider = agentProvider;
+    public LlmProtocolAmendmentAdvisor(ClinicalAgentSupport agentSupport) {
+        this.agentSupport = agentSupport;
     }
+
+    record AmendmentResponse(String recommendation, String reasoning) {}
 
     @Override
     public AmendmentRecommendation advise(ProtocolAmendmentContext context) {
+        String userPrompt = buildUserPrompt(context);
+        var request = new ClinicalAgentRequest<>(
+                SYSTEM_PROMPT, userPrompt, AmendmentResponse.class,
+                new AmendmentResponse("PROCEED", "LLM unavailable — defaulting to PROCEED"),
+                "amendment", context.trialId() != null ? context.trialId().toString() : null);
+
+        ClinicalAgentResult<AmendmentResponse> result = agentSupport.invoke(request);
+
+        if (result.fallbackUsed()) {
+            LOG.warnf("LlmProtocolAmendmentAdvisor: fallback used — %s", result.failureReason());
+        }
+
         try {
-            String userPrompt = buildUserPrompt(context);
-            AgentSessionConfig config = AgentSessionConfig.of(SYSTEM_PROMPT, userPrompt);
-            String response = agentProvider.invoke(config)
-                    .filter(e -> e instanceof AgentEvent.TextDelta)
-                    .map(e -> ((AgentEvent.TextDelta) e).text())
-                    .collect().with(Collectors.joining())
-                    .await().atMost(java.time.Duration.ofSeconds(30));
-            if (response == null || response.isBlank()) {
-                LOG.warn("LlmProtocolAmendmentAdvisor: empty response from AgentProvider — defaulting to PROCEED");
-                return AmendmentRecommendation.PROCEED;
-            }
-            return parseRecommendation(response);
-        } catch (Exception e) {
-            LOG.errorf(e, "LlmProtocolAmendmentAdvisor: invocation failed — defaulting to PROCEED");
+            return AmendmentRecommendation.valueOf(result.response().recommendation());
+        } catch (IllegalArgumentException e) {
+            LOG.warnf("LlmProtocolAmendmentAdvisor: unknown recommendation '%s' — defaulting to PROCEED",
+                      result.response().recommendation());
             return AmendmentRecommendation.PROCEED;
         }
     }
@@ -83,31 +86,5 @@ public class LlmProtocolAmendmentAdvisor implements ProtocolAmendmentAdvisor {
         return sb.toString();
     }
 
-    private AmendmentRecommendation parseRecommendation(String response) {
-        String value = extractJsonValue(response, "recommendation");
-        if (value == null) {
-            LOG.warnf("LlmProtocolAmendmentAdvisor: could not parse recommendation from response: %s", response);
-            return AmendmentRecommendation.PROCEED;
-        }
-        try {
-            return AmendmentRecommendation.valueOf(value);
-        } catch (IllegalArgumentException e) {
-            LOG.warnf("LlmProtocolAmendmentAdvisor: unknown recommendation '%s' — defaulting to PROCEED", value);
-            return AmendmentRecommendation.PROCEED;
-        }
-    }
 
-    static String extractJsonValue(String json, String key) {
-        if (json == null) return null;
-        String searchKey = "\"" + key + "\"";
-        int keyIdx = json.indexOf(searchKey);
-        if (keyIdx < 0) return null;
-        int colonIdx = json.indexOf(':', keyIdx + searchKey.length());
-        if (colonIdx < 0) return null;
-        int firstQuote = json.indexOf('"', colonIdx + 1);
-        if (firstQuote < 0) return null;
-        int secondQuote = json.indexOf('"', firstQuote + 1);
-        if (secondQuote < 0) return null;
-        return json.substring(firstQuote + 1, secondQuote);
-    }
 }
