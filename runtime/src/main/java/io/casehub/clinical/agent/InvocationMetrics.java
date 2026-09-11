@@ -15,8 +15,9 @@ public record InvocationMetrics(
         boolean isError) {
 
     public String toJson() {
+        String safeModel = model != null ? model.replace("\\", "\\\\").replace("\"", "\\\"") : "unknown";
         return "{\"model\":\"%s\",\"inputTokens\":%d,\"outputTokens\":%d,\"thinkingTokens\":%d,\"totalCostUsd\":%s,\"durationMs\":%d}"
-                .formatted(model, inputTokens, outputTokens, thinkingTokens,
+                .formatted(safeModel, inputTokens, outputTokens, thinkingTokens,
                         totalCostUsd != null ? totalCostUsd.toString() : "null", durationMs);
     }
 }

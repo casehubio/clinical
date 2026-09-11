@@ -60,8 +60,13 @@ public class LlmEligibilityCriteriaEvaluator implements EligibilityCriteriaEvalu
 
         ClinicalAgentResult<EligibilityResponse> result = agentSupport.invoke(request);
 
-        if (result.fallbackUsed() || result.response().criteria() == null || result.response().criteria().isEmpty()) {
+        if (result.fallbackUsed()) {
             LOG.warnf("LlmEligibilityCriteriaEvaluator: fallback used — %s", result.failureReason());
+            return fallback;
+        }
+
+        if (result.response().criteria() == null || result.response().criteria().isEmpty()) {
+            LOG.warnf("LlmEligibilityCriteriaEvaluator: LLM returned empty criteria — using fallback");
             return fallback;
         }
 
