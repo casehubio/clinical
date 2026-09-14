@@ -58,17 +58,16 @@
       <version>${version.io.casehub}</version>
     </dependency>
 
-    <!-- Eidos org model — agent hierarchy + supervision chains -->
+    <!-- Eidos org model — agent hierarchy + supervision chains.
+         org-api: OrgStructure DSL, OrgRegistry interface.
+         org-memory: InMemoryOrgRegistry @Alternative.
+         casehub-eidos-org runtime NOT included — OrgBootstrap pulls in eidos-core
+         beans (DispositionSignalStore etc.) that clinical doesn't use.
+         Org structure is registered directly in ClinicalTrialCaseHub.augment(). -->
     <dependency>
       <groupId>io.casehub</groupId>
       <artifactId>casehub-eidos-org-api</artifactId>
       <version>${version.io.casehub}</version>
-    </dependency>
-    <dependency>
-      <groupId>io.casehub</groupId>
-      <artifactId>casehub-eidos-org</artifactId>
-      <version>${version.io.casehub}</version>
-      <scope>runtime</scope>
     </dependency>
 
     <!-- LLM invocation — AgentProvider SPI + routing + Claude backend -->

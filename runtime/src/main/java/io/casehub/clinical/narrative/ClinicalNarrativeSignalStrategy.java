@@ -9,9 +9,9 @@ import io.casehub.blocks.summarisation.narrative.DecisionSignal;
 import io.casehub.blocks.summarisation.narrative.RoutingDecision;
 import io.casehub.blocks.summarisation.narrative.StepOutcome;
 import io.casehub.blocks.summarisation.narrative.TrustAssessment;
+import jakarta.annotation.Priority;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.enterprise.inject.Alternative;
-import jakarta.annotation.Priority;
 import jakarta.inject.Inject;
 import org.jspecify.annotations.Nullable;
 
@@ -31,6 +31,9 @@ public class ClinicalNarrativeSignalStrategy extends AbstractNarrativeSignalStra
             "eligibility-screening", "protocol-amendment",
             "deviation-review", "regulatory-submission"
     );
+
+
+    ClinicalNarrativeSignalStrategy() {super(null, null);}
 
     @Inject
     public ClinicalNarrativeSignalStrategy(EventStreamBus<DecisionSignal> signalBus,

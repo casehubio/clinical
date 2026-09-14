@@ -23,7 +23,7 @@ class ClinicalAgentSupportTest {
     @BeforeEach
     void setup() {
         agentProvider = mock(AgentProvider.class);
-        support = new ClinicalAgentSupport(agentProvider, new ObjectMapper(), mock(io.casehub.clinical.service.ClinicalCascadeBroadcaster.class));
+        support = new ClinicalAgentSupport(agentProvider, new ObjectMapper(), mock(io.casehub.clinical.service.ClinicalCascadeBroadcaster.class), mock(io.casehub.platform.api.model.ModelRegistry.class));
     }
 
     @Test
