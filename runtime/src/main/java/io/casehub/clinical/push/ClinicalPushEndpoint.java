@@ -43,8 +43,8 @@ public class ClinicalPushEndpoint {
             }
         } catch (Exception e) {
             LOG.warnf(e, "Failed to handle push message from %s", connection.id());
-            sender.send(connection.id(), "{\"op\":\"error\",\"message\":\"" +
-                e.getMessage().replace("\"", "'") + "\"}");
+            String msg = e.getMessage() != null ? e.getMessage().replace("\"", "'") : "unknown error";
+            sender.send(connection.id(), "{\"op\":\"error\",\"message\":\"" + msg + "\"}");
         }
     }
 

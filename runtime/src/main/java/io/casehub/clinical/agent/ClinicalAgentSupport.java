@@ -62,11 +62,17 @@ public class ClinicalAgentSupport {
 
             if (metrics != null && metrics.isError()) {
                 LOG.warnf("ClinicalAgentSupport[%s]: InvocationComplete.isError=true — using fallback", request.configKey());
+                if (request.cascadeAeId() != null) {
+                    cascadeBroadcaster.agentResult(request.cascadeAeId(), request.configKey(), false);
+                }
                 return ClinicalAgentResult.fallback(request.fallbackValue(), "InvocationComplete.isError=true", metrics);
             }
 
             if (rawText == null || rawText.isBlank()) {
                 LOG.warnf("ClinicalAgentSupport[%s]: empty response — using fallback", request.configKey());
+                if (request.cascadeAeId() != null) {
+                    cascadeBroadcaster.agentResult(request.cascadeAeId(), request.configKey(), false);
+                }
                 return ClinicalAgentResult.fallback(request.fallbackValue(), "empty response", metrics);
             }
 
