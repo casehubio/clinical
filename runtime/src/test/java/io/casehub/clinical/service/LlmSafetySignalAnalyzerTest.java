@@ -26,7 +26,7 @@ class LlmSafetySignalAnalyzerTest {
     @BeforeEach
     void setup() {
         agentProvider = mock(AgentProvider.class);
-        var support = new ClinicalAgentSupport(agentProvider, new ObjectMapper());
+        var support = new ClinicalAgentSupport(agentProvider, new ObjectMapper(), mock(ClinicalCascadeBroadcaster.class));
         analyzer = new LlmSafetySignalAnalyzer(support);
     }
 

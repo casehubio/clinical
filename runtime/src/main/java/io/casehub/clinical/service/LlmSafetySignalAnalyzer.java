@@ -49,7 +49,7 @@ public class LlmSafetySignalAnalyzer implements SafetySignalAnalyzer {
         var request = new ClinicalAgentRequest<>(
                 SYSTEM_PROMPT, userPrompt, SignalAnalysis.class,
                 fallback, "dsmb",
-                context.trialId() != null ? context.trialId().toString() : null);
+                context.trialId() != null ? context.trialId().toString() : null, null);
 
         ClinicalAgentResult<SignalAnalysis> result = agentSupport.invoke(request);
 

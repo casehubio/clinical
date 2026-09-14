@@ -23,7 +23,7 @@ class ClinicalAgentSupportTest {
     @BeforeEach
     void setup() {
         agentProvider = mock(AgentProvider.class);
-        support = new ClinicalAgentSupport(agentProvider, new ObjectMapper());
+        support = new ClinicalAgentSupport(agentProvider, new ObjectMapper(), mock(io.casehub.clinical.service.ClinicalCascadeBroadcaster.class));
     }
 
     @Test
@@ -32,7 +32,7 @@ class ClinicalAgentSupportTest {
                 new AgentEvent.TextDelta("{\"value\":\"hello\",\"count\":42}"),
                 new AgentEvent.InvocationComplete(10, 20, 0, 0, 0, 0.001, 500L, 400L, "sess-1", 1, false)));
         var request = new ClinicalAgentRequest<>("system", "user", TestResponse.class,
-                new TestResponse("fallback", 0), "test", "corr-1");
+                new TestResponse("fallback", 0), "test", "corr-1", null);
         var result = support.invoke(request);
         assertFalse(result.fallbackUsed());
         assertEquals("hello", result.response().value());
@@ -49,7 +49,7 @@ class ClinicalAgentSupportTest {
                 new AgentEvent.TextDelta("Here is the result:\n```json\n{\"value\":\"hi\",\"count\":1}\n```\n"),
                 new AgentEvent.InvocationComplete(5, 10, 0, 0, 0, null, 200L, 150L, "sess-2", 1, false)));
         var request = new ClinicalAgentRequest<>("system", "user", TestResponse.class,
-                new TestResponse("fallback", 0), "test", "corr-2");
+                new TestResponse("fallback", 0), "test", "corr-2", null);
         var result = support.invoke(request);
         assertFalse(result.fallbackUsed());
         assertEquals("hi", result.response().value());
@@ -61,7 +61,7 @@ class ClinicalAgentSupportTest {
                 new AgentEvent.TextDelta("not valid json at all"),
                 new AgentEvent.InvocationComplete(5, 10, 0, 0, 0, null, 200L, 150L, "sess-3", 1, false)));
         var request = new ClinicalAgentRequest<>("system", "user", TestResponse.class,
-                new TestResponse("fallback", 0), "test", "corr-3");
+                new TestResponse("fallback", 0), "test", "corr-3", null);
         var result = support.invoke(request);
         assertTrue(result.fallbackUsed());
         assertEquals("fallback", result.response().value());
@@ -71,7 +71,7 @@ class ClinicalAgentSupportTest {
     void emptyResponse_returnsFallback() {
         when(agentProvider.invoke(any())).thenReturn(Multi.createFrom().empty());
         var request = new ClinicalAgentRequest<>("system", "user", TestResponse.class,
-                new TestResponse("fallback", 0), "test", "corr-4");
+                new TestResponse("fallback", 0), "test", "corr-4", null);
         var result = support.invoke(request);
         assertTrue(result.fallbackUsed());
     }
@@ -82,7 +82,7 @@ class ClinicalAgentSupportTest {
                 new AgentEvent.TextDelta("{\"value\":\"ok\",\"count\":1}"),
                 new AgentEvent.InvocationComplete(5, 10, 0, 0, 0, null, 200L, 150L, "sess-5", 1, true)));
         var request = new ClinicalAgentRequest<>("system", "user", TestResponse.class,
-                new TestResponse("fallback", 0), "test", "corr-5");
+                new TestResponse("fallback", 0), "test", "corr-5", null);
         var result = support.invoke(request);
         assertTrue(result.fallbackUsed());
         assertEquals("InvocationComplete.isError=true", result.failureReason());
@@ -93,7 +93,7 @@ class ClinicalAgentSupportTest {
         when(agentProvider.invoke(any())).thenReturn(
                 Multi.createFrom().failure(new RuntimeException("connection failed")));
         var request = new ClinicalAgentRequest<>("system", "user", TestResponse.class,
-                new TestResponse("fallback", 0), "test", "corr-6");
+                new TestResponse("fallback", 0), "test", "corr-6", null);
         var result = support.invoke(request);
         assertTrue(result.fallbackUsed());
         assertNotNull(result.failureReason());
@@ -105,7 +105,7 @@ class ClinicalAgentSupportTest {
                 new AgentEvent.TextDelta("{\"value\":\"ok\",\"count\":1}"),
                 new AgentEvent.InvocationComplete(5, 10, 0, 0, 0, null, 200L, 150L, "sess-7", 1, false)));
         var request = new ClinicalAgentRequest<>("system", "user", TestResponse.class,
-                new TestResponse("fallback", 0), "safety", "corr-7");
+                new TestResponse("fallback", 0), "safety", "corr-7", null);
         support.invoke(request);
         ArgumentCaptor<AgentSessionConfig> captor = ArgumentCaptor.forClass(AgentSessionConfig.class);
         verify(agentProvider).invoke(captor.capture());
@@ -137,7 +137,7 @@ class ClinicalAgentSupportTest {
                 new AgentEvent.TextDelta("{\"value\":\"ok\",\"count\":1}"),
                 new AgentEvent.InvocationComplete(5, 10, 0, 0, 0, 0.002, 200L, 150L, "sess-8", 1, false)));
         var request = new ClinicalAgentRequest<>("system", "user", TestResponse.class,
-                new TestResponse("fallback", 0), "test", "corr-8");
+                new TestResponse("fallback", 0), "test", "corr-8", null);
         var result = support.invoke(request);
         assertNotNull(result.metrics());
         assertEquals("sonnet", result.metrics().model());

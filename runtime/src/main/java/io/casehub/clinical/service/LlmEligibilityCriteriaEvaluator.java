@@ -56,7 +56,7 @@ public class LlmEligibilityCriteriaEvaluator implements EligibilityCriteriaEvalu
         var request = new ClinicalAgentRequest<>(
                 SYSTEM_PROMPT, userPrompt, EligibilityResponse.class,
                 new EligibilityResponse(List.of()),
-                "eligibility", enrollmentId != null ? enrollmentId.toString() : null);
+                "eligibility", enrollmentId != null ? enrollmentId.toString() : null, null);
 
         ClinicalAgentResult<EligibilityResponse> result = agentSupport.invoke(request);
 

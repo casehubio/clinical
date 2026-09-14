@@ -25,7 +25,7 @@ class LlmTrialSupervisionAdvisorTest {
     @BeforeEach
     void setup() {
         agentProvider = mock(AgentProvider.class);
-        var support = new ClinicalAgentSupport(agentProvider, new ObjectMapper());
+        var support = new ClinicalAgentSupport(agentProvider, new ObjectMapper(), mock(ClinicalCascadeBroadcaster.class));
         advisor = new LlmTrialSupervisionAdvisor(support);
     }
 

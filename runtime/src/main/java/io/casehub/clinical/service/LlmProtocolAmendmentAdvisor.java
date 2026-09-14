@@ -46,7 +46,7 @@ public class LlmProtocolAmendmentAdvisor implements ProtocolAmendmentAdvisor {
         var request = new ClinicalAgentRequest<>(
                 SYSTEM_PROMPT, userPrompt, AmendmentResponse.class,
                 new AmendmentResponse("PROCEED", "LLM unavailable — defaulting to PROCEED"),
-                "amendment", context.trialId() != null ? context.trialId().toString() : null);
+                "amendment", context.trialId() != null ? context.trialId().toString() : null, null);
 
         ClinicalAgentResult<AmendmentResponse> result = agentSupport.invoke(request);
 

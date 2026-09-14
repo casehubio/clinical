@@ -25,7 +25,7 @@ class LlmSusarCriteriaEvaluatorTest {
     @BeforeEach
     void setup() {
         agentProvider = mock(AgentProvider.class);
-        var support = new ClinicalAgentSupport(agentProvider, new ObjectMapper());
+        var support = new ClinicalAgentSupport(agentProvider, new ObjectMapper(), mock(ClinicalCascadeBroadcaster.class));
         evaluator = new LlmSusarCriteriaEvaluator(support);
     }
 

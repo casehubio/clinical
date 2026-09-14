@@ -24,15 +24,21 @@ public class ClinicalAgentSupport {
 
     private final AgentProvider agentProvider;
     private final ObjectMapper objectMapper;
+    private final io.casehub.clinical.service.ClinicalCascadeBroadcaster cascadeBroadcaster;
 
     @Inject
-    public ClinicalAgentSupport(AgentProvider agentProvider, ObjectMapper objectMapper) {
+    public ClinicalAgentSupport(AgentProvider agentProvider, ObjectMapper objectMapper,
+                                io.casehub.clinical.service.ClinicalCascadeBroadcaster cascadeBroadcaster) {
         this.agentProvider = agentProvider;
         this.objectMapper = objectMapper;
+        this.cascadeBroadcaster = cascadeBroadcaster;
     }
 
     public <T> ClinicalAgentResult<T> invoke(ClinicalAgentRequest<T> request) {
         InvocationMetrics metrics = null;
+        if (request.cascadeAeId() != null) {
+            cascadeBroadcaster.agentReasoning(request.cascadeAeId(), request.configKey());
+        }
         try {
             String model = resolveModel(request.configKey());
             Duration timeout = resolveTimeout(request.configKey());
@@ -66,10 +72,16 @@ public class ClinicalAgentSupport {
 
             String json = extractJson(rawText);
             T parsed = objectMapper.readValue(json, request.responseClass());
+            if (request.cascadeAeId() != null) {
+                cascadeBroadcaster.agentResult(request.cascadeAeId(), request.configKey(), true);
+            }
             return ClinicalAgentResult.success(parsed, rawText, metrics);
 
         } catch (Exception e) {
             LOG.errorf(e, "ClinicalAgentSupport[%s]: invocation failed — using fallback", request.configKey());
+            if (request.cascadeAeId() != null) {
+                cascadeBroadcaster.agentResult(request.cascadeAeId(), request.configKey(), false);
+            }
             return ClinicalAgentResult.fallback(request.fallbackValue(), e.getMessage(), metrics);
         }
     }

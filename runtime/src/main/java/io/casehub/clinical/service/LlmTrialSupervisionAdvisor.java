@@ -56,7 +56,7 @@ public class LlmTrialSupervisionAdvisor implements TrialSupervisionAdvisor {
         var request = new ClinicalAgentRequest<>(
                 SYSTEM_PROMPT, userPrompt, SupervisionAssessment.class,
                 fallback, "supervision",
-                context.trialId() != null ? context.trialId().toString() : null);
+                context.trialId() != null ? context.trialId().toString() : null, null);
 
         ClinicalAgentResult<SupervisionAssessment> result = agentSupport.invoke(request);
 

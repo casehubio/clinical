@@ -13,6 +13,10 @@ import jakarta.inject.Inject;
 import jakarta.transaction.Transactional;
 import org.jboss.logging.Logger;
 
+import io.casehub.clinical.api.AeEscalationFailedEvent;
+import io.casehub.clinical.api.AeEscalationStartedEvent;
+import jakarta.enterprise.event.Event;
+
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
@@ -38,6 +42,8 @@ public class AeEscalationCaseService {
     @Inject io.casehub.clinical.cbr.AeEscalationPlanRetriever planRetriever;
     @Inject
             io.casehub.clinical.cbr.AeTrajectoryAlertService  aeTrajectoryAlertService;
+    @Inject Event<AeEscalationStartedEvent> escalationStartedEvents;
+    @Inject Event<AeEscalationFailedEvent>  escalationFailedEvents;
 
 
     public void onAdverseEventReported(@ObservesAsync AdverseEventReportedEvent event) {
@@ -46,6 +52,7 @@ public class AeEscalationCaseService {
             if (initialContext == null) return;
             UUID caseId = caseHub.startCase(initialContext);
             persistCaseId(event.aeId(), caseId);
+            escalationStartedEvents.fireAsync(new AeEscalationStartedEvent(event.aeId(), caseId, event.grade(), event.tenantId()));
             try { aeTrajectoryAlertService.evaluate(event.aeId(), event.tenantId()); } catch (Exception te) { LOG.warnf(te, "Trajectory alert re-evaluation failed for aeId=%s", event.aeId()); }
             if (SEVERE_GRADES.contains(event.grade())) {
                 trialSafetySignalService.signalGrade4Active(event.siteId());
@@ -177,6 +184,7 @@ public class AeEscalationCaseService {
             return;
         }
         ae.escalationStatus = AeEscalationStatus.FAILED;
+        escalationFailedEvents.fireAsync(new AeEscalationFailedEvent(aeId, ae.grade, ae.tenantId, "Escalation case creation failed"));
     }
 
 }

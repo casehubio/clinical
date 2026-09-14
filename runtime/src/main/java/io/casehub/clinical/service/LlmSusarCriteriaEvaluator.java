@@ -72,7 +72,7 @@ public class LlmSusarCriteriaEvaluator implements SusarEvaluatorFunction {
         var request = new ClinicalAgentRequest<>(
                 SYSTEM_PROMPT, userPrompt, SusarAssessmentResponse.class,
                 new SusarAssessmentResponse(true, "unknown", "unknown", "LLM unavailable — conservative fallback", 0f),
-                "safety", aeIdStr);
+                "safety", aeIdStr, null);
 
         ClinicalAgentResult<SusarAssessmentResponse> result = agentSupport.invoke(request);
 
