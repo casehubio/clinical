@@ -18,3 +18,7 @@ META-INF/
 .claude
 proj
 .mvn/maven.config
+.mvn/slot-settings.xml
+.worktrees
+.worktrees/
+.claude/
