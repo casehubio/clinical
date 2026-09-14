@@ -25,13 +25,17 @@ public class ClinicalAgentSupport {
     private final AgentProvider agentProvider;
     private final ObjectMapper objectMapper;
     private final io.casehub.clinical.service.ClinicalCascadeBroadcaster cascadeBroadcaster;
+    private final io.casehub.platform.api.model.ModelRegistry            modelRegistry;
+
 
     @Inject
     public ClinicalAgentSupport(AgentProvider agentProvider, ObjectMapper objectMapper,
-                                io.casehub.clinical.service.ClinicalCascadeBroadcaster cascadeBroadcaster) {
+                                io.casehub.clinical.service.ClinicalCascadeBroadcaster cascadeBroadcaster,
+                                io.casehub.platform.api.model.ModelRegistry modelRegistry) {
         this.agentProvider = agentProvider;
         this.objectMapper = objectMapper;
         this.cascadeBroadcaster = cascadeBroadcaster;
+        this.modelRegistry = modelRegistry;
     }
 
     public <T> ClinicalAgentResult<T> invoke(ClinicalAgentRequest<T> request) {
@@ -103,9 +107,8 @@ public class ClinicalAgentSupport {
 
     private String resolveModel(String configKey) {
         try {
-            return org.eclipse.microprofile.config.ConfigProvider.getConfig()
-                    .getOptionalValue("casehub.clinical.agent." + configKey + ".model", String.class)
-                    .orElse(DEFAULT_MODEL);
+            return ClinicalModelTierResolver.resolveModel(configKey,
+                    org.eclipse.microprofile.config.ConfigProvider.getConfig(), modelRegistry);
         } catch (Exception e) {
             return DEFAULT_MODEL;
         }

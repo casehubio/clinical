@@ -29,7 +29,7 @@ class LlmEligibilityCriteriaEvaluatorTest {
     @BeforeEach
     void setup() {
         agentProvider = mock(AgentProvider.class);
-        var support = new ClinicalAgentSupport(agentProvider, new ObjectMapper(), mock(ClinicalCascadeBroadcaster.class));
+        var support = new ClinicalAgentSupport(agentProvider, new ObjectMapper(), mock(ClinicalCascadeBroadcaster.class), mock(io.casehub.platform.api.model.ModelRegistry.class));
         evaluator = new LlmEligibilityCriteriaEvaluator(support);
     }
 
