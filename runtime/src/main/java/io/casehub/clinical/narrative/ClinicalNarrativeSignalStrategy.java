@@ -9,7 +9,9 @@ import io.casehub.blocks.summarisation.narrative.DecisionSignal;
 import io.casehub.blocks.summarisation.narrative.RoutingDecision;
 import io.casehub.blocks.summarisation.narrative.StepOutcome;
 import io.casehub.blocks.summarisation.narrative.TrustAssessment;
+import io.casehub.clinical.agent.ModelSelectionEvent;
 import jakarta.annotation.Priority;
+import jakarta.enterprise.event.ObservesAsync;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.enterprise.inject.Alternative;
 import jakarta.inject.Inject;
@@ -77,6 +79,14 @@ public class ClinicalNarrativeSignalStrategy extends AbstractNarrativeSignalStra
             emit(new CbrRetrieval(caseId, stepName, now,
                     cbrCount, similarity, null, "clinical"));
         }
+    }
+
+    public void onModelSelection(@ObservesAsync ModelSelectionEvent event) {
+        emit(new StepOutcome(
+                "model-selection:" + event.tier().name(),
+                event.configKey(),
+                Instant.now(), "MODEL_SELECTED", event.modelId(),
+                null, Duration.ZERO));
     }
 
     @Override

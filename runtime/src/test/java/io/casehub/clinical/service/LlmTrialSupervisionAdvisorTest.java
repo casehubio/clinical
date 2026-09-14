@@ -25,7 +25,8 @@ class LlmTrialSupervisionAdvisorTest {
     @BeforeEach
     void setup() {
         agentProvider = mock(AgentProvider.class);
-        var support = new ClinicalAgentSupport(agentProvider, new ObjectMapper(), mock(ClinicalCascadeBroadcaster.class), mock(io.casehub.platform.api.model.ModelRegistry.class));
+        @SuppressWarnings("unchecked") jakarta.enterprise.event.Event<io.casehub.clinical.agent.ModelSelectionEvent> mockModelEvent = mock(jakarta.enterprise.event.Event.class);
+        var support = new ClinicalAgentSupport(agentProvider, new ObjectMapper(), mock(ClinicalCascadeBroadcaster.class), mock(io.casehub.platform.api.model.ModelRegistry.class), mockModelEvent);
         advisor = new LlmTrialSupervisionAdvisor(support);
     }
 

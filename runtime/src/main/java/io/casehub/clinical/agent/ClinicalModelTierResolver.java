@@ -21,15 +21,19 @@ final class ClinicalModelTierResolver {
 
     private ClinicalModelTierResolver() {}
 
+    static ModelTier resolveTier(String configKey, Config config) {
+        var tierStr = config.getOptionalValue(
+                "casehub.clinical.agent." + configKey + ".tier", String.class);
+        return tierStr.map(ModelTier::valueOf)
+                .orElse(DEFAULT_TIERS.getOrDefault(configKey, ModelTier.FLAGSHIP));
+    }
+
     static String resolveModel(String configKey, Config config, ModelRegistry modelRegistry) {
         var explicitModel = config.getOptionalValue(
                 "casehub.clinical.agent." + configKey + ".model", String.class);
         if (explicitModel.isPresent()) return explicitModel.get();
 
-        var tierStr = config.getOptionalValue(
-                "casehub.clinical.agent." + configKey + ".tier", String.class);
-        ModelTier tier = tierStr.map(ModelTier::valueOf)
-                .orElse(DEFAULT_TIERS.getOrDefault(configKey, ModelTier.FLAGSHIP));
+        ModelTier tier = resolveTier(configKey, config);
 
         var models = modelRegistry.query(ModelQuery.builder().tier(tier).build());
         if (!models.isEmpty()) return models.getFirst().apiModelId();

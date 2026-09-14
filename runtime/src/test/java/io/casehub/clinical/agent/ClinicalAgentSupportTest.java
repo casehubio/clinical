@@ -10,6 +10,8 @@ import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
 
 import static org.junit.jupiter.api.Assertions.*;
+import jakarta.enterprise.event.Event;
+
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
 
@@ -23,7 +25,9 @@ class ClinicalAgentSupportTest {
     @BeforeEach
     void setup() {
         agentProvider = mock(AgentProvider.class);
-        support = new ClinicalAgentSupport(agentProvider, new ObjectMapper(), mock(io.casehub.clinical.service.ClinicalCascadeBroadcaster.class), mock(io.casehub.platform.api.model.ModelRegistry.class));
+        @SuppressWarnings("unchecked")
+        Event<ModelSelectionEvent> mockEvent = mock(Event.class);
+        support = new ClinicalAgentSupport(agentProvider, new ObjectMapper(), mock(io.casehub.clinical.service.ClinicalCascadeBroadcaster.class), mock(io.casehub.platform.api.model.ModelRegistry.class), mockEvent);
     }
 
     @Test

@@ -5,6 +5,7 @@ import io.casehub.platform.agent.AgentEvent;
 import io.casehub.platform.agent.AgentProvider;
 import io.casehub.platform.agent.AgentSessionConfig;
 import jakarta.enterprise.context.ApplicationScoped;
+import jakarta.enterprise.event.Event;
 import jakarta.inject.Inject;
 import org.jboss.logging.Logger;
 
@@ -26,16 +27,18 @@ public class ClinicalAgentSupport {
     private final ObjectMapper objectMapper;
     private final io.casehub.clinical.service.ClinicalCascadeBroadcaster cascadeBroadcaster;
     private final io.casehub.platform.api.model.ModelRegistry            modelRegistry;
-
+    private final Event<ModelSelectionEvent> modelSelectionEvent;
 
     @Inject
     public ClinicalAgentSupport(AgentProvider agentProvider, ObjectMapper objectMapper,
                                 io.casehub.clinical.service.ClinicalCascadeBroadcaster cascadeBroadcaster,
-                                io.casehub.platform.api.model.ModelRegistry modelRegistry) {
+                                io.casehub.platform.api.model.ModelRegistry modelRegistry,
+                                Event<ModelSelectionEvent> modelSelectionEvent) {
         this.agentProvider = agentProvider;
         this.objectMapper = objectMapper;
         this.cascadeBroadcaster = cascadeBroadcaster;
         this.modelRegistry = modelRegistry;
+        this.modelSelectionEvent = modelSelectionEvent;
     }
 
     public <T> ClinicalAgentResult<T> invoke(ClinicalAgentRequest<T> request) {
@@ -45,6 +48,7 @@ public class ClinicalAgentSupport {
         }
         try {
             String model = resolveModel(request.configKey());
+            fireModelSelectionEvent(request.configKey(), model);
             Duration timeout = resolveTimeout(request.configKey());
             AgentSessionConfig config = new AgentSessionConfig(
                     request.systemPrompt(), request.userPrompt(),
@@ -103,6 +107,16 @@ public class ClinicalAgentSupport {
         int end = text.lastIndexOf('}');
         if (start >= 0 && end > start) return text.substring(start, end + 1);
         return text;
+    }
+
+    private void fireModelSelectionEvent(String configKey, String modelId) {
+        try {
+            var tier = ClinicalModelTierResolver.resolveTier(configKey,
+                    org.eclipse.microprofile.config.ConfigProvider.getConfig());
+            modelSelectionEvent.fireAsync(new ModelSelectionEvent(configKey, tier, modelId));
+        } catch (Exception e) {
+            LOG.debugf(e, "Failed to fire ModelSelectionEvent for %s", configKey);
+        }
     }
 
     private String resolveModel(String configKey) {

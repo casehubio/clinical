@@ -4,6 +4,7 @@ import io.casehub.blocks.summarisation.narrative.DecisionNarrative;
 import io.casehub.blocks.summarisation.narrative.DecisionNarrativePipeline;
 import io.casehub.clinical.api.ClinicalGroups;
 import jakarta.annotation.security.RolesAllowed;
+import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 import jakarta.ws.rs.GET;
 import jakarta.ws.rs.Path;
@@ -16,6 +17,7 @@ import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CopyOnWriteArrayList;
 
+@ApplicationScoped
 @Path("/api/narrative")
 @Produces(MediaType.APPLICATION_JSON)
 public class NarrativeResource {
