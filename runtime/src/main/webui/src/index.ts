@@ -10,6 +10,7 @@ import { ClinicalGdprErasureAction } from "./components/gdpr-erasure-action.js";
 import { ClinicalSlaBreachPolicyIndicator } from "./components/sla-breach-policy-indicator.js";
 import { ClinicalAeGradeHistory } from "./components/ae-grade-history.js";
 import { ClinicalAeRegrade } from "./components/ae-regrade.js";
+import { ClinicalCascadeTimeline } from "./components/cascade-timeline.js";
 
 const components: [string, CustomElementConstructor][] = [
   ["commitment-lifecycle", ClinicalCommitmentLifecycle],
@@ -20,6 +21,7 @@ const components: [string, CustomElementConstructor][] = [
   ["sla-breach-policy-indicator", ClinicalSlaBreachPolicyIndicator],
   ["clinical-ae-grade-history", ClinicalAeGradeHistory],
   ["clinical-ae-regrade", ClinicalAeRegrade],
+  ["clinical-cascade-timeline", ClinicalCascadeTimeline],
 ];
 
 for (const [name, ctor] of components) {

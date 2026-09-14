@@ -84,6 +84,9 @@ export function safetyWorkbench(trialId: string): Component {
     ["Regrade", panel("Regrade Assessment",
       html(`<clinical-ae-regrade id="ae-regrade" data-trial-id="${trialId}" data-source-dataset="adverse-events"></clinical-ae-regrade>`),
     )],
+    ["Live Cascade", panel("Live Cascade",
+      html(`<clinical-cascade-timeline id="ae-cascade" data-source-dataset="adverse-events"></clinical-cascade-timeline>`),
+    )],
   );
 
   return columns([5, 7],
