@@ -5,6 +5,7 @@ import io.casehub.api.model.CaseDefinition;
 import io.casehub.clinical.api.spi.SupervisionAssessment;
 import io.casehub.clinical.api.spi.TrialSupervisionAdvisor;
 import io.casehub.clinical.api.spi.TrialSupervisionContext;
+import io.casehub.eidos.org.api.OrgRegistry;
 import io.casehub.worker.api.Worker;
 import io.casehub.worker.api.WorkerResult;
 import jakarta.enterprise.context.ApplicationScoped;
@@ -18,6 +19,8 @@ import java.util.UUID;
 public class ClinicalTrialCaseHub extends YamlCaseHub {
 
     @Inject TrialSupervisionAdvisor supervisionAdvisor;
+    @Inject OrgRegistry orgRegistry;
+
 
     public ClinicalTrialCaseHub() {
         super("clinical/trial-coordination.yaml");
@@ -41,5 +44,7 @@ public class ClinicalTrialCaseHub extends YamlCaseHub {
                             "summary", assessment.summary()));
                 })
                 .build());
+
+        ClinicalOrgRegistrar.register(orgRegistry, "default");
     }
 }
