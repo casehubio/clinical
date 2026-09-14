@@ -1,8 +1,9 @@
 import {
-  columns, dataTable, tabs, panel, html,
+  dataTable, tabs, panel, html,
   lookup,
+  dockWorkbench, hostPanel,
 } from "@casehubio/pages-ui";
-import type { Component } from "@casehubio/pages-ui";
+import type { Component, DockPanelConfig } from "@casehubio/pages-ui";
 import type { DataSourceBinding } from "@casehubio/pages-data";
 
 export function safetyWorkbench(trialId: string): Component {
@@ -62,22 +63,6 @@ export function safetyWorkbench(trialId: string): Component {
         ],
       }),
     )],
-    ["Audit Trail", panel("Ledger Entries",
-      dataTable({
-        title: "Audit Trail",
-        lookup: lookup("ledger-entries"),
-        sortable: true,
-        pageSize: 25,
-        columns: [
-          { id: "occurredAt" as never, name: "Timestamp" },
-          { id: "entryType" as never, name: "Type" },
-          { id: "actorId" as never, name: "Actor" },
-          { id: "subjectId" as never, name: "Subject" },
-          { id: "digest" as never, name: "Digest", expression: 'value ? $substring(value, 0, 16) & "..." : ""' },
-        ],
-        filter: { enabled: true },
-      }),
-    )],
     ["Grade History", panel("Grade History",
       html(`<clinical-ae-grade-history id="ae-grade-history" data-trial-id="${trialId}" data-source-dataset="adverse-events"></clinical-ae-grade-history>`),
     )],
@@ -89,10 +74,37 @@ export function safetyWorkbench(trialId: string): Component {
     )],
   );
 
-  return columns([5, 7],
-    [aeTable],
-    [detailTabs],
-  );
+  const routingRationale: DockPanelConfig = {
+    key: "routing", label: "Routing Rationale", icon: "git-branch",
+    defaultOpen: false, content: hostPanel("routing-rationale"),
+  };
+  const trustPanel: DockPanelConfig = {
+    key: "trust", label: "Trust Workbench", icon: "shield",
+    defaultOpen: false, content: hostPanel("trust-workbench"),
+  };
+  const auditTrail: DockPanelConfig = {
+    key: "audit", label: "Audit Trail", icon: "file-text",
+    defaultOpen: false, content: dataTable({
+      title: "Audit Trail",
+      lookup: lookup("ledger-entries"),
+      sortable: true,
+      pageSize: 25,
+      columns: [
+        { id: "occurredAt" as never, name: "Timestamp" },
+        { id: "entryType" as never, name: "Type" },
+        { id: "actorId" as never, name: "Actor" },
+        { id: "subjectId" as never, name: "Subject" },
+        { id: "digest" as never, name: "Digest", expression: 'value ? $substring(value, 0, 16) & "..." : ""' },
+      ],
+      filter: { enabled: true },
+    }),
+  };
+
+  return dockWorkbench({
+    centre: [aeTable, detailTabs],
+    right: [routingRationale, trustPanel],
+    bottom: [auditTrail],
+  });
 }
 
 export const safetyWorkbenchDatasets: DataSourceBinding[] = [];

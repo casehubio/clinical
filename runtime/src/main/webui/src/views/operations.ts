@@ -1,8 +1,9 @@
 import {
   rows, columns, tabs, dataTable, metric, barChart, pieChart, html,
   lookup, groupBy, filterBy, col, count, sum,
+  dockWorkbench, hostPanel,
 } from "@casehubio/pages-ui";
-import type { Component } from "@casehubio/pages-ui";
+import type { Component, DockPanelConfig } from "@casehubio/pages-ui";
 import type { DataSourceBinding } from "@casehubio/pages-data";
 
 export function operations(): Component {
@@ -66,13 +67,35 @@ export function operations(): Component {
     ></gdpr-erasure-action>`),
   );
 
-  return tabs(
-    ["Trial Dashboard", trialDashboard],
-    ["Trust & Governance", trustGovernance],
-    ["SLA Health", slaHealth],
-    ["Compliance", compliance],
-    ["GDPR", gdpr],
-  );
+  const orchestrationPanel: DockPanelConfig = {
+    key: "orchestration", label: "Orchestration", icon: "activity",
+    defaultOpen: false, content: hostPanel("orchestration-workbench"),
+  };
+  const trustPanel: DockPanelConfig = {
+    key: "trust", label: "Trust Workbench", icon: "shield",
+    defaultOpen: false, content: hostPanel("trust-workbench"),
+  };
+  const slaPanel: DockPanelConfig = {
+    key: "sla", label: "SLA Health", icon: "clock",
+    defaultOpen: false, content: slaHealth,
+  };
+  const compliancePanel: DockPanelConfig = {
+    key: "compliance", label: "Compliance", icon: "check-square",
+    defaultOpen: false, content: compliance,
+  };
+  const gdprPanel: DockPanelConfig = {
+    key: "gdpr", label: "GDPR", icon: "lock",
+    defaultOpen: false, content: gdpr,
+  };
+
+  return dockWorkbench({
+    centre: tabs(
+      ["Trial Dashboard", trialDashboard],
+      ["Trust & Governance", trustGovernance],
+    ),
+    right: [orchestrationPanel, trustPanel],
+    bottom: [slaPanel, compliancePanel, gdprPanel],
+  });
 }
 
 export const operationsDatasets: DataSourceBinding[] = [];

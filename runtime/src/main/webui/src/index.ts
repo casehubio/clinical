@@ -1,6 +1,10 @@
-import { loadSite } from "@casehubio/pages-runtime";
+import { loadSite, registerPanel } from "@casehubio/pages-runtime";
 import { onPagesEvent } from "@casehubio/pages-component";
 import "@casehubio/blocks-ui-work-item-inbox";
+import "@casehubio/blocks-ui-orchestration-workbench";
+import "@casehubio/blocks-ui-trust-workbench";
+import "@casehubio/blocks-ui-conversation-viewer";
+import "@casehubio/blocks-ui-routing-rationale";
 import { app } from "./app.js";
 import { ClinicalCommitmentLifecycle } from "./components/commitment-lifecycle.js";
 import { ClinicalCbrPrecedentsPanel } from "./components/cbr-precedents-panel.js";
@@ -27,6 +31,11 @@ const components: [string, CustomElementConstructor][] = [
 for (const [name, ctor] of components) {
   if (!customElements.get(name)) customElements.define(name, ctor);
 }
+
+registerPanel("orchestration-workbench", "blocks-orchestration-workbench");
+registerPanel("trust-workbench", "blocks-trust-workbench");
+registerPanel("conversation-viewer", "blocks-conversation-workbench");
+registerPanel("routing-rationale", "blocks-routing-rationale");
 
 const CLINICAL_IDENTITY = {
   userId: "demo-coordinator",

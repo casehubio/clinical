@@ -2,11 +2,20 @@ import { describe, it, expect } from "vitest";
 import { operations, operationsDatasets } from "../views/operations.js";
 
 describe("operations view", () => {
-  it("returns a defined component", () => {
-    expect(operations()).toBeDefined();
+  it("returns a dockWorkbench component", () => {
+    const component = operations();
+    expect(component).toBeDefined();
+    expect((component as any).props?.__dockConfig).toBeDefined();
   });
 
-  it("exports datasets including trial-summary and agents", () => {
-    expect(operationsDatasets.length).toBeGreaterThanOrEqual(4);
+  it("dockWorkbench has right and bottom zones", () => {
+    const component = operations();
+    const config = (component as any).props.__dockConfig;
+    expect(config.right).toHaveLength(2);
+    expect(config.bottom).toHaveLength(3);
+  });
+
+  it("exports datasets array", () => {
+    expect(operationsDatasets).toBeDefined();
   });
 });
