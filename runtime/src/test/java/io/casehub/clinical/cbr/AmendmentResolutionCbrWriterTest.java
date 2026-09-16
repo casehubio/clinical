@@ -1,8 +1,5 @@
 package io.casehub.clinical.cbr;
 
-import static org.mockito.ArgumentMatchers.*;
-import static org.mockito.Mockito.*;
-
 import io.casehub.clinical.api.ProtocolAmendmentResolvedEvent;
 import io.casehub.clinical.api.model.AmendmentCaseStatus;
 import io.casehub.clinical.api.model.ProtocolAmendmentStatus;
@@ -21,6 +18,13 @@ import java.time.Instant;
 import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.ArgumentMatchers.isNull;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoInteractions;
+import static org.mockito.Mockito.when;
 
 @QuarkusTest
 class AmendmentResolutionCbrWriterTest {
@@ -28,6 +32,9 @@ class AmendmentResolutionCbrWriterTest {
     @Inject AmendmentResolutionCbrWriter writer;
     @InjectMock ClinicalCbrService cbrService;
     @InjectMock ClinicalScopeResolver scopeResolver;
+    @Inject
+                jakarta.persistence.EntityManager em;
+
 
     UUID amendmentId;
     UUID trialId;
@@ -50,7 +57,7 @@ class AmendmentResolutionCbrWriterTest {
         amendment.amendmentCaseStatus = AmendmentCaseStatus.COMPLETED;
         amendment.tenantId = "default";
         amendment.proposedAt = Instant.now();
-        amendment.persist();
+        em.persist(amendment);
 
         when(scopeResolver.forAmendment(any())).thenReturn(java.util.Optional.of(io.casehub.platform.api.path.Path.of("trial-1")));
         when(cbrService.storeIdempotent(any(), anyString(), anyString(), any(), anyString(), anyString(), any()))
@@ -195,14 +202,14 @@ class AmendmentResolutionCbrWriterTest {
 
     @Transactional
     void updateAmendmentStatus(ProtocolAmendmentStatus status, AmendmentRecommendation recommendation) {
-        ProtocolAmendment a = ProtocolAmendment.findById(amendmentId);
+        ProtocolAmendment a = em.find(ProtocolAmendment.class, amendmentId);
         a.status = status;
         a.supervisorRecommendation = recommendation;
     }
 
     @Transactional
     void updateAmendmentEngineCase(UUID caseId) {
-        ProtocolAmendment a = ProtocolAmendment.findById(amendmentId);
+        ProtocolAmendment a = em.find(ProtocolAmendment.class, amendmentId);
         a.engineCaseId = caseId;
     }
 }

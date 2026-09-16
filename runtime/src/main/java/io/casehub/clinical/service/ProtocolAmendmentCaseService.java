@@ -6,6 +6,7 @@ import io.casehub.clinical.entity.ProtocolAmendment;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.enterprise.event.ObservesAsync;
 import jakarta.inject.Inject;
+import jakarta.persistence.EntityManager;
 import jakarta.transaction.Transactional;
 import org.jboss.logging.Logger;
 
@@ -36,6 +37,9 @@ public class ProtocolAmendmentCaseService {
     private static final Logger LOG = Logger.getLogger(ProtocolAmendmentCaseService.class);
 
     @Inject ProtocolAmendmentCaseHub caseHub;
+    @Inject
+            EntityManager            em;
+
 
     public void onProposed(@ObservesAsync ProtocolAmendmentProposedEvent event) {
         try {
@@ -77,7 +81,7 @@ public class ProtocolAmendmentCaseService {
     /** Called from onProposed — loads amendment inside @Transactional boundary. */
     @Transactional
     Map<String, Object> prepareAndMark(ProtocolAmendmentProposedEvent event) {
-        ProtocolAmendment amendment = ProtocolAmendment.findById(event.amendmentId());
+        ProtocolAmendment amendment = em.find(ProtocolAmendment.class, event.amendmentId());
         if (amendment == null) {
             LOG.warnf("ProtocolAmendmentCaseService: amendment not found %s", event.amendmentId());
             return null;
@@ -87,7 +91,7 @@ public class ProtocolAmendmentCaseService {
 
     @Transactional
     void persistCaseId(UUID amendmentId, UUID caseId) {
-        ProtocolAmendment a = ProtocolAmendment.findById(amendmentId);
+        ProtocolAmendment a = em.find(ProtocolAmendment.class, amendmentId);
         if (a != null) {
             a.engineCaseId = caseId;
         }
@@ -95,7 +99,7 @@ public class ProtocolAmendmentCaseService {
 
     @Transactional
     void markFailed(UUID amendmentId) {
-        ProtocolAmendment a = ProtocolAmendment.findById(amendmentId);
+        ProtocolAmendment a = em.find(ProtocolAmendment.class, amendmentId);
         if (a != null) {
             a.amendmentCaseStatus = AmendmentCaseStatus.FAILED;
         }

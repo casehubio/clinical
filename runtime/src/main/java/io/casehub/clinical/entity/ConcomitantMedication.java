@@ -2,20 +2,25 @@ package io.casehub.clinical.entity;
 
 import io.casehub.clinical.api.model.MedicationFrequency;
 import io.casehub.clinical.api.model.MedicationRoute;
-import io.casehub.platform.api.identity.CurrentPrincipal;
-import io.quarkus.hibernate.orm.panache.PanacheEntityBase;
-import jakarta.persistence.*;
+import jakarta.persistence.Column;
+import jakarta.persistence.Entity;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
+import jakarta.persistence.Id;
+import jakarta.persistence.NamedQuery;
+import jakarta.persistence.Table;
 import org.hibernate.annotations.DynamicUpdate;
 
 import java.time.Instant;
 import java.time.LocalDate;
-import java.util.List;
 import java.util.UUID;
 
 @Entity
 @Table(name = "concomitant_medication")
+@NamedQuery(name = "ConcomitantMedication.findByIdAndTenantId", query = "SELECT m FROM ConcomitantMedication m WHERE m.id = :id AND m.tenantId = :tenantId")
+@NamedQuery(name = "ConcomitantMedication.listByEnrollment", query = "SELECT m FROM ConcomitantMedication m WHERE m.enrollmentId = :enrollmentId AND m.tenantId = :tenantId")
 @DynamicUpdate
-public class ConcomitantMedication extends PanacheEntityBase {
+public class ConcomitantMedication {
 
     @Id
     public UUID id;
@@ -57,15 +62,4 @@ public class ConcomitantMedication extends PanacheEntityBase {
 
     @Column(name = "created_at", nullable = false)
     public Instant createdAt;
-
-    public static ConcomitantMedication findByIdForTenant(UUID id, CurrentPrincipal principal) {
-        ConcomitantMedication cm = findById(id);
-        if (cm == null) return null;
-        if (principal.isCrossTenantAdmin()) return cm;
-        return cm.tenantId.equals(principal.tenancyId()) ? cm : null;
-    }
-
-    public static List<ConcomitantMedication> listByEnrollment(UUID enrollmentId, String tenantId) {
-        return list("enrollmentId = ?1 and tenantId = ?2", enrollmentId, tenantId);
-    }
 }

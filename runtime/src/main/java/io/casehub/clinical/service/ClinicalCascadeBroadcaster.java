@@ -16,6 +16,7 @@ import io.quarkus.vertx.ConsumeEvent;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.enterprise.event.ObservesAsync;
 import jakarta.inject.Inject;
+import jakarta.persistence.EntityManager;
 import org.jboss.logging.Logger;
 
 import java.time.Instant;
@@ -28,6 +29,9 @@ public class ClinicalCascadeBroadcaster {
     private static final Logger LOG = Logger.getLogger(ClinicalCascadeBroadcaster.class);
 
     private final EventBroadcaster eventBroadcaster;
+    @Inject
+                  EntityManager    em;
+
 
     @Inject
     public ClinicalCascadeBroadcaster(EventBroadcaster eventBroadcaster) {
@@ -55,7 +59,7 @@ public class ClinicalCascadeBroadcaster {
 
     @ConsumeEvent(value = "casehub.action.gate.approved", blocking = true)
     public void onGateApproved(ActionGateApprovedEvent event) {
-        AdverseEvent ae = AdverseEvent.findBySusarOversightCaseId(event.caseId());
+        AdverseEvent ae = em.createNamedQuery("AdverseEvent.findBySusarOversightCaseId", AdverseEvent.class).setParameter("caseId", event.caseId()).getResultStream().findFirst().orElse(null);
         if (ae == null) return;
         broadcastStep(ae.id, CascadeStepType.GATE_OPENED, CascadeStepStatus.COMPLETED,
             "system", "SUSAR oversight gate opened", Map.of());
@@ -66,7 +70,7 @@ public class ClinicalCascadeBroadcaster {
 
     @ConsumeEvent(value = "casehub.action.gate.rejected", blocking = true)
     public void onGateRejected(ActionGateRejectedEvent event) {
-        AdverseEvent ae = AdverseEvent.findBySusarOversightCaseId(event.caseId());
+        AdverseEvent ae = em.createNamedQuery("AdverseEvent.findBySusarOversightCaseId", AdverseEvent.class).setParameter("caseId", event.caseId()).getResultStream().findFirst().orElse(null);
         if (ae == null) return;
         broadcastStep(ae.id, CascadeStepType.GATE_OPENED, CascadeStepStatus.COMPLETED,
             "system", "SUSAR oversight gate opened", Map.of());
@@ -76,7 +80,7 @@ public class ClinicalCascadeBroadcaster {
 
     @ConsumeEvent(value = "casehub.action.gate.expired", blocking = true)
     public void onGateExpired(ActionGateExpiredEvent event) {
-        AdverseEvent ae = AdverseEvent.findBySusarOversightCaseId(event.caseId());
+        AdverseEvent ae = em.createNamedQuery("AdverseEvent.findBySusarOversightCaseId", AdverseEvent.class).setParameter("caseId", event.caseId()).getResultStream().findFirst().orElse(null);
         if (ae == null) return;
         broadcastStep(ae.id, CascadeStepType.GATE_OPENED, CascadeStepStatus.COMPLETED,
             "system", "SUSAR oversight gate opened", Map.of());

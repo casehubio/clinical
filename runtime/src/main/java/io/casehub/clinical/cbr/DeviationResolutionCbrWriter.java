@@ -3,11 +3,10 @@ package io.casehub.clinical.cbr;
 import io.casehub.clinical.api.IrbApprovalResolvedEvent;
 import io.casehub.clinical.api.ProtocolDeviationResolvedEvent;
 import io.casehub.clinical.api.model.IrbDecision;
-import io.casehub.clinical.api.model.PiApprovalStatus;
 import io.casehub.clinical.entity.IrbApproval;
 import io.casehub.clinical.entity.ProtocolDeviation;
-import io.casehub.neocortex.memory.cbr.FeatureValue;
 import io.casehub.neocortex.cognitive.Confidence;
+import io.casehub.neocortex.memory.cbr.FeatureValue;
 import io.casehub.neocortex.memory.cbr.FeatureVectorCbrCase;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.enterprise.event.ObservesAsync;
@@ -15,7 +14,9 @@ import jakarta.inject.Inject;
 import jakarta.transaction.Transactional;
 import org.jboss.logging.Logger;
 
-import java.util.*;
+import java.util.LinkedHashMap;
+import java.util.Map;
+import java.util.UUID;
 
 /**
  * Observes {@link ProtocolDeviationResolvedEvent} and {@link IrbApprovalResolvedEvent}
@@ -50,6 +51,9 @@ public class DeviationResolutionCbrWriter {
 
     @Inject
     ClinicalScopeResolver scopeResolver;
+    @Inject
+    jakarta.persistence.EntityManager em;
+
 
     /**
      * Consumes {@link ProtocolDeviationResolvedEvent} and stores a plan CBR case.
@@ -94,7 +98,7 @@ public class DeviationResolutionCbrWriter {
      * via erase-before-store.
      */
     private void buildAndStore(UUID deviationId, String tenantId) {
-        ProtocolDeviation deviation = ProtocolDeviation.findById(deviationId);
+        ProtocolDeviation deviation = em.find(ProtocolDeviation.class, deviationId);
         if (deviation == null) {
             LOG.warnf("Deviation not found: %s", deviationId);
             return;
@@ -107,7 +111,7 @@ public class DeviationResolutionCbrWriter {
         }
         io.casehub.platform.api.path.Path scope = scopeOpt.get();
 
-        IrbApproval irbApproval = IrbApproval.find("deviationId", deviationId).firstResult();
+        IrbApproval irbApproval = em.createQuery("SELECT a FROM IrbApproval a WHERE a.deviationId = :deviationId", IrbApproval.class).setParameter("deviationId", deviationId).getResultStream().findFirst().orElse(null);
 
         // Feature vector
         Map<String, Object> features = new LinkedHashMap<>();

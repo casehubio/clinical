@@ -26,6 +26,7 @@ import io.quarkus.scheduler.Scheduled;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.enterprise.event.Event;
 import jakarta.inject.Inject;
+import jakarta.persistence.EntityManager;
 import org.eclipse.microprofile.config.inject.ConfigProperty;
 import org.jboss.logging.Logger;
 
@@ -54,6 +55,7 @@ public class TrialSafetyAggregationJob {
     private final DsmbBatchSignalNotifier dsmbNotifier;
     private final ObjectMapper objectMapper;
     private final SafetySignalAnalyzer safetySignalAnalyzer;
+    private final EntityManager em;
 
     @ConfigProperty(name = "casehub.clinical.trial-safety.tenant-id", defaultValue = "default")
     String tenantId;
@@ -87,7 +89,8 @@ public class TrialSafetyAggregationJob {
                                       WorkItemStore workItemStore,
                                       DsmbBatchSignalNotifier dsmbNotifier,
                                       ObjectMapper objectMapper,
-                                      SafetySignalAnalyzer safetySignalAnalyzer) {
+                                      SafetySignalAnalyzer safetySignalAnalyzer,
+                                      EntityManager em) {
         this.cbrService = cbrService;
         this.clock = clock;
         this.signalEvent = signalEvent;
@@ -96,13 +99,15 @@ public class TrialSafetyAggregationJob {
         this.dsmbNotifier = dsmbNotifier;
         this.objectMapper = objectMapper;
         this.safetySignalAnalyzer = safetySignalAnalyzer;
+        this.em = em;
     }
 
     @Scheduled(every = "${casehub.clinical.trial-safety.interval:24h}",
                identity = "trial-safety-aggregation")
     public void aggregateAll() {
         List<ClinicalTrial> trials = QuarkusTransaction.requiringNew().call(() ->
-            ClinicalTrial.<ClinicalTrial>list("tenantId = ?1 AND status = 'ACTIVE'", tenantId));
+            em.createQuery("SELECT t FROM ClinicalTrial t WHERE t.tenantId = :tenantId AND t.status = 'ACTIVE'", ClinicalTrial.class)
+                .setParameter("tenantId", tenantId).getResultList());
 
         int signalCount = 0;
         for (ClinicalTrial trial : trials) {
@@ -121,12 +126,10 @@ public class TrialSafetyAggregationJob {
         Instant cutoff = clock.instant().minus(aggregationPeriodDays, ChronoUnit.DAYS);
 
         Map<UUID, List<SiteAeSummary>> siteData = QuarkusTransaction.requiringNew().call(() -> {
-            List<TrialSite> sites = TrialSite.<TrialSite>list("trialId = ?1 AND tenantId = ?2", trialId, tenantId);
+            List<TrialSite> sites = em.createQuery("SELECT s FROM TrialSite s WHERE s.trialId = :trialId AND s.tenantId = :tenantId", TrialSite.class).setParameter("trialId", trialId).setParameter("tenantId", tenantId).getResultList();
             Map<UUID, List<SiteAeSummary>> result = new HashMap<>();
             for (TrialSite site : sites) {
-                List<AdverseEvent> events = AdverseEvent.<AdverseEvent>list(
-                    "enrollmentId IN (SELECT pe.id FROM PatientEnrollment pe WHERE pe.siteId = ?1 AND pe.tenantId = ?2) AND reportedAt >= ?3",
-                    site.id, tenantId, cutoff);
+                List<AdverseEvent> events = em.createQuery("SELECT a FROM AdverseEvent a WHERE a.enrollmentId IN (SELECT pe.id FROM PatientEnrollment pe WHERE pe.siteId = :siteId AND pe.tenantId = :tenantId) AND a.reportedAt >= :cutoff", AdverseEvent.class).setParameter("siteId", site.id).setParameter("tenantId", tenantId).setParameter("cutoff", cutoff).getResultList();
 
                 Map<String, Map<CtcaeGrade, Integer>> grouped = new HashMap<>();
                 for (AdverseEvent ae : events) {
@@ -276,7 +279,9 @@ public class TrialSafetyAggregationJob {
     void upsertSignalRecord(UUID trialId, DetectedSignal signal, String tenantId) {
         // Phase 1: persist signal record
         UpsertResult result = QuarkusTransaction.requiringNew().call(() -> {
-            TrialSafetySignal existing = TrialSafetySignal.findByTrialAndType(trialId, signal.signalType(), tenantId);
+            TrialSafetySignal existing = em.createNamedQuery("TrialSafetySignal.findByTrialAndType", TrialSafetySignal.class)
+                    .setParameter("trialId", trialId).setParameter("signalType", signal.signalType()).setParameter("tenantId", tenantId)
+                    .getResultStream().findFirst().orElse(null);
             Instant now = clock.instant();
             if (existing != null) {
                 existing.affectedSiteCount = signal.affectedSites().size();
@@ -295,7 +300,7 @@ public class TrialSafetyAggregationJob {
                 record.summary = signal.summary();
                 record.firstDetectedAt = now;
                 record.lastDetectedAt = now;
-                record.persist();
+                em.persist(record);
                 return new UpsertResult(record.id, true);
             }
         });
@@ -317,7 +322,7 @@ public class TrialSafetyAggregationJob {
                         .claimDeadline(clock.instant().plus(batchSignalSla))
                         .expiresAt(clock.instant().plus(batchSignalExpiry))
                         .build());
-                    TrialSafetySignal sig = TrialSafetySignal.findById(result.signalId());
+                    TrialSafetySignal sig = em.find(TrialSafetySignal.class, result.signalId());
                     if (sig != null) sig.workItemId = wi.id();
                     return wi.id();
                 });
@@ -363,7 +368,8 @@ public class TrialSafetyAggregationJob {
             .collect(Collectors.toSet());
 
         QuarkusTransaction.requiringNew().run(() -> {
-            List<TrialSafetySignal> active = TrialSafetySignal.findActiveByTrial(trialId, tenantId);
+            List<TrialSafetySignal> active = em.createNamedQuery("TrialSafetySignal.findActiveByTrial", TrialSafetySignal.class)
+                .setParameter("trialId", trialId).setParameter("tenantId", tenantId).getResultList();
             Instant now = clock.instant();
             for (TrialSafetySignal record : active) {
                 if (!activeTypes.contains(record.signalType)) {

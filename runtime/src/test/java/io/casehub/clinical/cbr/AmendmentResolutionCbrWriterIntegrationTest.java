@@ -6,8 +6,8 @@ import io.casehub.clinical.api.model.ProtocolAmendmentStatus;
 import io.casehub.clinical.api.spi.AmendmentRecommendation;
 import io.casehub.clinical.entity.ProtocolAmendment;
 import io.casehub.neocortex.memory.cbr.CbrQuery;
-import io.casehub.neocortex.memory.cbr.ScoredCbrCase;
 import io.casehub.neocortex.memory.cbr.FeatureVectorCbrCase;
+import io.casehub.neocortex.memory.cbr.ScoredCbrCase;
 import io.quarkus.test.junit.QuarkusTest;
 import jakarta.inject.Inject;
 import jakarta.transaction.Transactional;
@@ -26,6 +26,9 @@ class AmendmentResolutionCbrWriterIntegrationTest {
 
     @Inject AmendmentResolutionCbrWriter writer;
     @Inject ClinicalCbrService cbrService;
+    @Inject
+            jakarta.persistence.EntityManager em;
+
 
     UUID amendmentId;
     UUID trialId;
@@ -48,7 +51,7 @@ class AmendmentResolutionCbrWriterIntegrationTest {
         amendment.amendmentCaseStatus = AmendmentCaseStatus.COMPLETED;
         amendment.tenantId = "default";
         amendment.proposedAt = Instant.now();
-        amendment.persist();
+        em.persist(amendment);
     }
 
     @Test

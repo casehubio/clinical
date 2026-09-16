@@ -1,7 +1,5 @@
 package io.casehub.clinical.resource;
 
-import static io.restassured.RestAssured.given;
-
 import io.casehub.clinical.api.ClinicalGroups;
 import io.casehub.clinical.api.model.ConsentStatus;
 import io.casehub.clinical.api.model.EnrollmentStatus;
@@ -9,12 +7,18 @@ import io.casehub.clinical.entity.PatientEnrollment;
 import io.quarkus.test.junit.QuarkusTest;
 import io.quarkus.test.security.TestSecurity;
 import jakarta.transaction.Transactional;
-import java.util.UUID;
 import org.junit.jupiter.api.Test;
+
+import java.util.UUID;
+
+import static io.restassured.RestAssured.given;
 
 @QuarkusTest
 @TestSecurity(user = "test-actor", roles = {ClinicalGroups.SPONSOR, ClinicalGroups.INVESTIGATOR, ClinicalGroups.COORDINATOR})
 class PatientAuditResourceTest {
+    @jakarta.inject.Inject
+    jakarta.persistence.EntityManager em;
+
 
     @Test
     void prov_endpoint_returns_404_for_enrollment_with_no_ledger_entries() {
@@ -53,7 +57,7 @@ class PatientAuditResourceTest {
         e.tenantId = "default";
         e.consentStatus = ConsentStatus.PENDING;
         e.enrollmentStatus = EnrollmentStatus.CANDIDATE;
-        e.persist();
+        em.persist(e);
         return e.id;
     }
 }

@@ -1,33 +1,32 @@
 package io.casehub.clinical.service;
 
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
-
 import io.casehub.clinical.api.model.ConsentStatus;
 import io.casehub.clinical.api.model.EnrollmentStatus;
 import io.casehub.clinical.api.model.SiteStatus;
 import io.casehub.clinical.api.model.TrialPhase;
 import io.casehub.clinical.api.model.TrialStatus;
+import io.casehub.clinical.cbr.ClinicalCbrDomains;
+import io.casehub.clinical.cbr.ClinicalCbrService;
 import io.casehub.clinical.entity.ClinicalTrial;
 import io.casehub.clinical.entity.PatientEnrollment;
 import io.casehub.clinical.entity.TrialSite;
-import io.casehub.clinical.cbr.ClinicalCbrDomains;
-import io.casehub.clinical.cbr.ClinicalCbrService;
 import io.casehub.clinical.ledger.ConsentWithdrawalLedgerEntry;
 import io.casehub.ledger.api.spi.LedgerEntryRepository;
 import io.casehub.neocortex.cognitive.Confidence;
 import io.casehub.neocortex.memory.cbr.CbrCaseMemoryStore;
-import io.casehub.neocortex.cognitive.Confidence;
 import io.casehub.neocortex.memory.cbr.CbrQuery;
-import io.casehub.neocortex.cognitive.Confidence;
 import io.casehub.neocortex.memory.cbr.FeatureVectorCbrCase;
 import io.casehub.platform.api.path.Path;
 import io.quarkus.test.junit.QuarkusTest;
 import jakarta.inject.Inject;
 import jakarta.transaction.Transactional;
+import org.junit.jupiter.api.Test;
+
 import java.util.Map;
 import java.util.UUID;
-import org.junit.jupiter.api.Test;
+
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 @QuarkusTest
 class ConsentWithdrawalServiceTest {
@@ -36,6 +35,9 @@ class ConsentWithdrawalServiceTest {
     @Inject LedgerEntryRepository ledgerEntryRepository;
     @Inject CbrCaseMemoryStore cbrStore;
     @Inject ClinicalCbrService cbrService;
+    @Inject
+            jakarta.persistence.EntityManager em;
+
 
     @Test
     void withdraw_sets_both_statuses_pseudonymizes_patientId_sets_withdrawnAt() {
@@ -124,7 +126,7 @@ class ConsentWithdrawalServiceTest {
 
     @Transactional
     UUID persistEnrollmentWithSite(String patientId, UUID siteId, UUID trialId) {
-        ClinicalTrial trial = ClinicalTrial.findById(trialId);
+        ClinicalTrial trial = em.find(ClinicalTrial.class, trialId);
         if (trial == null) {
             trial = new ClinicalTrial();
             trial.id = trialId;
@@ -133,9 +135,9 @@ class ConsentWithdrawalServiceTest {
             trial.sponsor = "Test Sponsor";
             trial.status = TrialStatus.ACTIVE;
             trial.tenantId = "default";
-            trial.persist();
+            em.persist(trial);
         }
-        TrialSite site = TrialSite.findById(siteId);
+        TrialSite site = em.find(TrialSite.class, siteId);
         if (site == null) {
             site = new TrialSite();
             site.id = siteId;
@@ -144,7 +146,7 @@ class ConsentWithdrawalServiceTest {
             site.status = SiteStatus.ACTIVE;
             site.tenantId = "default";
             site.targetEnrollment = 100;
-            site.persist();
+            em.persist(site);
         }
         PatientEnrollment e = new PatientEnrollment();
         e.id = UUID.randomUUID();
@@ -153,7 +155,7 @@ class ConsentWithdrawalServiceTest {
         e.tenantId = "default";
         e.consentStatus = ConsentStatus.PENDING;
         e.enrollmentStatus = EnrollmentStatus.CANDIDATE;
-        e.persist();
+        em.persist(e);
         return e.id;
     }
 
@@ -166,18 +168,18 @@ class ConsentWithdrawalServiceTest {
         e.tenantId = "default";
         e.consentStatus = ConsentStatus.PENDING;
         e.enrollmentStatus = EnrollmentStatus.CANDIDATE;
-        e.persist();
+        em.persist(e);
         return e.id;
     }
 
     @Transactional
     void setWithdrawn(UUID enrollmentId) {
-        PatientEnrollment e = PatientEnrollment.findById(enrollmentId);
+        PatientEnrollment e = em.find(PatientEnrollment.class, enrollmentId);
         e.consentStatus = ConsentStatus.WITHDRAWN;
     }
 
     @Transactional
     PatientEnrollment findEnrollment(UUID enrollmentId) {
-        return PatientEnrollment.findById(enrollmentId);
+        return em.find(PatientEnrollment.class, enrollmentId);
     }
 }

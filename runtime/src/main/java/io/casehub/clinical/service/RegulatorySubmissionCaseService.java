@@ -7,6 +7,7 @@ import io.casehub.clinical.entity.AdverseEvent;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.enterprise.event.ObservesAsync;
 import jakarta.inject.Inject;
+import jakarta.persistence.EntityManager;
 import jakarta.transaction.Transactional;
 import org.jboss.logging.Logger;
 
@@ -48,6 +49,9 @@ public class RegulatorySubmissionCaseService {
 
     @Inject ClinicalRegulatorySubmissionCaseHub regulatorySubmissionCaseHub;
     @Inject RegulatorySubmissionLedgerWriter ledgerWriter;
+    @Inject
+            EntityManager                    em;
+
 
     public void onAdverseEventReported(@ObservesAsync AdverseEventReportedEvent event) {
         try {
@@ -66,7 +70,7 @@ public class RegulatorySubmissionCaseService {
     }
 
     public void reevaluateForRegrade(UUID aeId, UUID siteId, String tenantId) {
-        AdverseEvent ae = AdverseEvent.findById(aeId);
+        AdverseEvent ae = em.find(AdverseEvent.class, aeId);
         if (ae == null) {return;}
         if (ae.regulatorySubmissionStatus != io.casehub.clinical.api.model.RegulatorySubmissionStatus.NONE) {return;}
         if (!isIndReportable(ae.grade) || !ae.unexpected) {return;}
@@ -87,7 +91,7 @@ public class RegulatorySubmissionCaseService {
 
     @Transactional
     Map<String, Object> prepareAndMark(AdverseEventReportedEvent event) {
-        AdverseEvent ae = AdverseEvent.findById(event.aeId());
+        AdverseEvent ae = em.find(AdverseEvent.class, event.aeId());
         if (ae == null) {
             LOG.warnf("RegulatorySubmissionCaseService: AE not found for aeId=%s — skipping", event.aeId());
             return null;
@@ -116,7 +120,7 @@ public class RegulatorySubmissionCaseService {
 
     @Transactional
     void persistCaseId(UUID aeId, UUID caseId) {
-        AdverseEvent ae = AdverseEvent.findById(aeId);
+        AdverseEvent ae = em.find(AdverseEvent.class, aeId);
         if (ae == null) {
             LOG.warnf("RegulatorySubmissionCaseService: AE not found in Phase 3 for aeId=%s", aeId);
             return;
@@ -126,7 +130,7 @@ public class RegulatorySubmissionCaseService {
 
     @Transactional
     void resetToNone(UUID aeId) {
-        AdverseEvent ae = AdverseEvent.findById(aeId);
+        AdverseEvent ae = em.find(AdverseEvent.class, aeId);
         if (ae == null) return;
         ae.regulatorySubmissionStatus = RegulatorySubmissionStatus.NONE; // allow retry
     }

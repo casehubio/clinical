@@ -7,8 +7,9 @@ import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.enterprise.event.ObservesAsync;
 import jakarta.inject.Inject;
 import jakarta.transaction.Transactional;
-import java.util.UUID;
 import org.jboss.logging.Logger;
+
+import java.util.UUID;
 
 /**
  * Updates ae.regulatorySubmissionStatus = FILED when the regulatory-submission case
@@ -24,6 +25,9 @@ public class RegulatorySubmissionCompletedListener {
     private static final Logger LOG = Logger.getLogger(RegulatorySubmissionCompletedListener.class);
 
     @Inject RegulatorySubmissionLedgerWriter ledgerWriter;
+    @Inject
+            jakarta.persistence.EntityManager em;
+
 
     public void onCaseLifecycleEvent(@ObservesAsync CaseLifecycleEvent event) {
         if (!"GoalReached".equals(event.eventType()) && !"CaseCompleted".equals(event.eventType())) {
@@ -34,7 +38,7 @@ public class RegulatorySubmissionCompletedListener {
 
     @Transactional
     void markFiled(UUID caseId) {
-        AdverseEvent ae = AdverseEvent.find("regulatorySubmissionCaseId", caseId).firstResult();
+        AdverseEvent ae = em.createQuery("SELECT a FROM AdverseEvent a WHERE a.regulatorySubmissionCaseId = :caseId", AdverseEvent.class).setParameter("caseId", caseId).getResultStream().findFirst().orElse(null);
         if (ae == null) {
             return;
         }

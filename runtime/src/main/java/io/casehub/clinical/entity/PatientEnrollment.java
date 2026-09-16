@@ -4,13 +4,12 @@ import io.casehub.clinical.api.model.ConsentStatus;
 import io.casehub.clinical.api.model.EligibilityScreeningCaseStatus;
 import io.casehub.clinical.api.model.EligibilityScreeningResult;
 import io.casehub.clinical.api.model.EnrollmentStatus;
-import io.casehub.platform.api.identity.CurrentPrincipal;
-import io.quarkus.hibernate.orm.panache.PanacheEntityBase;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
 import jakarta.persistence.Enumerated;
 import jakarta.persistence.Id;
+import jakarta.persistence.NamedQuery;
 import jakarta.persistence.Table;
 
 import java.time.Instant;
@@ -18,7 +17,8 @@ import java.util.UUID;
 
 @Entity
 @Table(name = "patient_enrollment")
-public class PatientEnrollment extends PanacheEntityBase {
+@NamedQuery(name = "PatientEnrollment.findByIdAndTenantId", query = "SELECT e FROM PatientEnrollment e WHERE e.id = :id AND e.tenantId = :tenantId")
+public class PatientEnrollment {
 
     @Id
     public UUID id;
@@ -62,9 +62,4 @@ public class PatientEnrollment extends PanacheEntityBase {
     @Column(name = "treatment_arm")
     public String                         treatmentArm;
 
-
-    public static PatientEnrollment findByIdForTenant(UUID id, CurrentPrincipal principal) {
-        if (principal.isCrossTenantAdmin()) return findById(id);
-        return find("id = ?1 AND tenantId = ?2", id, principal.tenancyId()).firstResult();
-    }
 }

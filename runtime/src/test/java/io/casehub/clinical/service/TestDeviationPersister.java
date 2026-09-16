@@ -13,6 +13,9 @@ import java.util.UUID;
 
 @ApplicationScoped
 class TestDeviationPersister {
+    @jakarta.inject.Inject
+    jakarta.persistence.EntityManager em;
+
 
     @Transactional
     UUID persistCommanded(UUID siteId, DeviationSeverity severity,
@@ -27,7 +30,7 @@ class TestDeviationPersister {
         d.piCommandChannelName = "clinical/deviation/dev-" + d.id + "/pi-oversight";
         d.commandedAt = Instant.now().minus(10, ChronoUnit.DAYS);
         d.responseDeadline = deadline;
-        d.persist();
+        em.persist(d);
         return d.id;
     }
 }

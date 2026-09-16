@@ -16,7 +16,18 @@ import java.util.function.BiFunction;
 @ApplicationScoped
 public class SiteEnrollmentTrajectoryBuilder {
 
-    private BiFunction<UUID, String, List<Instant>> enrollmentQuery = SiteEnrollmentTrajectoryBuilder::defaultQuery;
+    @jakarta.inject.Inject
+    jakarta.persistence.EntityManager em;
+
+    private BiFunction<UUID, String, List<Instant>> enrollmentQuery;
+
+
+    @jakarta.annotation.PostConstruct
+    void init() {
+        if (enrollmentQuery == null) {
+            enrollmentQuery = (siteId, tenantId) -> em.createQuery("SELECT e.enrolledAt FROM PatientEnrollment e WHERE e.siteId = :siteId AND e.tenantId = :tenantId AND e.enrolledAt IS NOT NULL ORDER BY e.enrolledAt ASC", java.time.Instant.class).setParameter("siteId", siteId).setParameter("tenantId", tenantId).getResultList();
+        }
+    }
 
     void setEnrollmentQuery(BiFunction<UUID, String, List<Instant>> query) {
         this.enrollmentQuery = query;
@@ -46,13 +57,5 @@ public class SiteEnrollmentTrajectoryBuilder {
         return observations;
     }
 
-    @SuppressWarnings("unchecked")
-    private static List<Instant> defaultQuery(UUID siteId, String tenantId) {
-        return PatientEnrollment.<PatientEnrollment>find("siteId = ?1 AND tenantId = ?2", siteId, tenantId)
-                .stream()
-                .filter(e -> e.enrolledAt != null)
-                .map(e -> e.enrolledAt)
-                .sorted()
-                .toList();
-    }
+
 }

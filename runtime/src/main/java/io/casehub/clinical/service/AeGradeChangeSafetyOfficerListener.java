@@ -8,6 +8,7 @@ import io.casehub.clinical.entity.TrialSite;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.enterprise.event.ObservesAsync;
 import jakarta.inject.Inject;
+import jakarta.persistence.EntityManager;
 import jakarta.transaction.Transactional;
 import org.jboss.logging.Logger;
 
@@ -18,6 +19,9 @@ public class AeGradeChangeSafetyOfficerListener {
 
     @Inject SafetyOfficerNotifier notifier;
     @Inject SafetyOfficerNotificationLedgerWriter ledgerWriter;
+    @Inject
+            EntityManager                         em;
+
 
     @Transactional
     public void onGradeChanged(@ObservesAsync AeGradeChangedEvent event) {
@@ -28,13 +32,13 @@ public class AeGradeChangeSafetyOfficerListener {
                     event.newGrade(), "safety-officer-regrade-skipped-no-site-id");
                 return;
             }
-            TrialSite site = TrialSite.findById(event.siteId());
+            TrialSite site = em.find(TrialSite.class, event.siteId());
             if (site == null) {
                 ledgerWriter.writeSkippedEntry(event.aeId(), event.enrollmentId(), event.siteId(),
                     event.newGrade(), "safety-officer-regrade-skipped-site-not-found");
                 return;
             }
-            ClinicalTrial trial = ClinicalTrial.findById(site.trialId);
+            ClinicalTrial trial = em.find(ClinicalTrial.class, site.trialId);
             if (trial == null || trial.safetyOfficerConnectorId == null || trial.safetyOfficerDestination == null) {
                 ledgerWriter.writeSkippedEntry(event.aeId(), event.enrollmentId(), event.siteId(),
                     event.newGrade(), "safety-officer-regrade-skipped-no-config");

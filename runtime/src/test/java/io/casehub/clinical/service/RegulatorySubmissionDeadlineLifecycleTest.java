@@ -1,10 +1,5 @@
 package io.casehub.clinical.service;
 
-import static java.util.concurrent.TimeUnit.MILLISECONDS;
-import static java.util.concurrent.TimeUnit.SECONDS;
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.awaitility.Awaitility.await;
-
 import io.casehub.clinical.api.AdverseEventReportedEvent;
 import io.casehub.clinical.api.model.AeOutcome;
 import io.casehub.clinical.api.model.CtcaeGrade;
@@ -16,9 +11,15 @@ import io.casehub.work.api.WorkItemStatus;
 import io.quarkus.test.junit.QuarkusTest;
 import jakarta.inject.Inject;
 import jakarta.transaction.Transactional;
+import org.junit.jupiter.api.Test;
+
 import java.time.Instant;
 import java.util.UUID;
-import org.junit.jupiter.api.Test;
+
+import static java.util.concurrent.TimeUnit.MILLISECONDS;
+import static java.util.concurrent.TimeUnit.SECONDS;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.awaitility.Awaitility.await;
 
 /**
  * End-to-end invariant: WorkItem.expiresAt == ae.reportedAt + indReportingWindow(grade).
@@ -44,6 +45,9 @@ import org.junit.jupiter.api.Test;
  */
 @QuarkusTest
 class RegulatorySubmissionDeadlineLifecycleTest {
+    @jakarta.inject.Inject
+    jakarta.persistence.EntityManager em;
+
 
     @Inject RegulatorySubmissionCaseService service;
     @Inject WorkItemQueries workItemQueries;
@@ -125,13 +129,13 @@ class RegulatorySubmissionDeadlineLifecycleTest {
         ae.reportedAt = reportedAt;
         // Required: prevents SecurityException from MemoryPermissions.assertTenant()
         ae.tenantId = principal.tenancyId();
-        ae.persist();
+        em.persist(ae);
         return ae.id;
     }
 
     @Transactional
     AdverseEvent findAe(UUID aeId) {
-        return AdverseEvent.findById(aeId);
+        return em.find(AdverseEvent.class, aeId);
     }
 
     private AdverseEventReportedEvent buildEvent(UUID aeId, CtcaeGrade grade, Instant reportedAt) {

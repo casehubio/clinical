@@ -57,7 +57,7 @@ class TrialSafetyAggregationJobTest {
         job = new TrialSafetyAggregationJob(cbrService, clock, signalEvent,
             mock(WorkItemService.class), mock(WorkItemStore.class),
             mock(DsmbBatchSignalNotifier.class), new ObjectMapper(),
-            new DefaultSafetySignalAnalyzer());
+            new DefaultSafetySignalAnalyzer(), null);
         job.tenantId = "default";
         job.gradeThresholdMinGrade = 3;
         job.gradeThresholdMinSites = 3;

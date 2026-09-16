@@ -1,20 +1,25 @@
 package io.casehub.clinical.entity;
 
 import io.casehub.clinical.api.model.VitalType;
-import io.casehub.platform.api.identity.CurrentPrincipal;
-import io.quarkus.hibernate.orm.panache.PanacheEntityBase;
-import jakarta.persistence.*;
+import jakarta.persistence.Column;
+import jakarta.persistence.Entity;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
+import jakarta.persistence.Id;
+import jakarta.persistence.NamedQuery;
+import jakarta.persistence.Table;
 import org.hibernate.annotations.DynamicUpdate;
 
 import java.math.BigDecimal;
 import java.time.Instant;
-import java.util.List;
 import java.util.UUID;
 
 @Entity
 @Table(name = "vital_sign")
+@NamedQuery(name = "VitalSign.findByIdAndTenantId", query = "SELECT v FROM VitalSign v WHERE v.id = :id AND v.tenantId = :tenantId")
+@NamedQuery(name = "VitalSign.listByEnrollment", query = "SELECT v FROM VitalSign v WHERE v.enrollmentId = :enrollmentId AND v.tenantId = :tenantId")
 @DynamicUpdate
-public class VitalSign extends PanacheEntityBase {
+public class VitalSign {
 
     @Id
     public UUID id;
@@ -43,15 +48,4 @@ public class VitalSign extends PanacheEntityBase {
 
     @Column(name = "created_at", nullable = false)
     public Instant createdAt;
-
-    public static VitalSign findByIdForTenant(UUID id, CurrentPrincipal principal) {
-        VitalSign vs = findById(id);
-        if (vs == null) return null;
-        if (principal.isCrossTenantAdmin()) return vs;
-        return vs.tenantId.equals(principal.tenancyId()) ? vs : null;
-    }
-
-    public static List<VitalSign> listByEnrollment(UUID enrollmentId, String tenantId) {
-        return list("enrollmentId = ?1 and tenantId = ?2", enrollmentId, tenantId);
-    }
 }

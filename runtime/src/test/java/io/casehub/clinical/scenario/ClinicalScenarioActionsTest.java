@@ -16,7 +16,8 @@ import org.junit.jupiter.api.Test;
 import java.util.Map;
 import java.util.UUID;
 
-import static org.junit.jupiter.api.Assertions.*;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 
 @QuarkusTest
 @TestSecurity(user = "test-actor", roles = {ClinicalGroups.SPONSOR, ClinicalGroups.INVESTIGATOR, ClinicalGroups.COORDINATOR})
@@ -24,6 +25,9 @@ class ClinicalScenarioActionsTest {
 
     @Inject ClinicalScenarioActions actions;
     @Inject FixedCurrentPrincipal principal;
+    @Inject
+            jakarta.persistence.EntityManager em;
+
 
     @AfterEach
     void resetPrincipal() { principal.reset(); }
@@ -42,7 +46,7 @@ class ClinicalScenarioActionsTest {
                 "targetEnrollment", 100)));
 
         assertNotNull(result.get("trialId"));
-        ClinicalTrial trial = ClinicalTrial.findById(UUID.fromString(result.get("trialId").toString()));
+        ClinicalTrial trial = em.find(ClinicalTrial.class, UUID.fromString(result.get("trialId").toString()));
         assertNotNull(trial);
         assertEquals("PHASE_III", trial.phase.name());
         assertEquals("PLANNING", trial.status.name());
@@ -59,7 +63,7 @@ class ClinicalScenarioActionsTest {
         var result = actions.addSite(ctx(Map.of("trialId", trialId, "investigatorId", "dr-test")));
 
         assertNotNull(result.get("siteId"));
-        TrialSite site = TrialSite.findById(UUID.fromString(result.get("siteId").toString()));
+        TrialSite site = em.find(TrialSite.class, UUID.fromString(result.get("siteId").toString()));
         assertNotNull(site);
         assertEquals("dr-test", site.investigatorId);
     }
@@ -78,7 +82,7 @@ class ClinicalScenarioActionsTest {
                 "trialId", trialId, "siteId", siteId, "patientId", "PAT-001")));
 
         assertNotNull(result.get("enrollmentId"));
-        PatientEnrollment enrollment = PatientEnrollment.findById(
+        PatientEnrollment enrollment = em.find(PatientEnrollment.class,
                 UUID.fromString(result.get("enrollmentId").toString()));
         assertNotNull(enrollment);
         assertEquals("PAT-001", enrollment.patientId);

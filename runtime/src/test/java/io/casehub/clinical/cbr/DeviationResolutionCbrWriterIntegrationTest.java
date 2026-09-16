@@ -50,15 +50,18 @@ class DeviationResolutionCbrWriterIntegrationTest {
 
     @Inject
     FixedCurrentPrincipal principal;
+    @Inject
+    jakarta.persistence.EntityManager em;
+
 
     @BeforeEach
     @TestTransaction
     void setup() {
         // Clean up any existing data
-        ProtocolDeviation.deleteAll();
-        IrbApproval.deleteAll();
-        TrialSite.deleteAll();
-        ClinicalTrial.deleteAll();
+        em.createQuery("DELETE FROM ProtocolDeviation").executeUpdate();
+        em.createQuery("DELETE FROM IrbApproval").executeUpdate();
+        em.createQuery("DELETE FROM TrialSite").executeUpdate();
+        em.createQuery("DELETE FROM ClinicalTrial").executeUpdate();
 
         // Clean up in-memory CBR store (no exposed clear method, but can work around via domain isolation)
         // Note: InMemoryCbrStore doesn't expose clear(), so rely on tenantId isolation
@@ -78,7 +81,7 @@ class DeviationResolutionCbrWriterIntegrationTest {
         trial.sponsor = "Test Sponsor";
         trial.targetEnrollment = 100;
         trial.status = TrialStatus.ACTIVE;
-        trial.persist();
+        em.persist(trial);
 
         TrialSite site = new TrialSite();
         site.id = siteId;
@@ -87,7 +90,7 @@ class DeviationResolutionCbrWriterIntegrationTest {
         site.investigatorId = "dr-test";
         site.status = SiteStatus.ACTIVE;
         site.targetEnrollment = 50;
-        site.persist();
+        em.persist(site);
         return trialId;
     }
 
@@ -111,7 +114,7 @@ class DeviationResolutionCbrWriterIntegrationTest {
         deviation.escalationRequirement = EscalationRequirement.NONE;
         deviation.piApprovalStatus = PiApprovalStatus.APPROVED;
         deviation.engineCaseId = engineCaseId;
-        deviation.persist();
+        em.persist(deviation);
 
         var event = new ProtocolDeviationResolvedEvent(
             deviationId,
@@ -173,7 +176,7 @@ class DeviationResolutionCbrWriterIntegrationTest {
         deviation.escalationRequirement = EscalationRequirement.IRB_REVIEW;
         deviation.piApprovalStatus = PiApprovalStatus.ESCALATED;
         deviation.engineCaseId = engineCaseId;
-        deviation.persist();
+        em.persist(deviation);
 
         var irbApproval = new IrbApproval();
         irbApproval.id = approvalId;
@@ -185,7 +188,7 @@ class DeviationResolutionCbrWriterIntegrationTest {
         irbApproval.committeeId = "irb-001";
         irbApproval.decisionDeadline = Instant.now().plusSeconds(72 * 3600);
         irbApproval.decision = IrbDecision.APPROVED;
-        irbApproval.persist();
+        em.persist(irbApproval);
 
         // First store: PI decision only
         var piEvent = new ProtocolDeviationResolvedEvent(
@@ -256,7 +259,7 @@ class DeviationResolutionCbrWriterIntegrationTest {
         deviation.escalationRequirement = EscalationRequirement.SPONSOR_NOTIFICATION;
         deviation.piApprovalStatus = PiApprovalStatus.REJECTED;
         deviation.engineCaseId = UUID.randomUUID();
-        deviation.persist();
+        em.persist(deviation);
 
         var event = new ProtocolDeviationResolvedEvent(
             deviationId,

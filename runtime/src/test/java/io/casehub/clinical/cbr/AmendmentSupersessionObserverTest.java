@@ -23,7 +23,7 @@ class AmendmentSupersessionObserverTest {
     @BeforeEach
     void setup() {
         store = mock(CbrCaseMemoryStore.class);
-        observer = new AmendmentSupersessionObserver(store);
+        observer = new AmendmentSupersessionObserver(store, null);
         trialId = UUID.randomUUID();
     }
 

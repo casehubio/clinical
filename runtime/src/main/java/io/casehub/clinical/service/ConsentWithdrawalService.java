@@ -7,19 +7,21 @@ import io.casehub.clinical.entity.TrialSite;
 import io.casehub.clinical.ledger.ConsentWithdrawalLedgerEntry;
 import io.casehub.ledger.api.model.ErasureReason;
 import io.casehub.ledger.api.model.LedgerEntryType;
-import io.casehub.ledger.runtime.privacy.LedgerErasureService;
 import io.casehub.ledger.api.spi.LedgerEntryRepository;
-import io.casehub.platform.api.identity.ActorType;
-import io.casehub.platform.api.path.Path;
+import io.casehub.ledger.runtime.privacy.LedgerErasureService;
 import io.casehub.neocortex.memory.CaseMemoryStore;
 import io.casehub.neocortex.memory.cbr.CbrCaseMemoryStore;
+import io.casehub.platform.api.identity.ActorType;
+import io.casehub.platform.api.path.Path;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
+import jakarta.persistence.EntityManager;
 import jakarta.transaction.Transactional;
+import org.jboss.logging.Logger;
+
 import java.time.Clock;
 import java.time.Instant;
 import java.util.UUID;
-import org.jboss.logging.Logger;
 
 /**
  * GDPR Art.17 consent withdrawal — pseudonymizes patient identity across
@@ -53,11 +55,14 @@ public class ConsentWithdrawalService {
     @Inject CaseMemoryStore memoryStore;
     @Inject CbrCaseMemoryStore cbrCaseMemoryStore;
     @Inject Clock clock;
+    @Inject
+            EntityManager em;
+
 
     @Transactional
     public WithdrawalResult withdraw(UUID enrollmentId, String tenantId) {
-        PatientEnrollment enrollment = PatientEnrollment.find(
-                "id = ?1 AND tenantId = ?2", enrollmentId, tenantId).firstResult();
+        PatientEnrollment enrollment = em.createNamedQuery("PatientEnrollment.findByIdAndTenantId", PatientEnrollment.class)
+                .setParameter("id", enrollmentId).setParameter("tenantId", tenantId).getResultStream().findFirst().orElse(null);
         if (enrollment == null) {
             throw new PatientEnrollmentNotFoundException(enrollmentId);
         }
@@ -69,7 +74,7 @@ public class ConsentWithdrawalService {
         // because the scope path uses the original patientId
         String originalPatientId = enrollment.patientId;
         try {
-            TrialSite site = TrialSite.findById(enrollment.siteId);
+            TrialSite site = em.find(TrialSite.class, enrollment.siteId);
             if (site != null) {
                 int cbrErased = cbrCaseMemoryStore.eraseByScope(
                     Path.of(site.trialId.toString(), enrollment.siteId.toString(), originalPatientId),
@@ -86,7 +91,7 @@ public class ConsentWithdrawalService {
         enrollment.enrollmentStatus = EnrollmentStatus.WITHDRAWN;
         enrollment.withdrawnAt = now;
         enrollment.patientId = "erased-" + UUID.randomUUID();
-        enrollment.persist();
+        em.persist(enrollment);
 
         // Write tamper-evident withdrawal record — actorId=enrollmentId, tokenized by
         // LedgerIdentityEnforcementListener at persist time, then pseudonymized by erase().

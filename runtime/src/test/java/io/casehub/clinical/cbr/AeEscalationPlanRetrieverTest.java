@@ -33,7 +33,7 @@ class AeEscalationPlanRetrieverTest {
         ClinicalScopeResolver scopeResolver = mock(ClinicalScopeResolver.class);
         when(scopeResolver.forAdverseEvent(any())).thenReturn(java.util.Optional.of(io.casehub.platform.api.path.Path.of("t", "s", "p")));
         ClinicalCbrConfig config = mock(ClinicalCbrConfig.class);
-        retriever = new AeEscalationPlanRetriever(cbrService, planAdapter, scopeResolver, config);
+        retriever = new AeEscalationPlanRetriever(cbrService, planAdapter, scopeResolver, config, null);
         retriever.topK = 5;
         retriever.minSimilarity = 0.4;
         retriever.setEntityResolver(new StubEntityResolver());

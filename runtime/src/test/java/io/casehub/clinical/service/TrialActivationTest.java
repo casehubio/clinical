@@ -1,11 +1,5 @@
 package io.casehub.clinical.service;
 
-import static io.restassured.RestAssured.given;
-import static java.util.concurrent.TimeUnit.MILLISECONDS;
-import static java.util.concurrent.TimeUnit.SECONDS;
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.awaitility.Awaitility.await;
-
 import io.casehub.clinical.api.ClinicalGroups;
 import io.casehub.clinical.entity.ClinicalTrial;
 import io.casehub.platform.testing.FixedCurrentPrincipal;
@@ -18,9 +12,18 @@ import org.junit.jupiter.api.Test;
 
 import java.util.UUID;
 
+import static io.restassured.RestAssured.given;
+import static java.util.concurrent.TimeUnit.MILLISECONDS;
+import static java.util.concurrent.TimeUnit.SECONDS;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.awaitility.Awaitility.await;
+
 @QuarkusTest
 @TestSecurity(user = "test-actor", roles = {ClinicalGroups.SPONSOR, ClinicalGroups.INVESTIGATOR, ClinicalGroups.COORDINATOR})
 class TrialActivationTest {
+    @jakarta.inject.Inject
+    jakarta.persistence.EntityManager em;
+
 
     @Inject TrialActivationService trialActivationService;
     @Inject FixedCurrentPrincipal principal;
@@ -111,6 +114,6 @@ class TrialActivationTest {
 
     @Transactional
     ClinicalTrial findTrial(UUID id) {
-        return ClinicalTrial.findById(id);
+        return em.find(ClinicalTrial.class, id);
     }
 }

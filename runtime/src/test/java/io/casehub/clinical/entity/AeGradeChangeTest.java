@@ -11,19 +11,27 @@ import java.time.Instant;
 import java.util.List;
 import java.util.UUID;
 
-import static io.casehub.clinical.api.ClinicalGroups.*;
-import static org.junit.jupiter.api.Assertions.*;
+import static io.casehub.clinical.api.ClinicalGroups.COORDINATOR;
+import static io.casehub.clinical.api.ClinicalGroups.INVESTIGATOR;
+import static io.casehub.clinical.api.ClinicalGroups.SPONSOR;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 @QuarkusTest
 @TestSecurity(user = "test-actor", roles = {SPONSOR, INVESTIGATOR, COORDINATOR})
 class AeGradeChangeTest {
+    @jakarta.inject.Inject
+    jakarta.persistence.EntityManager em;
+
 
     private UUID aeId;
 
     @BeforeEach
     @Transactional
     void setup() {
-        AeGradeChange.deleteAll();
+        em.createQuery("DELETE FROM AeGradeChange").executeUpdate();
         aeId = UUID.randomUUID();
     }
 
@@ -38,7 +46,7 @@ class AeGradeChangeTest {
         persistChange(aeId, CtcaeGrade.GRADE_1, CtcaeGrade.GRADE_3, t3);
         persistChange(aeId, CtcaeGrade.GRADE_1, CtcaeGrade.GRADE_2, t2);
 
-        List<AeGradeChange> history = AeGradeChange.findByAdverseEventId(aeId);
+        List<AeGradeChange> history = em.createNamedQuery("AeGradeChange.findByAdverseEventId", AeGradeChange.class).setParameter("aeId", aeId).getResultList();
         assertEquals(3, history.size());
         assertNull(history.get(0).previousGrade);
         assertEquals(CtcaeGrade.GRADE_2, history.get(1).newGrade);
@@ -48,7 +56,7 @@ class AeGradeChangeTest {
     @Test
     @Transactional
     void findByAdverseEventId_emptyForUnknownId() {
-        assertTrue(AeGradeChange.findByAdverseEventId(UUID.randomUUID()).isEmpty());
+        assertTrue(em.createNamedQuery("AeGradeChange.findByAdverseEventId", AeGradeChange.class).setParameter("aeId", UUID.randomUUID()).getResultList().isEmpty());
     }
 
     @Test
@@ -60,7 +68,7 @@ class AeGradeChangeTest {
         persistChange(aeId, null, CtcaeGrade.GRADE_1, t1);
         persistChange(aeId, CtcaeGrade.GRADE_1, CtcaeGrade.GRADE_3, t2);
 
-        AeGradeChange latest = AeGradeChange.findLatestByAdverseEventId(aeId);
+        AeGradeChange latest = em.createNamedQuery("AeGradeChange.findLatestByAdverseEventId", AeGradeChange.class).setParameter("aeId", aeId).getResultStream().findFirst().orElse(null);
         assertNotNull(latest);
         assertEquals(CtcaeGrade.GRADE_3, latest.newGrade);
     }
@@ -68,7 +76,7 @@ class AeGradeChangeTest {
     @Test
     @Transactional
     void findLatestByAdverseEventId_nullForUnknownId() {
-        assertNull(AeGradeChange.findLatestByAdverseEventId(UUID.randomUUID()));
+        assertNull(em.createNamedQuery("AeGradeChange.findLatestByAdverseEventId", AeGradeChange.class).setParameter("aeId", UUID.randomUUID()).getResultStream().findFirst().orElse(null));
     }
 
     private void persistChange(UUID adverseEventId, CtcaeGrade prev, CtcaeGrade next, Instant at) {
@@ -80,6 +88,6 @@ class AeGradeChangeTest {
         gc.changedAt = at;
         gc.changedBy = "test";
         gc.reason = "test reason";
-        gc.persist();
+        em.persist(gc);
     }
 }

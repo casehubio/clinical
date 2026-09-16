@@ -1,33 +1,33 @@
 package io.casehub.clinical.service;
 
-import static java.util.concurrent.TimeUnit.MILLISECONDS;
-import static java.util.concurrent.TimeUnit.SECONDS;
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.awaitility.Awaitility.await;
-
 import io.casehub.api.engine.CaseHubRuntime;
 import io.casehub.clinical.api.AdverseEventReportedEvent;
+import io.casehub.clinical.api.model.AeOutcome;
 import io.casehub.clinical.api.model.CtcaeGrade;
+import io.casehub.clinical.api.model.EventActuality;
 import io.casehub.clinical.entity.AdverseEvent;
 import io.casehub.clinical.entity.ClinicalTrial;
 import io.casehub.clinical.entity.TrialSite;
-import io.casehub.clinical.api.model.AeOutcome;
-import io.casehub.clinical.api.model.EventActuality;
 import io.casehub.clinical.support.WorkItemCompletionCapture;
 import io.casehub.clinical.support.WorkItemQueries;
-import io.casehub.work.api.WorkItem;
-import io.casehub.work.runtime.service.WorkItemService;
-import io.casehub.work.engine.WorkItemLifecycleAdapter;
 import io.casehub.platform.api.identity.CurrentPrincipal;
+import io.casehub.work.api.WorkItem;
+import io.casehub.work.engine.WorkItemLifecycleAdapter;
+import io.casehub.work.runtime.service.WorkItemService;
 import io.quarkus.test.junit.QuarkusTest;
 import jakarta.inject.Inject;
 import jakarta.transaction.Transactional;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
 import java.time.Instant;
 import java.util.List;
 import java.util.UUID;
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Test;
+
+import static java.util.concurrent.TimeUnit.MILLISECONDS;
+import static java.util.concurrent.TimeUnit.SECONDS;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.awaitility.Awaitility.await;
 
 /**
  * Layer 6 showcase: trial-level DSMB rollup fires when two sites simultaneously
@@ -44,6 +44,9 @@ class DsmbRollupTest {
     @Inject WorkItemLifecycleAdapter lifecycleAdapter;
     @Inject CaseHubRuntime runtime;
     @Inject CurrentPrincipal principal;
+    @Inject
+            jakarta.persistence.EntityManager em;
+
 
     private UUID trialId;
     private UUID siteAId;
@@ -125,7 +128,7 @@ class DsmbRollupTest {
         ae.outcome = AeOutcome.ONGOING;
         ae.occurredAt = Instant.now();
         ae.reportedAt = Instant.now();
-        ae.persist();
+        em.persist(ae);
         return new AdverseEventReportedEvent(aeId, enrollmentId, siteId, grade, Instant.now(), "test-tenant");
     }
 
@@ -145,7 +148,7 @@ class DsmbRollupTest {
         trial.targetEnrollment = 100;
         trial.status = io.casehub.clinical.api.model.TrialStatus.PLANNING;
         trial.tenantId = principal.tenancyId();
-        trial.persist();
+        em.persist(trial);
         return trial.id;
     }
 
@@ -156,7 +159,7 @@ class DsmbRollupTest {
         site.trialId = trialId;
         site.investigatorId = "pi-" + UUID.randomUUID();
         site.status = io.casehub.clinical.api.model.SiteStatus.ACTIVE;
-        site.persist();
+        em.persist(site);
         return site.id;
     }
 }

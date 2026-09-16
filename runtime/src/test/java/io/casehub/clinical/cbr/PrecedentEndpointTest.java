@@ -23,11 +23,6 @@ import io.casehub.clinical.entity.ProtocolDeviation;
 import io.casehub.clinical.entity.TrialSite;
 import io.casehub.neocortex.cognitive.Confidence;
 import io.casehub.neocortex.memory.cbr.FeatureValue;
-import io.casehub.neocortex.cognitive.Confidence;
-import io.casehub.neocortex.memory.cbr.FeatureVectorCbrCase;
-import io.casehub.neocortex.cognitive.Confidence;
-
-import io.casehub.neocortex.cognitive.Confidence;
 import io.casehub.neocortex.memory.cbr.FeatureVectorCbrCase;
 import io.casehub.platform.testing.FixedCurrentPrincipal;
 import io.quarkus.test.junit.QuarkusTest;
@@ -61,6 +56,9 @@ class PrecedentEndpointTest {
 
     @Inject ClinicalCbrService cbrService;
     @Inject FixedCurrentPrincipal principal;
+    @Inject
+            jakarta.persistence.EntityManager em;
+
 
     private UUID trialId;
     private UUID siteId;
@@ -73,12 +71,12 @@ class PrecedentEndpointTest {
     @Transactional
     void setUp() {
         // Clean up
-        AdverseEvent.deleteAll();
-        ProtocolDeviation.deleteAll();
-        ProtocolAmendment.deleteAll();
-        PatientEnrollment.deleteAll();
-        TrialSite.deleteAll();
-        ClinicalTrial.deleteAll();
+        em.createQuery("DELETE FROM AdverseEvent").executeUpdate();
+        em.createQuery("DELETE FROM ProtocolDeviation").executeUpdate();
+        em.createQuery("DELETE FROM ProtocolAmendment").executeUpdate();
+        em.createQuery("DELETE FROM PatientEnrollment").executeUpdate();
+        em.createQuery("DELETE FROM TrialSite").executeUpdate();
+        em.createQuery("DELETE FROM ClinicalTrial").executeUpdate();
 
         // Create trial hierarchy
         trialId = UUID.randomUUID();
@@ -93,7 +91,7 @@ class PrecedentEndpointTest {
         trial.sponsor = "Test Pharma";
         trial.targetEnrollment = 100;
         trial.status = TrialStatus.ACTIVE;
-        trial.persist();
+        em.persist(trial);
 
         TrialSite site = new TrialSite();
         site.id = siteId;
@@ -102,7 +100,7 @@ class PrecedentEndpointTest {
         site.investigatorId = "dr-test";
         site.status = SiteStatus.ACTIVE;
         site.targetEnrollment = 50;
-        site.persist();
+        em.persist(site);
 
         PatientEnrollment enrollment = new PatientEnrollment();
         enrollment.id = enrollmentId;
@@ -111,7 +109,7 @@ class PrecedentEndpointTest {
         enrollment.patientId = "PAT-001";
         enrollment.consentStatus = ConsentStatus.OBTAINED;
         enrollment.enrollmentStatus = EnrollmentStatus.ENROLLED;
-        enrollment.persist();
+        em.persist(enrollment);
 
         // Create AE
         aeId = UUID.randomUUID();
@@ -129,7 +127,7 @@ class PrecedentEndpointTest {
         ae.engineCaseId = UUID.randomUUID();
         ae.occurredAt = Instant.now().minusSeconds(7200);
         ae.reportedAt = Instant.now().minusSeconds(3600);
-        ae.persist();
+        em.persist(ae);
 
         // Create deviation
         deviationId = UUID.randomUUID();
@@ -143,7 +141,7 @@ class PrecedentEndpointTest {
         deviation.piApprovalStatus = PiApprovalStatus.APPROVED;
         deviation.engineCaseId = UUID.randomUUID();
         deviation.commandedAt = Instant.now().minusSeconds(1800);
-        deviation.persist();
+        em.persist(deviation);
 
         // Create amendment
         amendmentId = UUID.randomUUID();
@@ -155,7 +153,7 @@ class PrecedentEndpointTest {
         amendment.status = ProtocolAmendmentStatus.PROPOSED;
         amendment.amendmentCaseStatus = AmendmentCaseStatus.NONE;
         amendment.proposedAt = Instant.now().minusSeconds(900);
-        amendment.persist();
+        em.persist(amendment);
 
         // Pre-populate CBR store with precedent cases
         populateAePrecedents();

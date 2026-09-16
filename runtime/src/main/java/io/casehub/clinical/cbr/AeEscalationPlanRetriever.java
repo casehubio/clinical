@@ -8,6 +8,7 @@ import io.casehub.neocortex.memory.cbr.*;
 import io.casehub.platform.api.path.Path;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
+import jakarta.persistence.EntityManager;
 import org.eclipse.microprofile.config.inject.ConfigProperty;
 import org.jboss.logging.Logger;
 
@@ -23,6 +24,7 @@ public class AeEscalationPlanRetriever {
     private final PlanAdapter planAdapter;
     private final ClinicalScopeResolver scopeResolver;
     private final ClinicalCbrConfig cbrConfig;
+    private final EntityManager em;
     private EntityResolver entityResolver;
 
     @ConfigProperty(name = "casehub.clinical.cbr.escalation-plan.top-k", defaultValue = "5")
@@ -33,12 +35,14 @@ public class AeEscalationPlanRetriever {
 
     @Inject
     public AeEscalationPlanRetriever(ClinicalCbrService cbrService, PlanAdapter planAdapter,
-                                      ClinicalScopeResolver scopeResolver, ClinicalCbrConfig cbrConfig) {
+                                      ClinicalScopeResolver scopeResolver, ClinicalCbrConfig cbrConfig,
+                                      EntityManager em) {
         this.cbrService = cbrService;
         this.planAdapter = planAdapter;
         this.scopeResolver = scopeResolver;
         this.cbrConfig = cbrConfig;
-        this.entityResolver = new PanacheEntityResolver();
+        this.em = em;
+        this.entityResolver = new JpaEntityResolver();
     }
 
     void setEntityResolver(EntityResolver resolver) {
@@ -96,20 +100,22 @@ public class AeEscalationPlanRetriever {
         long countEnrollmentsAtSite(UUID siteId);
     }
 
-    private static class PanacheEntityResolver implements EntityResolver {
+    private class JpaEntityResolver implements EntityResolver {
         @Override
-        public PatientEnrollment findEnrollment(UUID id) { return PatientEnrollment.findById(id); }
+        public PatientEnrollment findEnrollment(UUID id) { return em.find(PatientEnrollment.class, id); }
         @Override
-        public TrialSite findSite(UUID id) { return TrialSite.findById(id); }
+        public TrialSite findSite(UUID id) { return em.find(TrialSite.class, id); }
         @Override
-        public ClinicalTrial findTrial(UUID id) { return ClinicalTrial.findById(id); }
+        public ClinicalTrial findTrial(UUID id) { return em.find(ClinicalTrial.class, id); }
         @Override
         public long countPriorAes(UUID enrollmentId, UUID excludeAeId) {
-            return AdverseEvent.count("enrollmentId = ?1 and id != ?2", enrollmentId, excludeAeId);
+            return em.createQuery("SELECT COUNT(a) FROM AdverseEvent a WHERE a.enrollmentId = :enrollmentId AND a.id != :excludeAeId", Long.class)
+                    .setParameter("enrollmentId", enrollmentId).setParameter("excludeAeId", excludeAeId).getSingleResult();
         }
         @Override
         public long countEnrollmentsAtSite(UUID siteId) {
-            return PatientEnrollment.count("siteId", siteId);
+            return em.createQuery("SELECT COUNT(e) FROM PatientEnrollment e WHERE e.siteId = :siteId", Long.class)
+                    .setParameter("siteId", siteId).getSingleResult();
         }
     }
 }

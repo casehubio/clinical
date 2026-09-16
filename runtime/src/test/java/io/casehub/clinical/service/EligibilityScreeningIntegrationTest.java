@@ -27,6 +27,9 @@ class EligibilityScreeningIntegrationTest {
 
     @Inject FixedCurrentPrincipal principal;
     @Inject CaseInstanceCache caseInstanceCache;
+    @Inject
+            jakarta.persistence.EntityManager em;
+
 
     UUID trialId, siteId, enrollmentId;
 
@@ -56,14 +59,14 @@ class EligibilityScreeningIntegrationTest {
         site.trialId = trialId;
         site.investigatorId = "pi-screen-001";
         site.tenantId = principal.tenancyId();
-        site.persist();
+        em.persist(site);
 
         PatientEnrollment e = new PatientEnrollment();
         e.id = enrollmentId;
         e.siteId = siteId;
         e.tenantId = principal.tenancyId();
         e.patientId = "P-SCREEN-001";
-        e.persist();
+        em.persist(e);
     }
 
     @Test

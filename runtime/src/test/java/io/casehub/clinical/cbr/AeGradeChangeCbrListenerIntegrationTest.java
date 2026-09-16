@@ -27,8 +27,12 @@ import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
-import static io.casehub.clinical.api.ClinicalGroups.*;
-import static org.junit.jupiter.api.Assertions.*;
+import static io.casehub.clinical.api.ClinicalGroups.COORDINATOR;
+import static io.casehub.clinical.api.ClinicalGroups.INVESTIGATOR;
+import static io.casehub.clinical.api.ClinicalGroups.SPONSOR;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 @QuarkusTest
 @TestSecurity(user = "test-actor", roles = {SPONSOR, INVESTIGATOR, COORDINATOR})
@@ -38,6 +42,9 @@ class AeGradeChangeCbrListenerIntegrationTest {
     @Inject AeCbrCaseBuilder caseBuilder;
     @Inject ClinicalCbrService cbrService;
     @Inject FixedCurrentPrincipal principal;
+    @Inject
+            jakarta.persistence.EntityManager em;
+
 
     private UUID aeId;
     private UUID trialId;
@@ -47,11 +54,11 @@ class AeGradeChangeCbrListenerIntegrationTest {
     @BeforeEach
     @Transactional
     void setup() {
-        AeGradeChange.deleteAll();
-        AdverseEvent.deleteAll();
-        PatientEnrollment.deleteAll();
-        TrialSite.deleteAll();
-        ClinicalTrial.deleteAll();
+        em.createQuery("DELETE FROM AeGradeChange").executeUpdate();
+        em.createQuery("DELETE FROM AdverseEvent").executeUpdate();
+        em.createQuery("DELETE FROM PatientEnrollment").executeUpdate();
+        em.createQuery("DELETE FROM TrialSite").executeUpdate();
+        em.createQuery("DELETE FROM ClinicalTrial").executeUpdate();
 
         trialId = UUID.randomUUID();
         siteId = UUID.randomUUID();
@@ -64,7 +71,7 @@ class AeGradeChangeCbrListenerIntegrationTest {
         trial.phase = TrialPhase.PHASE_III;
         trial.sponsor = "TestSponsor";
         trial.tenantId = principal.tenancyId();
-        trial.persist();
+        em.persist(trial);
 
         TrialSite site = new TrialSite();
         site.id = siteId;
@@ -72,14 +79,14 @@ class AeGradeChangeCbrListenerIntegrationTest {
         site.investigatorId = "inv-1";
         site.targetEnrollment = 50;
         site.tenantId = principal.tenancyId();
-        site.persist();
+        em.persist(site);
 
         PatientEnrollment enrollment = new PatientEnrollment();
         enrollment.id = enrollmentId;
         enrollment.siteId = siteId;
         enrollment.patientId = "P-001";
         enrollment.tenantId = principal.tenancyId();
-        enrollment.persist();
+        em.persist(enrollment);
 
         AdverseEvent ae = new AdverseEvent();
         ae.id = aeId;
@@ -94,7 +101,7 @@ class AeGradeChangeCbrListenerIntegrationTest {
         ae.escalationStatus = AeEscalationStatus.COMPLETED;
         ae.engineCaseId = UUID.randomUUID();
         ae.tenantId = principal.tenancyId();
-        ae.persist();
+        em.persist(ae);
     }
 
     @Test
@@ -104,10 +111,10 @@ class AeGradeChangeCbrListenerIntegrationTest {
             CtcaeGrade.GRADE_3, CtcaeGrade.GRADE_4, Instant.now(),
             "dr-smith", principal.tenancyId());
 
-        AdverseEvent ae = AdverseEvent.findById(aeId);
-        PatientEnrollment enrollment = PatientEnrollment.findById(enrollmentId);
-        TrialSite site = TrialSite.findById(siteId);
-        ClinicalTrial trial = ClinicalTrial.findById(site.trialId);
+        AdverseEvent ae = em.find(AdverseEvent.class, aeId);
+        PatientEnrollment enrollment = em.find(PatientEnrollment.class, enrollmentId);
+        TrialSite site = em.find(TrialSite.class, siteId);
+        ClinicalTrial trial = em.find(ClinicalTrial.class, site.trialId);
 
         caseBuilder.buildAndStore(ae, enrollment, site, trial,
             null, false, "regrade", ae.engineCaseId, principal.tenancyId());
@@ -142,7 +149,7 @@ class AeGradeChangeCbrListenerIntegrationTest {
 
     @Transactional
     void setEscalationStatus(AeEscalationStatus status) {
-        AdverseEvent ae = AdverseEvent.findById(aeId);
+        AdverseEvent ae = em.find(AdverseEvent.class, aeId);
         ae.escalationStatus = status;
         ae.engineCaseId = null;
     }

@@ -8,6 +8,7 @@ import java.util.Map;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.enterprise.event.ObservesAsync;
 import jakarta.inject.Inject;
+import jakarta.persistence.EntityManager;
 import jakarta.transaction.Transactional;
 import org.jboss.logging.Logger;
 
@@ -36,6 +37,9 @@ public class AmendmentResolutionCbrWriter {
     @Inject
     ClinicalScopeResolver scopeResolver;
 
+    @Inject
+    EntityManager em;
+
     /**
      * Observes {@link ProtocolAmendmentResolvedEvent} and stores a CBR precedent.
      * <p>
@@ -48,7 +52,7 @@ public class AmendmentResolutionCbrWriter {
     @Transactional
     public void onAmendmentResolved(@ObservesAsync ProtocolAmendmentResolvedEvent event) {
         try {
-            ProtocolAmendment amendment = ProtocolAmendment.findById(event.amendmentId());
+            ProtocolAmendment amendment = em.find(ProtocolAmendment.class, event.amendmentId());
             if (amendment == null) {
                 LOG.warnf("Amendment %s not found — cannot store CBR case", event.amendmentId());
                 return;

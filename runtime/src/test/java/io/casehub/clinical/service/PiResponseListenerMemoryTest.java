@@ -31,6 +31,9 @@ class PiResponseListenerMemoryTest {
     @Inject PiResponseListener listener;
     @InjectMock ClinicalMemoryService memoryService;
     @InjectMock DeviationLedgerWriter ledgerWriter;
+    @Inject
+                jakarta.persistence.EntityManager em;
+
 
     private UUID deviationId;
     private UUID siteId;
@@ -54,7 +57,7 @@ class PiResponseListenerMemoryTest {
         deviation.severity = DeviationSeverity.MAJOR;
         deviation.piApprovalStatus = PiApprovalStatus.COMMANDED;
         deviation.escalationRequirement = EscalationRequirement.NONE;
-        deviation.persist();
+        em.persist(deviation);
     }
 
     @Test
@@ -97,7 +100,7 @@ class PiResponseListenerMemoryTest {
         escalated.severity = DeviationSeverity.CRITICAL;
         escalated.piApprovalStatus = PiApprovalStatus.COMMANDED;
         escalated.escalationRequirement = EscalationRequirement.IRB_REVIEW;
-        escalated.persist();
+        em.persist(escalated);
 
         String channel = "clinical/deviation/dev-" + escalatedDevId + "/pi-oversight";
         listener.process(channel, MessageType.DONE, "pi-001");

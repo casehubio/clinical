@@ -2,16 +2,17 @@ package io.casehub.clinical.service;
 
 import io.casehub.clinical.api.model.RegulatorySubmissionStatus;
 import io.casehub.clinical.entity.AdverseEvent;
-import io.casehub.work.api.WorkItemLifecycleEvent;
 import io.casehub.work.api.WorkItem;
+import io.casehub.work.api.WorkItemLifecycleEvent;
 import io.casehub.work.api.WorkItemStatus;
 import io.casehub.work.engine.CallerRef;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.enterprise.event.ObservesAsync;
 import jakarta.inject.Inject;
 import jakarta.transaction.Transactional;
-import java.util.UUID;
 import org.jboss.logging.Logger;
+
+import java.util.UUID;
 
 /**
  * Sets ae.regulatorySubmissionStatus = DEADLINE_MISSED when a regulatory submission WorkItem
@@ -31,6 +32,9 @@ public class RegulatorySubmissionBreachListener {
     private static final Logger LOG = Logger.getLogger(RegulatorySubmissionBreachListener.class);
 
     @Inject RegulatorySubmissionLedgerWriter ledgerWriter;
+    @Inject
+            jakarta.persistence.EntityManager em;
+
 
     public void onWorkItemLifecycle(@ObservesAsync WorkItemLifecycleEvent event) {
         if (event.status() != WorkItemStatus.ESCALATED) {
@@ -49,7 +53,7 @@ public class RegulatorySubmissionBreachListener {
 
     @Transactional
     void markDeadlineMissed(UUID caseId) {
-        AdverseEvent ae = AdverseEvent.find("regulatorySubmissionCaseId", caseId).firstResult();
+        AdverseEvent ae = em.createQuery("SELECT a FROM AdverseEvent a WHERE a.regulatorySubmissionCaseId = :caseId", AdverseEvent.class).setParameter("caseId", caseId).getResultStream().findFirst().orElse(null);
         if (ae == null) {
             return;
         }

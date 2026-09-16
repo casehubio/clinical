@@ -35,18 +35,21 @@ public class AeCbrCaseBuilder {
     private final PlanItemStore planItemStore;
     private final AeTrajectoryBuilder trajectoryBuilder;
     private final io.casehub.ledger.runtime.repository.ActorTrustScoreRepository trustScoreRepository;
+    private final jakarta.persistence.EntityManager em;
 
     @Inject
     public AeCbrCaseBuilder(ClinicalCbrService cbrService,
                             ClinicalScopeResolver scopeResolver,
                             PlanItemStore planItemStore,
                             AeTrajectoryBuilder trajectoryBuilder,
-                            io.casehub.ledger.runtime.repository.ActorTrustScoreRepository trustScoreRepository) {
+                            io.casehub.ledger.runtime.repository.ActorTrustScoreRepository trustScoreRepository,
+                            jakarta.persistence.EntityManager em) {
         this.cbrService = cbrService;
         this.scopeResolver = scopeResolver;
         this.planItemStore = planItemStore;
         this.trajectoryBuilder = trajectoryBuilder;
         this.trustScoreRepository = trustScoreRepository;
+        this.em = em;
     }
 
     public void buildAndStore(AdverseEvent ae,
@@ -112,11 +115,11 @@ public class AeCbrCaseBuilder {
     }
 
     long countPriorAes(UUID enrollmentId, UUID excludeAeId) {
-        return AdverseEvent.count("enrollmentId = ?1 and id != ?2", enrollmentId, excludeAeId);
+        return em.createQuery("SELECT COUNT(a) FROM AdverseEvent a WHERE a.enrollmentId = :enrollmentId AND a.id != :excludeAeId", Long.class).setParameter("enrollmentId", enrollmentId).setParameter("excludeAeId", excludeAeId).getSingleResult();
     }
 
     long countEnrollmentsAtSite(UUID siteId) {
-        return PatientEnrollment.count("siteId", siteId);
+        return em.createQuery("SELECT COUNT(e) FROM PatientEnrollment e WHERE e.siteId = :siteId", Long.class).setParameter("siteId", siteId).getSingleResult();
     }
 
     private double findAgentTrustScore(String actorId) {

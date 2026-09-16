@@ -26,7 +26,7 @@ class AeGradeChangeCbrListenerTest {
     @BeforeEach
     void setUp() {
         caseBuilder = mock(AeCbrCaseBuilder.class);
-        listener = new AeGradeChangeCbrListener(caseBuilder);
+        listener = new AeGradeChangeCbrListener(caseBuilder, null);
 
         aeId = UUID.randomUUID();
         enrollmentId = UUID.randomUUID();

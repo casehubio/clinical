@@ -1,21 +1,21 @@
 package io.casehub.clinical.service;
 
-import static org.assertj.core.api.Assertions.assertThat;
-
-import io.casehub.worker.api.WorkerOutcome;
-import io.casehub.worker.api.WorkerResult;
 import io.casehub.clinical.api.model.AeOutcome;
 import io.casehub.clinical.api.model.ClinicalActionType;
 import io.casehub.clinical.api.model.CtcaeGrade;
 import io.casehub.clinical.api.model.EventActuality;
 import io.casehub.clinical.entity.AdverseEvent;
+import io.casehub.worker.api.WorkerOutcome;
 import io.quarkus.test.junit.QuarkusTest;
 import jakarta.inject.Inject;
 import jakarta.transaction.Transactional;
+import org.junit.jupiter.api.Test;
+
 import java.time.Instant;
 import java.util.Map;
 import java.util.UUID;
-import org.junit.jupiter.api.Test;
+
+import static org.assertj.core.api.Assertions.assertThat;
 
 /**
  * Integration test — SusarCriteriaEvaluator entity loading via @Transactional.
@@ -26,6 +26,9 @@ import org.junit.jupiter.api.Test;
  */
 @QuarkusTest
 class SusarActionGateLifecycleTest {
+    @jakarta.inject.Inject
+    jakarta.persistence.EntityManager em;
+
 
     @Inject SusarCriteriaEvaluator evaluator;
 
@@ -101,7 +104,7 @@ class SusarActionGateLifecycleTest {
         ae.occurredAt = Instant.now();
         ae.reportedAt = Instant.now();
         ae.tenantId = "test-tenant";
-        ae.persist();
+        em.persist(ae);
         return aeId;
     }
 }

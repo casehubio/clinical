@@ -33,6 +33,9 @@ import static org.assertj.core.api.Assertions.assertThat;
 @TestMethodOrder(MethodOrderer.OrderAnnotation.class)
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
 class ProtocolDeviationServiceTest {
+    @jakarta.inject.Inject
+    jakarta.persistence.EntityManager em;
+
 
     @Inject ProtocolDeviationService service;
     @Inject ChannelService channelService;
@@ -56,12 +59,12 @@ class ProtocolDeviationServiceTest {
         trial.sponsor = "S";
         trial.targetEnrollment = 10;
         trial.status = TrialStatus.ACTIVE;
-        trial.persist();
+        em.persist(trial);
         TrialSite site = new TrialSite();
         site.id = siteId;
         site.trialId = trialId;
         site.investigatorId = "pi-001";
-        site.persist();
+        em.persist(site);
     }
 
     @Test
@@ -77,7 +80,7 @@ class ProtocolDeviationServiceTest {
 
         service.reportDeviation(dev);
 
-        ProtocolDeviation loaded = ProtocolDeviation.findById(dev.id);
+        ProtocolDeviation loaded = em.find(ProtocolDeviation.class, dev.id);
         assertThat(loaded.piApprovalStatus).isEqualTo(PiApprovalStatus.COMMANDED);
         assertThat(loaded.piCommandChannelName)
             .isEqualTo("clinical/deviation/dev-" + dev.id + "/pi-oversight");
@@ -145,7 +148,7 @@ class ProtocolDeviationServiceTest {
 
         service.reportDeviation(dev);
 
-        ProtocolDeviation loaded = ProtocolDeviation.findById(dev.id);
+        ProtocolDeviation loaded = em.find(ProtocolDeviation.class, dev.id);
         assertThat(loaded.escalationRequirement).isEqualTo(EscalationRequirement.IRB_REVIEW);
         assertThat(loaded.responseDeadline)
             .isBefore(Instant.now().plusSeconds(25 * 3600)); // < 25 hours for CRITICAL

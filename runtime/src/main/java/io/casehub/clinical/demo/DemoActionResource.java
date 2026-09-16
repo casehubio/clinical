@@ -14,7 +14,9 @@ import io.casehub.work.api.WorkItem;
 import io.casehub.work.api.spi.WorkItemStore;
 import io.casehub.work.runtime.service.WorkItemService;
 import io.quarkus.arc.profile.IfBuildProfile;
+import io.casehub.clinical.entity.TenantEntityLookup;
 import jakarta.inject.Inject;
+import jakarta.persistence.EntityManager;
 import jakarta.transaction.Transactional;
 import jakarta.ws.rs.POST;
 import jakarta.ws.rs.Path;
@@ -49,6 +51,7 @@ public class DemoActionResource {
     @Inject WorkItemService workItemService;
     @Inject WorkItemStore workItemStore;
     @Inject TrustScoreJob trustScoreJob;
+    @Inject EntityManager em;
 
     /**
      * Approve a protocol deviation on behalf of the PI.
@@ -61,7 +64,7 @@ public class DemoActionResource {
     @Path("/deviations/{deviationId}/approve-pi")
     @Transactional
     public Response approvePi(@PathParam("deviationId") UUID deviationId) {
-        ProtocolDeviation dev = ProtocolDeviation.findByIdForTenant(deviationId, principal);
+        ProtocolDeviation dev = TenantEntityLookup.findByIdForTenant(em, ProtocolDeviation.class, deviationId, principal);
         if (dev == null) {
             return Response.status(Response.Status.NOT_FOUND)
                     .entity(Map.of("error", "Deviation not found", "deviationId", deviationId.toString()))
@@ -122,7 +125,7 @@ public class DemoActionResource {
     @Path("/adverse-events/{aeId}/approve-susar-gate")
     @Transactional
     public Response approveSusarGate(@PathParam("aeId") UUID aeId) {
-        AdverseEvent ae = AdverseEvent.findByIdForTenant(aeId, principal);
+        AdverseEvent ae = TenantEntityLookup.findByIdForTenant(em, AdverseEvent.class, aeId, principal);
         if (ae == null) {
             return Response.status(Response.Status.NOT_FOUND)
                     .entity(Map.of("error", "Adverse event not found", "aeId", aeId.toString()))

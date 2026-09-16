@@ -34,6 +34,9 @@ import static org.mockito.Mockito.verify;
 
 @QuarkusTest
 class AeEscalationLifecycleTest {
+    @Inject
+    jakarta.persistence.EntityManager em;
+
 
     @Inject AeEscalationCaseService aeEscalationCaseService;
     @InjectSpy TrialSafetySignalService trialSafetySignalService;
@@ -64,7 +67,7 @@ class AeEscalationLifecycleTest {
         ae.outcome = AeOutcome.ONGOING;
         ae.occurredAt = Instant.now();
         ae.reportedAt = Instant.now();
-        ae.persist();
+        em.persist(ae);
     }
 
     @Test
@@ -266,6 +269,6 @@ class AeEscalationLifecycleTest {
 
     @Transactional
     AdverseEvent findAe(UUID id) {
-        return AdverseEvent.findById(id);
+        return em.find(AdverseEvent.class, id);
     }
 }

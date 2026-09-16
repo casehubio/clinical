@@ -11,6 +11,7 @@ import io.casehub.qhorus.api.message.MessageType;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.enterprise.event.Event;
 import jakarta.inject.Inject;
+import jakarta.persistence.EntityManager;
 import jakarta.transaction.Transactional;
 import java.util.UUID;
 import java.util.regex.Matcher;
@@ -27,6 +28,9 @@ public class PiResponseListener implements MessageObserver {
     @Inject Event<ProtocolDeviationResolvedEvent> resolvedEvent;
     @Inject DeviationLedgerWriter ledgerWriter;
     @Inject io.casehub.clinical.memory.ClinicalMemoryService memoryService;
+    @Inject
+            EntityManager                                    em;
+
 
     @Override
     @Transactional(Transactional.TxType.REQUIRES_NEW)
@@ -42,7 +46,7 @@ public class PiResponseListener implements MessageObserver {
         if (!matcher.matches()) {return;}
 
         UUID              deviationId = UUID.fromString(matcher.group(1));
-        ProtocolDeviation deviation   = ProtocolDeviation.findById(deviationId);
+        ProtocolDeviation deviation   = em.find(ProtocolDeviation.class, deviationId);
         if (deviation == null) {return;}
         if (deviation.piApprovalStatus != PiApprovalStatus.COMMANDED) {return;}
 

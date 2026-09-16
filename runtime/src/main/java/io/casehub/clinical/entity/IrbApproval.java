@@ -1,15 +1,21 @@
 package io.casehub.clinical.entity;
 
 import io.casehub.clinical.api.model.IrbDecision;
-import io.casehub.platform.api.identity.CurrentPrincipal;
-import io.quarkus.hibernate.orm.panache.PanacheEntityBase;
-import jakarta.persistence.*;
+import jakarta.persistence.Column;
+import jakarta.persistence.Entity;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
+import jakarta.persistence.Id;
+import jakarta.persistence.NamedQuery;
+import jakarta.persistence.Table;
+
 import java.time.Instant;
 import java.util.UUID;
 
 @Entity
 @Table(name = "irb_approval")
-public class IrbApproval extends PanacheEntityBase {
+@NamedQuery(name = "IrbApproval.findByIdAndTenantId", query = "SELECT a FROM IrbApproval a WHERE a.id = :id AND a.tenantId = :tenantId")
+public class IrbApproval {
 
     @Id
     public UUID id;
@@ -49,9 +55,4 @@ public class IrbApproval extends PanacheEntityBase {
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
     public IrbDecision decision = IrbDecision.PENDING;
-
-    public static IrbApproval findByIdForTenant(UUID id, CurrentPrincipal principal) {
-        if (principal.isCrossTenantAdmin()) return findById(id);
-        return find("id = ?1 AND tenantId = ?2", id, principal.tenancyId()).firstResult();
-    }
 }

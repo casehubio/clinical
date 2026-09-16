@@ -131,7 +131,7 @@
       <!-- In-memory ledger repository — for @QuarkusTest isolation (no DB table required) -->
       <dependency>
         <groupId>io.casehub</groupId>
-        <artifactId>casehub-ledger-memory</artifactId>
+        <artifactId>casehub-ledger-persistence-memory</artifactId>
         <version>${version.io.casehub}</version>
         <scope>test</scope>
       </dependency>

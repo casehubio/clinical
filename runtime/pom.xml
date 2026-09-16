@@ -156,7 +156,7 @@
          InMemoryLedgerEntryRepository provides the same SPI without requiring the sequence table. -->
     <dependency>
       <groupId>io.casehub</groupId>
-      <artifactId>casehub-ledger-memory</artifactId>
+      <artifactId>casehub-ledger-persistence-memory</artifactId>
       <scope>test</scope>
     </dependency>
 
@@ -326,6 +326,28 @@
 
   <build>
     <plugins>
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-compiler-plugin</artifactId>
+        <configuration>
+          <annotationProcessorPaths>
+            <path>
+              <groupId>io.casehub</groupId>
+              <artifactId>casehub-platform-graphql-generator</artifactId>
+              <version>0.2-SNAPSHOT</version>
+            </path>
+            <path>
+              <groupId>io.casehub</groupId>
+              <artifactId>casehub-clinical-api</artifactId>
+              <version>${project.version}</version>
+            </path>
+          </annotationProcessorPaths>
+          <compilerArgs>
+            <arg>-AdomainFilter=clinical/trials,clinical/sites,clinical/patients,clinical/adverse-events,clinical/deviations,clinical/visits,clinical/vitals,clinical/lab-results,clinical/medications,clinical/study-drug,clinical/amendments,clinical/gdpr,clinical/cascade,clinical/escalation-plans,clinical/trial-dashboard</arg>
+            <arg>-AgenerateGraphQL=false</arg>
+          </compilerArgs>
+        </configuration>
+      </plugin>
       <plugin>
         <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-dependency-plugin</artifactId>

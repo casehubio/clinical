@@ -12,6 +12,7 @@ import io.casehub.clinical.entity.PatientEnrollment;
 import io.casehub.clinical.entity.VitalSign;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
+import jakarta.persistence.EntityManager;
 import org.jboss.logging.Logger;
 
 import java.util.List;
@@ -22,6 +23,9 @@ import java.util.stream.IntStream;
 public class LlmEligibilityCriteriaEvaluator implements EligibilityCriteriaEvaluator {
 
     private static final Logger LOG = Logger.getLogger(LlmEligibilityCriteriaEvaluator.class);
+    @Inject
+                         EntityManager em;
+
 
     static final String SYSTEM_PROMPT = """
             You are a clinical trial eligibility screening expert with expertise in ICH E6(R3) and \
@@ -89,7 +93,7 @@ public class LlmEligibilityCriteriaEvaluator implements EligibilityCriteriaEvalu
         }
 
         try {
-            PatientEnrollment enrollment = PatientEnrollment.findById(enrollmentId);
+            PatientEnrollment enrollment = em.find(PatientEnrollment.class, enrollmentId);
             if (enrollment != null) {
                 sb.append("\n## Patient Data\n");
                 sb.append("- Patient ID: ").append(enrollment.patientId).append("\n");
@@ -108,7 +112,7 @@ public class LlmEligibilityCriteriaEvaluator implements EligibilityCriteriaEvalu
     }
 
     private void appendLabResults(StringBuilder sb, UUID enrollmentId, String tenantId) {
-        List<LabResult> labs = LabResult.listByEnrollment(enrollmentId, tenantId);
+        List<LabResult> labs = em.createNamedQuery("LabResult.listByEnrollment", LabResult.class).setParameter("enrollmentId", enrollmentId).setParameter("tenantId", tenantId).getResultList();
         if (!labs.isEmpty()) {
             sb.append("\n### Lab Results\n");
             for (LabResult lab : labs) {
@@ -122,7 +126,7 @@ public class LlmEligibilityCriteriaEvaluator implements EligibilityCriteriaEvalu
     }
 
     private void appendVitalSigns(StringBuilder sb, UUID enrollmentId, String tenantId) {
-        List<VitalSign> vitals = VitalSign.listByEnrollment(enrollmentId, tenantId);
+        List<VitalSign> vitals = em.createNamedQuery("VitalSign.listByEnrollment", VitalSign.class).setParameter("enrollmentId", enrollmentId).setParameter("tenantId", tenantId).getResultList();
         if (!vitals.isEmpty()) {
             sb.append("\n### Vital Signs\n");
             for (VitalSign v : vitals) {
@@ -132,7 +136,7 @@ public class LlmEligibilityCriteriaEvaluator implements EligibilityCriteriaEvalu
     }
 
     private void appendConcomitantMedications(StringBuilder sb, UUID enrollmentId, String tenantId) {
-        List<ConcomitantMedication> meds = ConcomitantMedication.listByEnrollment(enrollmentId, tenantId);
+        List<ConcomitantMedication> meds = em.createNamedQuery("ConcomitantMedication.listByEnrollment", ConcomitantMedication.class).setParameter("enrollmentId", enrollmentId).setParameter("tenantId", tenantId).getResultList();
         if (!meds.isEmpty()) {
             sb.append("\n### Concomitant Medications\n");
             for (ConcomitantMedication med : meds) {

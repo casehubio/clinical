@@ -1,10 +1,5 @@
 package io.casehub.clinical.service;
 
-import static java.util.concurrent.TimeUnit.MILLISECONDS;
-import static java.util.concurrent.TimeUnit.SECONDS;
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.awaitility.Awaitility.await;
-
 import io.casehub.clinical.api.ProtocolDeviationResolvedEvent;
 import io.casehub.clinical.api.model.DeviationSeverity;
 import io.casehub.clinical.api.model.EscalationRequirement;
@@ -15,18 +10,24 @@ import io.casehub.clinical.entity.ProtocolDeviation;
 import io.casehub.clinical.entity.TrialSite;
 import io.casehub.clinical.support.WorkItemCompletionCapture;
 import io.casehub.clinical.support.WorkItemQueries;
-import io.casehub.work.api.WorkItemLifecycleEvent;
 import io.casehub.work.api.WorkItem;
+import io.casehub.work.api.WorkItemLifecycleEvent;
 import io.casehub.work.api.WorkItemStatus;
-import io.casehub.work.runtime.service.WorkItemService;
 import io.casehub.work.engine.WorkItemLifecycleAdapter;
+import io.casehub.work.runtime.service.WorkItemService;
 import io.quarkus.test.junit.QuarkusTest;
 import jakarta.inject.Inject;
 import jakarta.transaction.Transactional;
-import java.util.List;
-import java.util.UUID;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+
+import java.util.List;
+import java.util.UUID;
+
+import static java.util.concurrent.TimeUnit.MILLISECONDS;
+import static java.util.concurrent.TimeUnit.SECONDS;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.awaitility.Awaitility.await;
 
 @QuarkusTest
 class IrbGateLifecycleTest {
@@ -37,6 +38,9 @@ class IrbGateLifecycleTest {
     @Inject WorkItemService workItemService;
     @Inject WorkItemCompletionCapture completionCapture;
     @Inject WorkItemLifecycleAdapter lifecycleAdapter;
+    @Inject
+            jakarta.persistence.EntityManager em;
+
 
     private UUID deviationId;
     private UUID siteId;
@@ -54,7 +58,7 @@ class IrbGateLifecycleTest {
         site.id = siteId;
         site.trialId = trialId;
         site.investigatorId = "test-pi";
-        site.persist();
+        em.persist(site);
 
         ProtocolDeviation deviation = new ProtocolDeviation();
         deviation.id = deviationId;
@@ -62,7 +66,7 @@ class IrbGateLifecycleTest {
         deviation.deviationType = "CONSENT_DEVIATION";
         deviation.severity = DeviationSeverity.CRITICAL;
         deviation.piApprovalStatus = PiApprovalStatus.APPROVED;
-        deviation.persist();
+        em.persist(deviation);
     }
 
     @Test
@@ -142,7 +146,7 @@ class IrbGateLifecycleTest {
     void irb_approval_uses_default_committee_id() {
         irbDeviationCaseService.onDeviationResolved(criticalDeviationApproved());
 
-        IrbApproval approval = IrbApproval.find("deviationId = ?1", deviationId).firstResult();
+        IrbApproval approval = em.createQuery("SELECT a FROM IrbApproval a WHERE a.deviationId = :devId", IrbApproval.class).setParameter("devId", deviationId).getResultStream().findFirst().orElse(null);
         assertThat(approval).isNotNull();
         assertThat(approval.committeeId).isEqualTo("irb-committee");
     }
@@ -164,13 +168,13 @@ class IrbGateLifecycleTest {
 
     @Transactional
     IrbDecision approvalDecision() {
-        IrbApproval approval = IrbApproval.find("deviationId = ?1", deviationId).firstResult();
+        IrbApproval approval = em.createQuery("SELECT a FROM IrbApproval a WHERE a.deviationId = :devId", IrbApproval.class).setParameter("devId", deviationId).getResultStream().findFirst().orElse(null);
         return approval != null ? approval.decision : null;
     }
 
     @Transactional
     ProtocolDeviation findDeviation(UUID id) {
-        return ProtocolDeviation.findById(id);
+        return em.find(ProtocolDeviation.class, id);
     }
 
 }

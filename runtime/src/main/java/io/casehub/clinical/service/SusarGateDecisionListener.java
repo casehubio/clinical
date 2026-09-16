@@ -8,6 +8,7 @@ import io.casehub.engine.common.internal.event.ActionGateRejectedEvent;
 import io.quarkus.vertx.ConsumeEvent;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
+import jakarta.persistence.EntityManager;
 import org.jboss.logging.Logger;
 
 import java.time.Instant;
@@ -33,11 +34,13 @@ public class SusarGateDecisionListener {
     @Inject SusarDecisionLedgerWriter ledgerWriter;
     @Inject
             io.casehub.clinical.cbr.AeTrajectoryAlertService aeTrajectoryAlertService;
+    @Inject
+    EntityManager em;
 
 
     @ConsumeEvent(value = "casehub.action.gate.approved", blocking = true)
     public void onApproved(ActionGateApprovedEvent event) {
-        AdverseEvent ae = AdverseEvent.findBySusarOversightCaseId(event.caseId());
+        AdverseEvent ae = em.createNamedQuery("AdverseEvent.findBySusarOversightCaseId", AdverseEvent.class).setParameter("caseId", event.caseId()).getResultStream().findFirst().orElse(null);
         if (ae == null) return; // not a SUSAR oversight gate
         LOG.infof("SusarGateDecisionListener: gate APPROVED caseId=%s aeId=%s", event.caseId(), ae.id);
         // No case signalling — engine's ActionGateApprovedHandler calls refireCompletion(),
@@ -49,7 +52,7 @@ public class SusarGateDecisionListener {
 
     @ConsumeEvent(value = "casehub.action.gate.rejected", blocking = true)
     public void onRejected(ActionGateRejectedEvent event) {
-        AdverseEvent ae = AdverseEvent.findBySusarOversightCaseId(event.caseId());
+        AdverseEvent ae = em.createNamedQuery("AdverseEvent.findBySusarOversightCaseId", AdverseEvent.class).setParameter("caseId", event.caseId()).getResultStream().findFirst().orElse(null);
         if (ae == null) return;
         LOG.infof("SusarGateDecisionListener: gate REJECTED caseId=%s aeId=%s", event.caseId(), ae.id);
         susarOversightCaseHub.signal(event.caseId(), "susarAssessmentComplete", true);
@@ -60,7 +63,7 @@ public class SusarGateDecisionListener {
 
     @ConsumeEvent(value = "casehub.action.gate.expired", blocking = true)
     public void onExpired(ActionGateExpiredEvent event) {
-        AdverseEvent ae = AdverseEvent.findBySusarOversightCaseId(event.caseId());
+        AdverseEvent ae = em.createNamedQuery("AdverseEvent.findBySusarOversightCaseId", AdverseEvent.class).setParameter("caseId", event.caseId()).getResultStream().findFirst().orElse(null);
         if (ae == null) return;
         LOG.infof("SusarGateDecisionListener: gate EXPIRED caseId=%s aeId=%s", event.caseId(), ae.id);
         susarOversightCaseHub.signal(event.caseId(), "susarAssessmentComplete", true);

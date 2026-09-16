@@ -12,6 +12,7 @@ import io.casehub.worker.api.PlannedAction;
 import io.casehub.worker.api.WorkerResult;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
+import jakarta.persistence.EntityManager;
 import jakarta.transaction.Transactional;
 import org.jboss.logging.Logger;
 
@@ -22,6 +23,9 @@ import java.util.UUID;
 
 @ApplicationScoped
 public class LlmSusarCriteriaEvaluator implements SusarEvaluatorFunction {
+    @Inject
+    EntityManager em;
+
 
     private static final Logger LOG = Logger.getLogger(LlmSusarCriteriaEvaluator.class);
 
@@ -120,7 +124,7 @@ public class LlmSusarCriteriaEvaluator implements SusarEvaluatorFunction {
     String buildUserPrompt(UUID aeId) {
         StringBuilder sb = new StringBuilder();
         try {
-            AdverseEvent ae = AdverseEvent.findById(aeId);
+            AdverseEvent ae = em.find(AdverseEvent.class, aeId);
             if (ae != null) {
                 sb.append("## Adverse Event\n");
                 sb.append("- Grade: ").append(ae.grade).append("\n");
@@ -132,13 +136,13 @@ public class LlmSusarCriteriaEvaluator implements SusarEvaluatorFunction {
                 sb.append("- Occurred at: ").append(ae.occurredAt).append("\n");
                 sb.append("- Reported at: ").append(ae.reportedAt).append("\n");
 
-                PatientEnrollment enrollment = PatientEnrollment.findById(ae.enrollmentId);
+                PatientEnrollment enrollment = em.find(PatientEnrollment.class, ae.enrollmentId);
                 if (enrollment != null) {
                     sb.append("\n## Patient Context\n");
                     sb.append("- Patient ID: ").append(enrollment.patientId).append("\n");
                     sb.append("- Treatment arm: ").append(enrollment.treatmentArm != null ? enrollment.treatmentArm : "not assigned").append("\n");
 
-                    List<ConcomitantMedication> meds = ConcomitantMedication.listByEnrollment(ae.enrollmentId, enrollment.tenantId);
+                    List<ConcomitantMedication> meds = em.createNamedQuery("ConcomitantMedication.listByEnrollment", ConcomitantMedication.class).setParameter("enrollmentId", ae.enrollmentId).setParameter("tenantId", enrollment.tenantId).getResultList();
                     if (!meds.isEmpty()) {
                         sb.append("\n### Concomitant Medications\n");
                         for (ConcomitantMedication med : meds) {

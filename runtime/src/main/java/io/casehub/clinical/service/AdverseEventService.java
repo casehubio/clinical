@@ -16,6 +16,7 @@ import io.casehub.work.runtime.service.WorkItemService;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.enterprise.event.Event;
 import jakarta.inject.Inject;
+import jakarta.persistence.EntityManager;
 import jakarta.transaction.Status;
 import jakarta.transaction.Synchronization;
 import jakarta.transaction.TransactionSynchronizationRegistry;
@@ -48,6 +49,8 @@ public class AdverseEventService {
     AeGradeChangeLedgerWriter                        gradeChangeLedgerWriter;
     @Inject
     Event<io.casehub.clinical.api.AeGradeChangedEvent> gradeChangedEvents;
+    @Inject
+    EntityManager                                      em;
 
 
     @Transactional
@@ -55,11 +58,11 @@ public class AdverseEventService {
         ae.reportedAt  = Instant.now();
         ae.slaDeadline = ae.reportedAt.plus(ae.grade.sla().orElseThrow());
 
-        PatientEnrollment enrollment = PatientEnrollment.findById(ae.enrollmentId);
+        PatientEnrollment enrollment = em.find(PatientEnrollment.class, ae.enrollmentId);
         UUID              siteId     = enrollment != null ? enrollment.siteId : null;
         ae.tenantId = enrollment != null ? enrollment.tenantId : "default";
 
-        TrialSite site    = siteId != null ? TrialSite.findById(siteId) : null;
+        TrialSite site    = siteId != null ? em.find(TrialSite.class, siteId) : null;
         UUID      trialId = site != null ? site.trialId : null;
         AdverseEventEscalationRequirements requirements =
                 policy.evaluate(new AdverseEventContext(ae.id, ae.enrollmentId, siteId, ae.grade));
@@ -81,7 +84,7 @@ public class AdverseEventService {
             ae.workItemId = workItem.id();
         }
 
-        ae.persist();
+        em.persist(ae);
         ledgerWriter.writeReportEntry(ae);
         memoryService.storeAeReport(ae.id, ae.enrollmentId, siteId, trialId, ae.grade, ae.tenantId);
         try {aeTrajectoryAlertService.evaluate(ae.id, ae.tenantId);} catch (Exception e) {
@@ -96,7 +99,7 @@ public class AdverseEventService {
         initial.changedAt      = ae.reportedAt;
         initial.changedBy      = "system";
         initial.reason         = "Initial report";
-        initial.persist();
+        em.persist(initial);
 
         if (requirements.engineCaseRequired()) {
             var event = new AdverseEventReportedEvent(
@@ -117,7 +120,7 @@ public class AdverseEventService {
 
     @Transactional
     public void regradeAdverseEvent(UUID aeId, io.casehub.clinical.api.model.CtcaeGrade newGrade, String changedBy, String reason) {
-        AdverseEvent ae = AdverseEvent.findById(aeId);
+        AdverseEvent ae = em.find(AdverseEvent.class, aeId);
         if (ae == null) {return;}
         if (newGrade == ae.grade) {return;}
 
@@ -131,7 +134,7 @@ public class AdverseEventService {
         change.changedAt      = Instant.now();
         change.changedBy      = changedBy;
         change.reason         = reason;
-        change.persist();
+        em.persist(change);
 
         ae.grade = newGrade;
 
@@ -144,9 +147,9 @@ public class AdverseEventService {
 
         gradeChangeLedgerWriter.writeGradeChangeEntry(ae, previousGrade, reason);
 
-        PatientEnrollment enrollment = PatientEnrollment.findById(ae.enrollmentId);
+        PatientEnrollment enrollment = em.find(PatientEnrollment.class, ae.enrollmentId);
         UUID              siteId     = enrollment != null ? enrollment.siteId : null;
-        TrialSite         site       = siteId != null ? TrialSite.findById(siteId) : null;
+        TrialSite         site       = siteId != null ? em.find(TrialSite.class, siteId) : null;
         UUID              trialId    = site != null ? site.trialId : null;
 
         memoryService.storeAeRegrade(aeId, ae.enrollmentId, siteId, trialId,

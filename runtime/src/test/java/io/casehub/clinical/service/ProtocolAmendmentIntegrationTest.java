@@ -1,9 +1,8 @@
 package io.casehub.clinical.service;
 
-import io.casehub.api.model.CaseStatus;
 import io.casehub.clinical.api.ClinicalGroups;
-import io.casehub.clinical.entity.ClinicalTrial;
 import io.casehub.clinical.api.model.TrialPhase;
+import io.casehub.clinical.entity.ClinicalTrial;
 import io.casehub.clinical.ledger.ProtocolAmendmentLedgerEntry;
 import io.casehub.clinical.support.EngineStateCleaner;
 import io.casehub.engine.common.spi.cache.CaseInstanceCache;
@@ -36,6 +35,9 @@ class ProtocolAmendmentIntegrationTest {
     @Inject CaseInstanceCache caseInstanceCache;
     @Inject EngineStateCleaner engineStateCleaner;
     @Inject FixedCurrentPrincipal principal;
+    @Inject
+            jakarta.persistence.EntityManager em;
+
 
     UUID trialId;
 
@@ -55,7 +57,7 @@ class ProtocolAmendmentIntegrationTest {
         trial.sponsor = "Test Sponsor";
         trial.targetEnrollment = 100;
         trial.tenantId = principal.tenancyId();
-        trial.persist();
+        em.persist(trial);
     }
 
     @Test

@@ -8,7 +8,9 @@ import io.casehub.clinical.entity.ClinicalTrial;
 import io.casehub.clinical.entity.PatientEnrollment;
 import io.casehub.clinical.entity.TrialSite;
 import io.casehub.neocortex.cognitive.Confidence;
-import io.casehub.neocortex.memory.cbr.*;
+import io.casehub.neocortex.memory.cbr.AdaptationAction;
+import io.casehub.neocortex.memory.cbr.FeatureValue;
+import io.casehub.neocortex.memory.cbr.FeatureVectorCbrCase;
 import io.quarkus.test.junit.QuarkusTest;
 import io.quarkus.test.security.TestSecurity;
 import jakarta.inject.Inject;
@@ -29,6 +31,9 @@ class AeEscalationPlanRetrieverIntegrationTest {
 
     @Inject ClinicalCbrService cbrService;
     @Inject AeEscalationPlanRetriever retriever;
+    @Inject
+            jakarta.persistence.EntityManager em;
+
 
     private UUID enrollmentId;
 
@@ -41,21 +46,21 @@ class AeEscalationPlanRetrieverIntegrationTest {
         trial.phase = TrialPhase.PHASE_III;
         trial.sponsor = "Test";
         trial.tenantId = "test-tenant";
-        trial.persist();
+        em.persist(trial);
 
         TrialSite site = new TrialSite();
         site.id = UUID.randomUUID();
         site.trialId = trial.id;
         site.investigatorId = "pi-1";
         site.tenantId = "test-tenant";
-        site.persist();
+        em.persist(site);
 
         PatientEnrollment enrollment = new PatientEnrollment();
         enrollment.id = UUID.randomUUID();
         enrollment.siteId = site.id;
         enrollment.patientId = "P001";
         enrollment.tenantId = "test-tenant";
-        enrollment.persist();
+        em.persist(enrollment);
         enrollmentId = enrollment.id;
     }
 
@@ -85,7 +90,7 @@ class AeEscalationPlanRetrieverIntegrationTest {
         ae.occurredAt = java.time.Instant.now();
         ae.reportedAt = java.time.Instant.now();
         ae.tenantId = "test-tenant";
-        ae.persist();
+        em.persist(ae);
 
         EscalationPlanRecommendation result = retriever.retrieve(ae);
 

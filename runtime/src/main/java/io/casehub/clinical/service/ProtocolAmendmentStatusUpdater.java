@@ -8,9 +8,11 @@ import io.casehub.clinical.entity.ProtocolAmendment;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.enterprise.event.Event;
 import jakarta.inject.Inject;
+import jakarta.persistence.EntityManager;
 import jakarta.transaction.Transactional;
-import java.util.UUID;
 import org.jboss.logging.Logger;
+
+import java.util.UUID;
 
 @ApplicationScoped
 public class ProtocolAmendmentStatusUpdater {
@@ -19,10 +21,13 @@ public class ProtocolAmendmentStatusUpdater {
 
     @Inject ProtocolAmendmentLedgerWriter ledgerWriter;
     @Inject Event<ProtocolAmendmentResolvedEvent> resolvedEvents;
+    @Inject
+            EntityManager                         em;
+
 
     @Transactional(Transactional.TxType.REQUIRES_NEW)
     public void applyRecommendation(UUID amendmentId, String recommendation) {
-        ProtocolAmendment amendment = ProtocolAmendment.findById(amendmentId);
+        ProtocolAmendment amendment = em.find(ProtocolAmendment.class, amendmentId);
         if (amendment == null) return;
         if (amendment.supervisorRecommendation != null) return;
 

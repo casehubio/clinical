@@ -1,39 +1,41 @@
 package io.casehub.clinical.service;
 
-import io.casehub.clinical.api.SponsorNotificationExhaustedEvent;
 import io.casehub.clinical.api.SponsorNotificationRetryPolicy;
 import io.casehub.clinical.api.model.DeviationSeverity;
 import io.casehub.clinical.api.model.PiApprovalStatus;
 import io.casehub.clinical.api.model.SponsorNotificationStatus;
 import io.casehub.clinical.entity.SponsorNotification;
-import io.casehub.connectors.Connector;
-import io.casehub.connectors.ConnectorMessage;
 import io.casehub.platform.api.preferences.MapPreferences;
-import java.util.HashMap;
 import io.casehub.platform.api.preferences.PreferenceProvider;
 import io.casehub.platform.api.preferences.Preferences;
 import io.casehub.platform.api.preferences.SettingsScope;
 import io.quarkus.test.InjectMock;
 import io.quarkus.test.junit.QuarkusTest;
-import jakarta.enterprise.event.Event;
 import jakarta.inject.Inject;
 import jakarta.transaction.Transactional;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.mockito.ArgumentCaptor;
 
 import java.time.Clock;
 import java.time.Duration;
 import java.time.Instant;
+import java.util.HashMap;
 import java.util.Map;
 import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.*;
+import static org.mockito.Mockito.anyInt;
+import static org.mockito.Mockito.eq;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
 @QuarkusTest
 class SponsorNotificationDeliveryServiceTest {
+    @jakarta.inject.Inject
+    jakarta.persistence.EntityManager em;
+
 
     @Inject SponsorNotificationDeliveryService delivery;
     @Inject SponsorNotificationStore store;
@@ -276,15 +278,15 @@ class SponsorNotificationDeliveryServiceTest {
 
     @Transactional
     UUID findByDeviationId(final UUID deviationId) {
-        return SponsorNotification
-                .<SponsorNotification>find("deviationId", deviationId)
-                .firstResult()
+        return em.createQuery("SELECT n FROM SponsorNotification n WHERE n.deviationId = :deviationId", SponsorNotification.class)
+                .setParameter("deviationId", deviationId)
+                .getResultStream().findFirst().orElseThrow()
                 .id;
     }
 
     @Transactional
     SponsorNotification load(final UUID id) {
-        return SponsorNotification.findById(id);
+        return em.find(SponsorNotification.class, id);
     }
 
     void stubPolicy(final SponsorNotificationRetryPolicy policy) {
@@ -348,7 +350,7 @@ class SponsorNotificationDeliveryServiceTest {
 
     @Transactional
     void setAttempts(final UUID id, final int attempts) {
-        final SponsorNotification n = SponsorNotification.findById(id);
+        final SponsorNotification n = em.find(SponsorNotification.class, id);
         n.attempts = attempts;
         n.status = io.casehub.clinical.api.model.SponsorNotificationStatus.FAILED;
         n.nextRetryAfter = FIXED.minusSeconds(1); // mark eligible for retry

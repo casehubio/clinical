@@ -39,6 +39,7 @@ public class SiteEnrollmentTrajectoryJob {
     private final SiteEnrollmentTrajectoryBuilder trajectoryBuilder;
     private final ClinicalCbrService cbrService;
     private final ClinicalScopeResolver scopeResolver;
+    private final jakarta.persistence.EntityManager em;
 
     @ConfigProperty(name = "casehub.clinical.enrollment-trajectory.tenant-id", defaultValue = "default")
     String tenantId;
@@ -46,10 +47,12 @@ public class SiteEnrollmentTrajectoryJob {
     @Inject
     public SiteEnrollmentTrajectoryJob(SiteEnrollmentTrajectoryBuilder trajectoryBuilder,
                                         ClinicalCbrService cbrService,
-                                        ClinicalScopeResolver scopeResolver) {
+                                        ClinicalScopeResolver scopeResolver,
+                                        jakarta.persistence.EntityManager em) {
         this.trajectoryBuilder = trajectoryBuilder;
         this.cbrService = cbrService;
         this.scopeResolver = scopeResolver;
+        this.em = em;
     }
 
     @Scheduled(every = "${casehub.clinical.enrollment-trajectory.snapshot-interval:24h}",
@@ -57,18 +60,17 @@ public class SiteEnrollmentTrajectoryJob {
     public void snapshotAll() {
         int stored = 0;
         List<TrialSite> sites = QuarkusTransaction.requiringNew().call(() ->
-            TrialSite.<TrialSite>list("tenantId", tenantId));
+            em.createQuery("SELECT s FROM TrialSite s WHERE s.tenantId = :tenantId", TrialSite.class).setParameter("tenantId", tenantId).getResultList());
 
         for (TrialSite site : sites) {
             try {
                 SiteContext ctx = QuarkusTransaction.requiringNew().call(() -> {
-                    Instant earliest = PatientEnrollment.<PatientEnrollment>find(
-                        "siteId = ?1 AND tenantId = ?2 AND enrolledAt IS NOT NULL ORDER BY enrolledAt ASC",
-                        site.id, tenantId)
-                        .firstResultOptional().map(e -> e.enrolledAt).orElse(null);
+                    Instant earliest = em.createQuery("SELECT e.enrolledAt FROM PatientEnrollment e WHERE e.siteId = :siteId AND e.tenantId = :tenantId AND e.enrolledAt IS NOT NULL ORDER BY e.enrolledAt ASC", Instant.class)
+                        .setParameter("siteId", site.id).setParameter("tenantId", tenantId)
+                        .getResultStream().findFirst().orElse(null);
                     if (earliest == null) return null;
 
-                    ClinicalTrial trial = ClinicalTrial.findById(site.trialId);
+                    ClinicalTrial trial = em.find(ClinicalTrial.class, site.trialId);
                     String phase = trial != null && trial.phase != null ? trial.phase.name() : "UNKNOWN";
                     return new SiteContext(earliest, site.targetEnrollment, phase);
                 });

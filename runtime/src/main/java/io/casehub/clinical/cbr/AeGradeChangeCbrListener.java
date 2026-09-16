@@ -18,16 +18,18 @@ public class AeGradeChangeCbrListener {
     private static final Logger LOG = Logger.getLogger(AeGradeChangeCbrListener.class);
 
     private final AeCbrCaseBuilder caseBuilder;
+    private final jakarta.persistence.EntityManager em;
 
     @Inject
-    public AeGradeChangeCbrListener(AeCbrCaseBuilder caseBuilder) {
+    public AeGradeChangeCbrListener(AeCbrCaseBuilder caseBuilder, jakarta.persistence.EntityManager em) {
         this.caseBuilder = caseBuilder;
+        this.em = em;
     }
 
     @Transactional
     public void onGradeChanged(@ObservesAsync AeGradeChangedEvent event) {
         try {
-            AdverseEvent ae = AdverseEvent.findById(event.aeId());
+            AdverseEvent ae = em.find(AdverseEvent.class, event.aeId());
             if (ae == null) {
                 LOG.warnf("AE not found for CBR re-store: %s", event.aeId());
                 return;
@@ -42,11 +44,11 @@ public class AeGradeChangeCbrListener {
         if (ae.escalationStatus != AeEscalationStatus.COMPLETED) return;
 
         PatientEnrollment enrollment = ae.enrollmentId != null
-            ? PatientEnrollment.findById(ae.enrollmentId) : null;
+            ? em.find(PatientEnrollment.class, ae.enrollmentId) : null;
         TrialSite site = enrollment != null && enrollment.siteId != null
-            ? TrialSite.findById(enrollment.siteId) : null;
+            ? em.find(TrialSite.class, enrollment.siteId) : null;
         ClinicalTrial trial = site != null && site.trialId != null
-            ? ClinicalTrial.findById(site.trialId) : null;
+            ? em.find(ClinicalTrial.class, site.trialId) : null;
 
         caseBuilder.buildAndStore(ae, enrollment, site, trial,
             null, false, "regrade", ae.engineCaseId, event.tenantId());

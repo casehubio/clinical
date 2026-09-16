@@ -6,6 +6,7 @@ import io.casehub.clinical.entity.AdverseEvent;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.enterprise.event.ObservesAsync;
 import jakarta.inject.Inject;
+import jakarta.persistence.EntityManager;
 import jakarta.transaction.Transactional;
 import org.jboss.logging.Logger;
 
@@ -29,6 +30,8 @@ public class SusarOversightCaseService {
     @Inject SusarEvaluatorFunction susarEvaluator;
     @Inject
             io.casehub.clinical.cbr.AeTrajectoryAlertService aeTrajectoryAlertService;
+    @Inject
+    EntityManager em;
 
 
     public void onAdverseEventReported(@ObservesAsync AdverseEventReportedEvent event) {
@@ -49,7 +52,7 @@ public class SusarOversightCaseService {
     }
 
     public void reevaluateForRegrade(UUID aeId, UUID siteId, String tenantId) {
-        AdverseEvent ae = AdverseEvent.findById(aeId);
+        AdverseEvent ae = em.find(AdverseEvent.class, aeId);
         if (ae == null) {return;}
         if (ae.susarOversightStatus != SusarOversightStatus.NONE) {return;}
         if (!ae.unexpected || !ae.suspected) {return;}
@@ -70,7 +73,7 @@ public class SusarOversightCaseService {
 
     @Transactional
     Map<String, Object> prepareAndMark(AdverseEventReportedEvent event) {
-        AdverseEvent ae = AdverseEvent.findById(event.aeId());
+        AdverseEvent ae = em.find(AdverseEvent.class, event.aeId());
         if (ae == null) {
             LOG.warnf("SusarOversightCaseService: AE not found for aeId=%s — skipping", event.aeId());
             return null;
@@ -105,7 +108,7 @@ public class SusarOversightCaseService {
 
     @Transactional
     void persistCaseId(UUID aeId, UUID caseId) {
-        AdverseEvent ae = AdverseEvent.findById(aeId);
+        AdverseEvent ae = em.find(AdverseEvent.class, aeId);
         if (ae == null) {
             LOG.warnf("SusarOversightCaseService: AE not found in Phase 3 for aeId=%s", aeId);
             return;
@@ -115,7 +118,7 @@ public class SusarOversightCaseService {
 
     @Transactional
     void markFailed(UUID aeId) {
-        AdverseEvent ae = AdverseEvent.findById(aeId);
+        AdverseEvent ae = em.find(AdverseEvent.class, aeId);
         if (ae == null) return;
         ae.susarOversightStatus = SusarOversightStatus.FAILED;
     }

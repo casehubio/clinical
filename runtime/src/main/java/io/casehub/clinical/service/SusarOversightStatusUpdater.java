@@ -3,9 +3,12 @@ package io.casehub.clinical.service;
 import io.casehub.clinical.api.model.SusarOversightStatus;
 import io.casehub.clinical.entity.AdverseEvent;
 import jakarta.enterprise.context.ApplicationScoped;
+import jakarta.inject.Inject;
+import jakarta.persistence.EntityManager;
 import jakarta.transaction.Transactional;
-import java.util.UUID;
 import org.jboss.logging.Logger;
+
+import java.util.UUID;
 
 /**
  * Writes SusarOversightStatus.COMPLETED to AdverseEvent in REQUIRES_NEW.
@@ -16,10 +19,13 @@ import org.jboss.logging.Logger;
 public class SusarOversightStatusUpdater {
 
     private static final Logger LOG = Logger.getLogger(SusarOversightStatusUpdater.class);
+    @Inject
+                         EntityManager em;
+
 
     @Transactional(Transactional.TxType.REQUIRES_NEW)
     public boolean markCompleted(UUID aeId) {
-        AdverseEvent ae = AdverseEvent.findById(aeId);
+        AdverseEvent ae = em.find(AdverseEvent.class, aeId);
         if (ae == null) {
             LOG.warnf("SusarOversightStatusUpdater: AE not found for aeId=%s", aeId);
             return false;

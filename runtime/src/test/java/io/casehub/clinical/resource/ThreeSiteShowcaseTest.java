@@ -1,6 +1,5 @@
 package io.casehub.clinical.resource;
 
-import io.casehub.api.model.CaseStatus;
 import io.casehub.clinical.api.ClinicalGroups;
 import io.casehub.clinical.entity.ClinicalTrial;
 import io.casehub.clinical.entity.TrialSite;
@@ -25,7 +24,9 @@ import static io.restassured.RestAssured.given;
 import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.awaitility.Awaitility.await;
-import static org.hamcrest.Matchers.*;
+import static org.hamcrest.Matchers.equalTo;
+import static org.hamcrest.Matchers.notNullValue;
+import static org.hamcrest.Matchers.nullValue;
 
 /**
  * §7.4 Showcase scenario — 3-site oncology trial demonstrating all completed layers.
@@ -49,6 +50,9 @@ class ThreeSiteShowcaseTest {
     @Inject FixedCurrentPrincipal principal;
     @Inject CaseInstanceCache caseInstanceCache;
     @Inject EngineStateCleaner engineStateCleaner;
+    @Inject
+            jakarta.persistence.EntityManager em;
+
 
     UUID trialId, siteAId, siteBId, siteCId;
 
@@ -79,7 +83,7 @@ class ThreeSiteShowcaseTest {
         trial.sponsor = "Acme Oncology";
         trial.targetEnrollment = 300;
         trial.tenantId = principal.tenancyId();
-        trial.persist();
+        em.persist(trial);
 
         addSite(siteAId, trialId, "pi-site-a-001");
         addSite(siteBId, trialId, "pi-site-b-002");
@@ -92,7 +96,7 @@ class ThreeSiteShowcaseTest {
         site.trialId = trialId;
         site.investigatorId = investigatorId;
         site.tenantId = principal.tenancyId();
-        site.persist();
+        em.persist(site);
     }
 
     @Test

@@ -11,6 +11,7 @@ import io.quarkus.logging.Log;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.enterprise.event.ObservesAsync;
 import jakarta.inject.Inject;
+import jakarta.persistence.EntityManager;
 import jakarta.transaction.Transactional;
 import java.time.Clock;
 
@@ -21,13 +22,16 @@ public class SponsorNotificationListener {
     @Inject DeviationLedgerWriter deviationLedgerWriter;
     @Inject PiIdentityResolver piIdentityResolver;
     @Inject Clock clock;
+    @Inject
+            EntityManager em;
+
 
     @Transactional
     public void onDeviationResolved(@ObservesAsync ProtocolDeviationResolvedEvent event) {
         if (event.escalationRequirement() != EscalationRequirement.SPONSOR_NOTIFICATION) return;
 
         try {
-            TrialSite site = TrialSite.findById(event.siteId());
+            TrialSite site = em.find(TrialSite.class, event.siteId());
             if (site == null) {
                 Log.warnf("TrialSite %s not found — sponsor notification skipped", event.siteId());
                 try {
@@ -38,7 +42,7 @@ public class SponsorNotificationListener {
                 return;
             }
 
-            ClinicalTrial trial = ClinicalTrial.findById(site.trialId);
+            ClinicalTrial trial = em.find(ClinicalTrial.class, site.trialId);
             if (trial == null) {
                 Log.warnf("Trial %s not found — sponsor notification skipped", site.trialId);
                 try {

@@ -1,13 +1,5 @@
 package io.casehub.clinical.service;
 
-import static java.util.concurrent.TimeUnit.MILLISECONDS;
-import static java.util.concurrent.TimeUnit.SECONDS;
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.awaitility.Awaitility.await;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
-
 import io.casehub.clinical.api.AdverseEventReportedEvent;
 import io.casehub.clinical.api.model.AeOutcome;
 import io.casehub.clinical.api.model.CtcaeGrade;
@@ -18,11 +10,6 @@ import io.quarkus.test.InjectMock;
 import io.quarkus.test.junit.QuarkusTest;
 import jakarta.inject.Inject;
 import jakarta.transaction.Transactional;
-import java.time.Duration;
-import java.time.Instant;
-import java.util.Map;
-import java.util.UUID;
-import java.util.concurrent.CompletableFuture;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.MethodOrderer;
 import org.junit.jupiter.api.Order;
@@ -30,9 +17,25 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestMethodOrder;
 import org.mockito.ArgumentCaptor;
 
+import java.time.Duration;
+import java.time.Instant;
+import java.util.Map;
+import java.util.UUID;
+
+import static java.util.concurrent.TimeUnit.MILLISECONDS;
+import static java.util.concurrent.TimeUnit.SECONDS;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.awaitility.Awaitility.await;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
+
 @QuarkusTest
 @TestMethodOrder(MethodOrderer.OrderAnnotation.class)
 class RegulatorySubmissionCaseServiceTest {
+    @jakarta.inject.Inject
+    jakarta.persistence.EntityManager em;
+
 
     @Inject RegulatorySubmissionCaseService service;
     @InjectMock ClinicalRegulatorySubmissionCaseHub regulatorySubmissionCaseHub;
@@ -221,7 +224,7 @@ class RegulatorySubmissionCaseServiceTest {
         ae.occurredAt = Instant.now();
         ae.reportedAt = Instant.now();
         ae.tenantId = "test-tenant";
-        ae.persist();
+        em.persist(ae);
         return ae.id;
     }
 
@@ -238,13 +241,13 @@ class RegulatorySubmissionCaseServiceTest {
         ae.occurredAt = Instant.now();
         ae.reportedAt = reportedAt;
         ae.tenantId = "test-tenant";
-        ae.persist();
+        em.persist(ae);
         return ae.id;
     }
 
     @Transactional
     void setStatus(UUID aeId, RegulatorySubmissionStatus status) {
-        AdverseEvent ae = AdverseEvent.findById(aeId);
+        AdverseEvent ae = em.find(AdverseEvent.class, aeId);
         ae.regulatorySubmissionStatus = status;
     }
 
@@ -255,6 +258,6 @@ class RegulatorySubmissionCaseServiceTest {
 
     @Transactional
     AdverseEvent findAe(UUID aeId) {
-        return AdverseEvent.findById(aeId);
+        return em.find(AdverseEvent.class, aeId);
     }
 }

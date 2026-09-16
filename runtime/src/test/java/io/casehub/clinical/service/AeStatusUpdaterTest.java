@@ -1,7 +1,5 @@
 package io.casehub.clinical.service;
 
-import static org.assertj.core.api.Assertions.assertThat;
-
 import io.casehub.clinical.api.model.AeEscalationStatus;
 import io.casehub.clinical.api.model.AeOutcome;
 import io.casehub.clinical.api.model.CtcaeGrade;
@@ -11,16 +9,22 @@ import io.casehub.platform.testing.FixedCurrentPrincipal;
 import io.quarkus.test.junit.QuarkusTest;
 import jakarta.inject.Inject;
 import jakarta.transaction.Transactional;
-import java.time.Instant;
-import java.util.UUID;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+
+import java.time.Instant;
+import java.util.UUID;
+
+import static org.assertj.core.api.Assertions.assertThat;
 
 @QuarkusTest
 class AeStatusUpdaterTest {
 
     @Inject AeStatusUpdater statusUpdater;
     @Inject FixedCurrentPrincipal principal;
+    @Inject
+            jakarta.persistence.EntityManager em;
+
 
     private UUID aeId;
     private UUID caseId;
@@ -42,7 +46,7 @@ class AeStatusUpdaterTest {
         ae.reportedAt = Instant.now();
         ae.escalationStatus = AeEscalationStatus.REQUESTED;
         ae.engineCaseId = caseId;
-        ae.persist();
+        em.persist(ae);
     }
 
     @Test
@@ -79,13 +83,13 @@ class AeStatusUpdaterTest {
 
     @Transactional
     void setEscalationStatus(AeEscalationStatus status) {
-        AdverseEvent ae = AdverseEvent.findById(aeId);
+        AdverseEvent ae = em.find(AdverseEvent.class, aeId);
         ae.escalationStatus = status;
     }
 
     @Transactional
     void setEngineCaseId(UUID id) {
-        AdverseEvent ae = AdverseEvent.findById(aeId);
+        AdverseEvent ae = em.find(AdverseEvent.class, aeId);
         ae.engineCaseId = id;
     }
 }

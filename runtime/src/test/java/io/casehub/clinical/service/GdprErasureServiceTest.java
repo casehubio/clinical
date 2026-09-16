@@ -1,21 +1,25 @@
 package io.casehub.clinical.service;
 
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
-
 import io.casehub.clinical.api.model.ConsentStatus;
 import io.casehub.clinical.api.model.EnrollmentStatus;
 import io.casehub.clinical.entity.PatientEnrollment;
 import io.quarkus.test.junit.QuarkusTest;
 import jakarta.inject.Inject;
 import jakarta.transaction.Transactional;
-import java.util.UUID;
 import org.junit.jupiter.api.Test;
+
+import java.util.UUID;
+
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 @QuarkusTest
 class GdprErasureServiceTest {
 
     @Inject GdprErasureService erasureService;
+    @Inject
+            jakarta.persistence.EntityManager em;
+
 
     @Test
     void erasePatient_withdraws_single_enrollment() {
@@ -72,19 +76,19 @@ class GdprErasureServiceTest {
         e.tenantId = "default";
         e.consentStatus = ConsentStatus.PENDING;
         e.enrollmentStatus = EnrollmentStatus.CANDIDATE;
-        e.persist();
+        em.persist(e);
         return e.id;
     }
 
     @Transactional
     void setWithdrawn(UUID id) {
-        PatientEnrollment e = PatientEnrollment.findById(id);
+        PatientEnrollment e = em.find(PatientEnrollment.class, id);
         e.consentStatus = ConsentStatus.WITHDRAWN;
         e.patientId = "erased-" + UUID.randomUUID();
     }
 
     @Transactional
     PatientEnrollment findEnrollment(UUID id) {
-        return PatientEnrollment.findById(id);
+        return em.find(PatientEnrollment.class, id);
     }
 }

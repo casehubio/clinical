@@ -33,7 +33,8 @@ public class AeTrajectoryAlertService {
     private final Event<AeTrajectoryAlertEvent> alertEvents;
     private final ClinicalScopeResolver scopeResolver;
     private final ClinicalCbrConfig cbrConfig;
-    private Function<UUID, AdverseEvent> entityFinder = id -> AdverseEvent.findById(id);
+    private final jakarta.persistence.EntityManager em;
+    private Function<UUID, AdverseEvent> entityFinder;
 
     @ConfigProperty(name = "casehub.clinical.trajectory.alert.min-matches", defaultValue = "2")
     int minMatches;
@@ -49,12 +50,15 @@ public class AeTrajectoryAlertService {
                                      ClinicalCbrService cbrService,
                                      Event<AeTrajectoryAlertEvent> alertEvents,
                                      ClinicalScopeResolver scopeResolver,
-                                     ClinicalCbrConfig cbrConfig) {
+                                     ClinicalCbrConfig cbrConfig,
+                                     jakarta.persistence.EntityManager em) {
         this.trajectoryBuilder = trajectoryBuilder;
         this.cbrService = cbrService;
         this.alertEvents = alertEvents;
         this.scopeResolver = scopeResolver;
         this.cbrConfig = cbrConfig;
+        this.em = em;
+        this.entityFinder = id -> em.find(AdverseEvent.class, id);
     }
 
     void setEntityFinder(Function<UUID, AdverseEvent> finder) {

@@ -1,7 +1,14 @@
 package io.casehub.clinical.entity;
 
 import io.casehub.clinical.api.ClinicalGroups;
-import io.casehub.clinical.api.model.*;
+import io.casehub.clinical.api.model.AbnormalFlag;
+import io.casehub.clinical.api.model.DrugAdminStatus;
+import io.casehub.clinical.api.model.MedicationFrequency;
+import io.casehub.clinical.api.model.MedicationRoute;
+import io.casehub.clinical.api.model.SpecimenType;
+import io.casehub.clinical.api.model.VisitStatus;
+import io.casehub.clinical.api.model.VisitType;
+import io.casehub.clinical.api.model.VitalType;
 import io.casehub.platform.testing.FixedCurrentPrincipal;
 import io.quarkus.test.junit.QuarkusTest;
 import io.quarkus.test.security.TestSecurity;
@@ -15,13 +22,19 @@ import java.time.Instant;
 import java.time.LocalDate;
 import java.util.UUID;
 
-import static org.junit.jupiter.api.Assertions.*;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 @QuarkusTest
 @TestSecurity(user = "test-actor", roles = {ClinicalGroups.SPONSOR, ClinicalGroups.INVESTIGATOR, ClinicalGroups.COORDINATOR})
 class ClinicalEntityPersistenceTest {
 
     @Inject FixedCurrentPrincipal principal;
+    @Inject
+            jakarta.persistence.EntityManager em;
+
 
     @AfterEach
     void resetPrincipal() { principal.reset(); }
@@ -38,9 +51,9 @@ class ClinicalEntityPersistenceTest {
         v.status = VisitStatus.SCHEDULED;
         v.notes = "Initial screening visit";
         v.createdAt = Instant.now();
-        v.persist();
+        em.persist(v);;
 
-        Visit found = Visit.findByIdForTenant(v.id, principal);
+        Visit found = TenantEntityLookup.findByIdForTenant(em, Visit.class, v.id, principal);
         assertNotNull(found);
         assertEquals(VisitType.BASELINE, found.visitType);
         assertEquals(VisitStatus.SCHEDULED, found.status);
@@ -64,9 +77,9 @@ class ClinicalEntityPersistenceTest {
         lr.performingLab = "Central Lab";
         lr.collectedAt = Instant.now();
         lr.createdAt = Instant.now();
-        lr.persist();
+        em.persist(lr);;
 
-        LabResult found = LabResult.findByIdForTenant(lr.id, principal);
+        LabResult found = TenantEntityLookup.findByIdForTenant(em, LabResult.class, lr.id, principal);
         assertNotNull(found);
         assertEquals("ALT", found.testName);
         assertEquals(new BigDecimal("45.5"), found.value);
@@ -86,9 +99,9 @@ class ClinicalEntityPersistenceTest {
         vs.unit = "mmHg";
         vs.measuredAt = Instant.now();
         vs.createdAt = Instant.now();
-        vs.persist();
+        em.persist(vs);;
 
-        VitalSign found = VitalSign.findByIdForTenant(vs.id, principal);
+        VitalSign found = TenantEntityLookup.findByIdForTenant(em, VitalSign.class, vs.id, principal);
         assertNotNull(found);
         assertEquals(VitalType.BP_SYSTOLIC, found.type);
         assertEquals(new BigDecimal("120"), found.value);
@@ -110,9 +123,9 @@ class ClinicalEntityPersistenceTest {
         cm.startDate = LocalDate.now();
         cm.ongoing = true;
         cm.createdAt = Instant.now();
-        cm.persist();
+        em.persist(cm);;
 
-        ConcomitantMedication found = ConcomitantMedication.findByIdForTenant(cm.id, principal);
+        ConcomitantMedication found = TenantEntityLookup.findByIdForTenant(em, ConcomitantMedication.class, cm.id, principal);
         assertNotNull(found);
         assertEquals("Metformin", found.medicationName);
         assertEquals(MedicationRoute.ORAL, found.route);
@@ -136,9 +149,9 @@ class ClinicalEntityPersistenceTest {
         sda.batchNumber = "PEM-2026-0815";
         sda.status = DrugAdminStatus.ADMINISTERED;
         sda.createdAt = Instant.now();
-        sda.persist();
+        em.persist(sda);;
 
-        StudyDrugAdministration found = StudyDrugAdministration.findByIdForTenant(sda.id, principal);
+        StudyDrugAdministration found = TenantEntityLookup.findByIdForTenant(em, StudyDrugAdministration.class, sda.id, principal);
         assertNotNull(found);
         assertEquals("Pembrolizumab", found.drugName);
         assertEquals(MedicationRoute.IV, found.route);
@@ -157,10 +170,10 @@ class ClinicalEntityPersistenceTest {
         v.visitDate = Instant.now();
         v.status = VisitStatus.SCHEDULED;
         v.createdAt = Instant.now();
-        v.persist();
+        em.persist(v);;
 
         principal.setTenancyId("other-tenant");
-        assertNull(Visit.findByIdForTenant(v.id, principal));
+        assertNull(TenantEntityLookup.findByIdForTenant(em, Visit.class, v.id, principal));
     }
 
     @Test
@@ -177,7 +190,7 @@ class ClinicalEntityPersistenceTest {
         v1.visitDate = Instant.now();
         v1.status = VisitStatus.COMPLETED;
         v1.createdAt = Instant.now();
-        v1.persist();
+        em.persist(v1);;
 
         Visit v2 = new Visit();
         v2.id = UUID.randomUUID();
@@ -187,7 +200,7 @@ class ClinicalEntityPersistenceTest {
         v2.visitDate = Instant.now();
         v2.status = VisitStatus.SCHEDULED;
         v2.createdAt = Instant.now();
-        v2.persist();
+        em.persist(v2);;
 
         Visit other = new Visit();
         other.id = UUID.randomUUID();
@@ -197,8 +210,8 @@ class ClinicalEntityPersistenceTest {
         other.visitDate = Instant.now();
         other.status = VisitStatus.SCHEDULED;
         other.createdAt = Instant.now();
-        other.persist();
+        em.persist(other);;
 
-        assertEquals(2, Visit.listByEnrollment(enrollmentId, tenantId).size());
+        assertEquals(2, em.createNamedQuery("Visit.listByEnrollment", Visit.class).setParameter("enrollmentId", enrollmentId).setParameter("tenantId", tenantId).getResultList().size());
     }
 }

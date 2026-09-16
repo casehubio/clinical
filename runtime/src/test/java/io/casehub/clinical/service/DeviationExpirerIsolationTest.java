@@ -1,22 +1,30 @@
 package io.casehub.clinical.service;
 
-import io.casehub.clinical.api.model.*;
-import io.casehub.clinical.entity.*;
+import io.casehub.clinical.api.model.DeviationSeverity;
+import io.casehub.clinical.api.model.EscalationRequirement;
+import io.casehub.clinical.api.model.PiApprovalStatus;
+import io.casehub.clinical.api.model.TrialPhase;
+import io.casehub.clinical.api.model.TrialStatus;
+import io.casehub.clinical.entity.ClinicalTrial;
+import io.casehub.clinical.entity.ProtocolDeviation;
+import io.casehub.clinical.entity.TrialSite;
 import io.casehub.ledger.api.spi.LedgerEntryRepository;
 import io.casehub.qhorus.runtime.message.CommitmentService;
 import io.quarkus.test.InjectMock;
 import io.quarkus.test.junit.QuarkusTest;
 import jakarta.inject.Inject;
 import jakarta.transaction.Transactional;
-import org.junit.jupiter.api.*;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.TestInstance;
 
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
+import java.util.Optional;
 import java.util.UUID;
 import java.util.stream.Stream;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import java.util.Optional;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.when;
 
@@ -32,6 +40,9 @@ class DeviationExpirerIsolationTest {
     @InjectMock CommitmentService commitmentService;
     @Inject LedgerEntryRepository ledgerRepo;
     @Inject TestDeviationPersister persister;
+    @Inject
+            jakarta.persistence.EntityManager em;
+
 
     private UUID siteId;
 
@@ -43,10 +54,10 @@ class DeviationExpirerIsolationTest {
         ClinicalTrial trial = new ClinicalTrial();
         trial.id = trialId; trial.protocolId = "ISO"; trial.phase = TrialPhase.PHASE_I;
         trial.sponsor = "S"; trial.targetEnrollment = 5; trial.status = TrialStatus.ACTIVE;
-        trial.persist();
+        em.persist(trial);
         TrialSite site = new TrialSite();
         site.id = siteId; site.trialId = trialId; site.investigatorId = "pi-iso";
-        site.persist();
+        em.persist(site);
     }
 
     @Test
@@ -63,8 +74,8 @@ class DeviationExpirerIsolationTest {
 
         job.checkExpiredCommitments();
 
-        ProtocolDeviation d1 = ProtocolDeviation.findById(devId1);
-        ProtocolDeviation d2 = ProtocolDeviation.findById(devId2);
+        ProtocolDeviation d1 = em.find(ProtocolDeviation.class, devId1);
+        ProtocolDeviation d2 = em.find(ProtocolDeviation.class, devId2);
 
         // Exactly one deviation should be EXPIRED (the first one committed before the failure)
         long expiredCount = Stream.of(d1, d2)

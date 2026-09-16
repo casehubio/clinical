@@ -1,8 +1,7 @@
 package io.casehub.clinical.service;
 
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.awaitility.Awaitility.await;
-
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.ObjectNode;
 import io.casehub.clinical.api.AdverseEventReportedEvent;
 import io.casehub.clinical.api.model.AeOutcome;
 import io.casehub.clinical.api.model.CtcaeGrade;
@@ -10,16 +9,18 @@ import io.casehub.clinical.api.model.EventActuality;
 import io.casehub.clinical.api.model.SusarOversightStatus;
 import io.casehub.clinical.entity.AdverseEvent;
 import io.casehub.engine.common.internal.event.ActionGateApprovedEvent;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.node.ObjectNode;
 import io.casehub.engine.common.spi.event.CaseLifecycleEvent;
 import io.quarkus.test.junit.QuarkusTest;
 import jakarta.inject.Inject;
 import jakarta.transaction.Transactional;
+import org.junit.jupiter.api.Test;
+
 import java.time.Duration;
 import java.time.Instant;
 import java.util.UUID;
-import org.junit.jupiter.api.Test;
+
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.awaitility.Awaitility.await;
 
 /**
  * Integration tests for SusarOversightCaseService three-phase lifecycle.
@@ -29,6 +30,9 @@ import org.junit.jupiter.api.Test;
  */
 @QuarkusTest
 class SusarOversightLifecycleTest {
+    @jakarta.inject.Inject
+    jakarta.persistence.EntityManager em;
+
 
     private static final String TEST_TENANCY_ID = "278776f9-e1b0-46fb-9032-8bddebdcf9ce";
     private static final ObjectMapper MAPPER = new ObjectMapper();
@@ -98,19 +102,19 @@ class SusarOversightLifecycleTest {
         ae.occurredAt = Instant.now();
         ae.reportedAt = Instant.now();
         ae.tenantId = TEST_TENANCY_ID;
-        ae.persist();
+        em.persist(ae);
         return aeId;
     }
 
     @Transactional
     void setStatus(UUID aeId, SusarOversightStatus status) {
-        AdverseEvent ae = AdverseEvent.findById(aeId);
+        AdverseEvent ae = em.find(AdverseEvent.class, aeId);
         ae.susarOversightStatus = status;
     }
 
     @Transactional
     AdverseEvent findAe(UUID aeId) {
-        return AdverseEvent.findById(aeId);
+        return em.find(AdverseEvent.class, aeId);
     }
 
     AdverseEventReportedEvent buildEvent(UUID aeId, CtcaeGrade grade) {

@@ -25,15 +25,18 @@ public class TrialCompletionSiteTrajectoryWriter {
 
     @Inject ClinicalCbrService cbrService;
     @Inject SiteEnrollmentTrajectoryBuilder trajectoryBuilder;
+    @Inject
+            jakarta.persistence.EntityManager em;
+
 
     @Transactional
     public void onTrialStatusChanged(@ObservesAsync TrialStatusChangedEvent event) {
         if (event.newStatus() != TrialStatus.COMPLETED && event.newStatus() != TrialStatus.TERMINATED) return;
 
-        ClinicalTrial trial = ClinicalTrial.findById(event.trialId());
+        ClinicalTrial trial = em.find(ClinicalTrial.class, event.trialId());
         if (trial == null) return;
 
-        List<TrialSite> sites = TrialSite.find("trialId", event.trialId()).list();
+        List<TrialSite> sites = em.createQuery("SELECT s FROM TrialSite s WHERE s.trialId = :trialId", TrialSite.class).setParameter("trialId", event.trialId()).getResultList();
         for (TrialSite site : sites) {
             try {
                 storeForSite(site, trial, event.tenantId());
@@ -46,10 +49,9 @@ public class TrialCompletionSiteTrajectoryWriter {
 
     @SuppressWarnings("unchecked")
     private void storeForSite(TrialSite site, ClinicalTrial trial, String tenantId) {
-        Instant trialActivatedAt = PatientEnrollment.<PatientEnrollment>find(
-                "siteId = ?1 AND tenantId = ?2 AND enrolledAt IS NOT NULL ORDER BY enrolledAt ASC",
-                site.id, tenantId)
-                .firstResultOptional()
+        Instant trialActivatedAt = em.createQuery("SELECT e FROM PatientEnrollment e WHERE e.siteId = :siteId AND e.tenantId = :tenantId AND e.enrolledAt IS NOT NULL ORDER BY e.enrolledAt ASC", PatientEnrollment.class)
+                .setParameter("siteId", site.id).setParameter("tenantId", tenantId)
+                .getResultStream().findFirst()
                 .map(e -> e.enrolledAt)
                 .orElse(null);
         if (trialActivatedAt == null) return;

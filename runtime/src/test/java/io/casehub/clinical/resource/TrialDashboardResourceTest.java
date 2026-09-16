@@ -1,29 +1,41 @@
 package io.casehub.clinical.resource;
 
-import static io.restassured.RestAssured.given;
-import static org.hamcrest.Matchers.*;
-
 import io.casehub.clinical.api.ClinicalGroups;
 import io.casehub.clinical.api.model.CtcaeGrade;
 import io.casehub.clinical.api.model.DeviationSeverity;
 import io.casehub.clinical.api.model.PiApprovalStatus;
 import io.casehub.clinical.api.model.TrialPhase;
-import io.casehub.clinical.entity.*;
+import io.casehub.clinical.entity.AdverseEvent;
+import io.casehub.clinical.entity.ClinicalTrial;
+import io.casehub.clinical.entity.PatientEnrollment;
+import io.casehub.clinical.entity.ProtocolDeviation;
+import io.casehub.clinical.entity.TrialSite;
 import io.casehub.platform.testing.FixedCurrentPrincipal;
 import io.quarkus.test.junit.QuarkusTest;
 import io.quarkus.test.security.TestSecurity;
 import jakarta.inject.Inject;
 import jakarta.transaction.Transactional;
-import java.time.Instant;
-import java.util.UUID;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+
+import java.time.Instant;
+import java.util.UUID;
+
+import static io.restassured.RestAssured.given;
+import static org.hamcrest.Matchers.equalTo;
+import static org.hamcrest.Matchers.greaterThanOrEqualTo;
+import static org.hamcrest.Matchers.isA;
+import static org.hamcrest.Matchers.notNullValue;
+import static org.hamcrest.Matchers.nullValue;
 
 @QuarkusTest
 @TestSecurity(user = "test-actor", roles = {ClinicalGroups.SPONSOR, ClinicalGroups.INVESTIGATOR, ClinicalGroups.COORDINATOR})
 class TrialDashboardResourceTest {
 
     @Inject FixedCurrentPrincipal principal;
+    @Inject
+            jakarta.persistence.EntityManager em;
+
 
     private UUID trialId;
     private UUID siteAId;
@@ -41,7 +53,7 @@ class TrialDashboardResourceTest {
         trial.phase = TrialPhase.PHASE_III;
         trial.sponsor = "Test Sponsor";
         trial.targetEnrollment = 20;
-        trial.persist();
+        em.persist(trial);
 
         siteAId = UUID.randomUUID();
         TrialSite siteA = new TrialSite();
@@ -50,7 +62,7 @@ class TrialDashboardResourceTest {
         siteA.trialId = trialId;
         siteA.investigatorId = "dr-chen";
         siteA.targetEnrollment = 120;
-        siteA.persist();
+        em.persist(siteA);
 
         siteBId = UUID.randomUUID();
         TrialSite siteB = new TrialSite();
@@ -59,7 +71,7 @@ class TrialDashboardResourceTest {
         siteB.trialId = trialId;
         siteB.investigatorId = "dr-patel";
         siteB.targetEnrollment = 80;
-        siteB.persist();
+        em.persist(siteB);
 
         UUID enrollmentId = UUID.randomUUID();
         PatientEnrollment enrollment = new PatientEnrollment();
@@ -67,7 +79,7 @@ class TrialDashboardResourceTest {
         enrollment.tenantId = principal.tenancyId();
         enrollment.siteId = siteAId;
         enrollment.patientId = "P-001";
-        enrollment.persist();
+        em.persist(enrollment);
 
         AdverseEvent ae = new AdverseEvent();
         aeId = UUID.randomUUID();
@@ -78,7 +90,7 @@ class TrialDashboardResourceTest {
         ae.occurredAt = Instant.now();
         ae.reportedAt = Instant.now();
         ae.slaDeadline = Instant.now().plusSeconds(86400);
-        ae.persist();
+        em.persist(ae);
 
         ProtocolDeviation dev = new ProtocolDeviation();
         dev.id = UUID.randomUUID();
@@ -88,7 +100,7 @@ class TrialDashboardResourceTest {
         dev.severity = DeviationSeverity.MAJOR;
         dev.piApprovalStatus = PiApprovalStatus.APPROVED;
         dev.commandedAt = Instant.now();
-        dev.persist();
+        em.persist(dev);
     }
 
     @Test

@@ -8,13 +8,14 @@ import io.casehub.clinical.entity.ClinicalTrial;
 import io.casehub.clinical.entity.ProtocolDeviation;
 import io.casehub.clinical.entity.TrialSite;
 import io.casehub.platform.api.identity.ActorType;
+import io.casehub.qhorus.api.channel.ChannelCreateRequest;
 import io.casehub.qhorus.api.channel.ChannelSemantic;
 import io.casehub.qhorus.api.message.MessageType;
-import io.casehub.qhorus.api.channel.ChannelCreateRequest;
 import io.casehub.qhorus.runtime.channel.ChannelService;
 import io.casehub.qhorus.runtime.message.MessageService;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
+import jakarta.persistence.EntityManager;
 import jakarta.transaction.Transactional;
 
 import java.time.Instant;
@@ -46,11 +47,14 @@ public class ProtocolDeviationService {
     @Inject MessageService messageService;
     @Inject DeviationLedgerWriter ledgerWriter;
     @Inject io.casehub.clinical.memory.ClinicalMemoryService memoryService;
+    @Inject
+            EntityManager                                    em;
+
 
     @Transactional
     public void reportDeviation(ProtocolDeviation deviation) {
-        TrialSite site = TrialSite.findById(deviation.siteId);
-        ClinicalTrial trial = ClinicalTrial.findById(site.trialId);
+        TrialSite site = em.find(TrialSite.class, deviation.siteId);
+        ClinicalTrial trial = em.find(ClinicalTrial.class, site.trialId);
 
         var context = new DeviationContext(
             deviation.id, deviation.siteId, site.trialId,
@@ -85,7 +89,7 @@ public class ProtocolDeviationService {
         deviation.responseDeadline = responseDeadline;
         deviation.escalationRequirement = requirements.escalationRequirement();
         deviation.piApprovalStatus = PiApprovalStatus.COMMANDED;
-        deviation.persist();
+        em.persist(deviation);
 
         ledgerWriter.writeCommandEntry(deviation, site.investigatorId);
         memoryService.storeDeviationReport(deviation.id, deviation.siteId,

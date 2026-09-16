@@ -40,16 +40,19 @@ class ClinicalCaseOutcomeObserverIntegrationTest {
     @Inject ClinicalCaseOutcomeObserver observer;
     @Inject ClinicalCbrService cbrService;
     @Inject FixedCurrentPrincipal principal;
+    @Inject
+            jakarta.persistence.EntityManager em;
+
 
     private UUID trialId, siteId, enrollmentId, aeId;
 
     @BeforeEach
     @Transactional
     void setUp() {
-        AdverseEvent.deleteAll();
-        PatientEnrollment.deleteAll();
-        TrialSite.deleteAll();
-        ClinicalTrial.deleteAll();
+        em.createQuery("DELETE FROM AdverseEvent").executeUpdate();
+        em.createQuery("DELETE FROM PatientEnrollment").executeUpdate();
+        em.createQuery("DELETE FROM TrialSite").executeUpdate();
+        em.createQuery("DELETE FROM ClinicalTrial").executeUpdate();
 
         trialId = UUID.randomUUID();
         siteId = UUID.randomUUID();
@@ -64,7 +67,7 @@ class ClinicalCaseOutcomeObserverIntegrationTest {
         trial.sponsor = "Test Pharma";
         trial.targetEnrollment = 100;
         trial.status = TrialStatus.ACTIVE;
-        trial.persist();
+        em.persist(trial);
 
         TrialSite site = new TrialSite();
         site.id = siteId;
@@ -73,7 +76,7 @@ class ClinicalCaseOutcomeObserverIntegrationTest {
         site.investigatorId = "dr-test";
         site.status = SiteStatus.ACTIVE;
         site.targetEnrollment = 50;
-        site.persist();
+        em.persist(site);
 
         PatientEnrollment enrollment = new PatientEnrollment();
         enrollment.id = enrollmentId;
@@ -83,7 +86,7 @@ class ClinicalCaseOutcomeObserverIntegrationTest {
         enrollment.consentStatus = ConsentStatus.OBTAINED;
         enrollment.enrollmentStatus = EnrollmentStatus.ENROLLED;
         enrollment.treatmentArm = "ARM_A";
-        enrollment.persist();
+        em.persist(enrollment);
 
         AdverseEvent ae = new AdverseEvent();
         ae.id = aeId;
@@ -98,7 +101,7 @@ class ClinicalCaseOutcomeObserverIntegrationTest {
         ae.engineCaseId = UUID.randomUUID();
         ae.occurredAt = Instant.now().minusSeconds(3600);
         ae.reportedAt = Instant.now().minusSeconds(1800);
-        ae.persist();
+        em.persist(ae);
     }
 
     @Test

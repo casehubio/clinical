@@ -35,6 +35,9 @@ import static org.assertj.core.api.Assertions.assertThat;
  */
 @QuarkusTest
 class AeEscalationContextInjectionTest {
+    @jakarta.inject.Inject
+    jakarta.persistence.EntityManager em;
+
 
     /** MockCurrentPrincipal's default tenancyId — used for all store.store() seeds. */
     private static final String TEST_TENANT = "278776f9-e1b0-46fb-9032-8bddebdcf9ce";
@@ -67,7 +70,7 @@ class AeEscalationContextInjectionTest {
         ae.reportedAt = Instant.now();
         ae.slaDeadline = Instant.now().plusSeconds(86400);
         ae.escalationStatus = AeEscalationStatus.NONE;
-        ae.persist();
+        em.persist(ae);
     }
 
     @Test

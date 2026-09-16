@@ -15,6 +15,7 @@ import io.casehub.neocortex.memory.cbr.FeatureValue;
 import io.casehub.neocortex.memory.cbr.FeatureVectorCbrCase;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
+import jakarta.persistence.EntityManager;
 import jakarta.transaction.Transactional;
 import org.jboss.logging.Logger;
 
@@ -36,6 +37,7 @@ public class ClinicalCaseOutcomeObserver implements CaseOutcomeObserver {
     private final CbrCaseMemoryStore store;
     private final PlanItemStore planItemStore;
     private final ClinicalScopeResolver scopeResolver;
+    private final EntityManager em;
     private EntityResolver entityResolver;
     private AeTrajectoryBuilder trajectoryBuilder;
 
@@ -46,13 +48,15 @@ public class ClinicalCaseOutcomeObserver implements CaseOutcomeObserver {
                                        PlanItemStore planItemStore,
                                        AeTrajectoryBuilder trajectoryBuilder,
                                        ClinicalScopeResolver scopeResolver,
+                                       EntityManager em,
                                        io.casehub.ledger.runtime.repository.ActorTrustScoreRepository trustScoreRepository) {
         this.cbrService        = cbrService;
         this.store             = store;
         this.planItemStore     = planItemStore;
         this.trajectoryBuilder = trajectoryBuilder;
         this.scopeResolver     = scopeResolver;
-        this.entityResolver    = new PanacheEntityResolver(trustScoreRepository);
+        this.em                = em;
+        this.entityResolver    = new JpaEntityResolver(trustScoreRepository);
     }
 
     void setEntityResolver(EntityResolver resolver) {
@@ -189,22 +193,24 @@ public class ClinicalCaseOutcomeObserver implements CaseOutcomeObserver {
         double findAgentTrustScore(String actorId);
     }
 
-    private static class PanacheEntityResolver implements EntityResolver {
+    private class JpaEntityResolver implements EntityResolver {
         private final io.casehub.ledger.runtime.repository.ActorTrustScoreRepository trustScoreRepository;
 
-        PanacheEntityResolver(io.casehub.ledger.runtime.repository.ActorTrustScoreRepository trustScoreRepository) {
+        JpaEntityResolver(io.casehub.ledger.runtime.repository.ActorTrustScoreRepository trustScoreRepository) {
             this.trustScoreRepository = trustScoreRepository;
         }
 
-        @Override public AdverseEvent findAe(UUID aeId) { return AdverseEvent.findById(aeId); }
-        @Override public PatientEnrollment findEnrollment(UUID id) { return PatientEnrollment.findById(id); }
-        @Override public TrialSite findSite(UUID id) { return TrialSite.findById(id); }
-        @Override public ClinicalTrial findTrial(UUID id) { return ClinicalTrial.findById(id); }
+        @Override public AdverseEvent findAe(UUID aeId) { return em.find(AdverseEvent.class, aeId); }
+        @Override public PatientEnrollment findEnrollment(UUID id) { return em.find(PatientEnrollment.class, id); }
+        @Override public TrialSite findSite(UUID id) { return em.find(TrialSite.class, id); }
+        @Override public ClinicalTrial findTrial(UUID id) { return em.find(ClinicalTrial.class, id); }
         @Override public long countPriorAes(UUID enrollmentId, UUID excludeAeId) {
-            return AdverseEvent.count("enrollmentId = ?1 and id != ?2", enrollmentId, excludeAeId);
+            return em.createQuery("SELECT COUNT(a) FROM AdverseEvent a WHERE a.enrollmentId = :enrollmentId AND a.id != :excludeAeId", Long.class)
+                    .setParameter("enrollmentId", enrollmentId).setParameter("excludeAeId", excludeAeId).getSingleResult();
         }
         @Override public long countEnrollmentsAtSite(UUID siteId) {
-            return PatientEnrollment.count("siteId", siteId);
+            return em.createQuery("SELECT COUNT(e) FROM PatientEnrollment e WHERE e.siteId = :siteId", Long.class)
+                    .setParameter("siteId", siteId).getSingleResult();
         }
         @Override public double findAgentTrustScore(String actorId) {
             try {

@@ -6,13 +6,12 @@ import io.casehub.clinical.api.model.CtcaeGrade;
 import io.casehub.clinical.api.model.EventActuality;
 import io.casehub.clinical.api.model.RegulatorySubmissionStatus;
 import io.casehub.clinical.api.model.SusarOversightStatus;
-import io.casehub.platform.api.identity.CurrentPrincipal;
-import io.quarkus.hibernate.orm.panache.PanacheEntityBase;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
 import jakarta.persistence.Enumerated;
 import jakarta.persistence.Id;
+import jakarta.persistence.NamedQuery;
 import jakarta.persistence.Table;
 import org.hibernate.annotations.DynamicUpdate;
 
@@ -21,8 +20,10 @@ import java.util.UUID;
 
 @Entity
 @Table(name = "adverse_event")
+@NamedQuery(name = "AdverseEvent.findByIdAndTenantId", query = "SELECT a FROM AdverseEvent a WHERE a.id = :id AND a.tenantId = :tenantId")
+@NamedQuery(name = "AdverseEvent.findBySusarOversightCaseId", query = "SELECT a FROM AdverseEvent a WHERE a.susarOversightCaseId = :caseId")
 @DynamicUpdate
-public class AdverseEvent extends PanacheEntityBase {
+public class AdverseEvent {
 
     @Id
     public UUID id;
@@ -95,13 +96,4 @@ public class AdverseEvent extends PanacheEntityBase {
     @Column(name = "trajectory_predicted_outcome", length = 50)
     public String trajectoryPredictedOutcome;
 
-
-    public static AdverseEvent findByIdForTenant(UUID id, CurrentPrincipal principal) {
-        if (principal.isCrossTenantAdmin()) return findById(id);
-        return find("id = ?1 AND tenantId = ?2", id, principal.tenancyId()).firstResult();
-    }
-
-    public static AdverseEvent findBySusarOversightCaseId(UUID caseId) {
-        return find("susarOversightCaseId", caseId).firstResult();
-    }
 }

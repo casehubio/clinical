@@ -1,11 +1,5 @@
 package io.casehub.clinical.service;
 
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.never;
-import static org.mockito.Mockito.times;
-import static org.mockito.Mockito.verify;
-
 import io.casehub.clinical.api.model.AeOutcome;
 import io.casehub.clinical.api.model.CtcaeGrade;
 import io.casehub.clinical.api.model.EventActuality;
@@ -16,13 +10,23 @@ import io.quarkus.test.InjectMock;
 import io.quarkus.test.junit.QuarkusTest;
 import jakarta.inject.Inject;
 import jakarta.transaction.Transactional;
-import java.time.Instant;
-import java.util.UUID;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
+import java.time.Instant;
+import java.util.UUID;
+
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
+
 @QuarkusTest
 class RegulatorySubmissionCompletedListenerTest {
+    @jakarta.inject.Inject
+    jakarta.persistence.EntityManager em;
+
 
     @Inject RegulatorySubmissionCompletedListener listener;
     @InjectMock RegulatorySubmissionLedgerWriter ledgerWriter;
@@ -112,13 +116,13 @@ class RegulatorySubmissionCompletedListenerTest {
         ae.tenantId = "test-tenant";
         ae.regulatorySubmissionCaseId = caseId;
         ae.regulatorySubmissionStatus = status;
-        ae.persist();
+        em.persist(ae);
         return ae.id;
     }
 
     @Transactional
     AdverseEvent findAe(UUID aeId) {
-        return AdverseEvent.findById(aeId);
+        return em.find(AdverseEvent.class, aeId);
     }
 
     private CaseLifecycleEvent event(String eventType, UUID caseId) {

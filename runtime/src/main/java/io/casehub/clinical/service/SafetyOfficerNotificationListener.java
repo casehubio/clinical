@@ -9,6 +9,7 @@ import io.quarkus.logging.Log;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.enterprise.event.ObservesAsync;
 import jakarta.inject.Inject;
+import jakarta.persistence.EntityManager;
 import jakarta.transaction.Transactional;
 
 @ApplicationScoped
@@ -16,6 +17,9 @@ public class SafetyOfficerNotificationListener {
 
     @Inject SafetyOfficerNotifier notifier;
     @Inject SafetyOfficerNotificationLedgerWriter ledgerWriter;
+    @Inject
+            EntityManager                         em;
+
 
     @Transactional
     public void onAeReported(@ObservesAsync final AdverseEventReportedEvent event) {
@@ -29,7 +33,7 @@ public class SafetyOfficerNotificationListener {
                 }
                 return;
             }
-            final TrialSite site = TrialSite.findById(event.siteId());
+            final TrialSite site = em.find(TrialSite.class, event.siteId());
             if (site == null) {
                 Log.warnf("TrialSite %s not found — safety officer notification skipped", event.siteId());
                 try {
@@ -39,7 +43,7 @@ public class SafetyOfficerNotificationListener {
                 }
                 return;
             }
-            final ClinicalTrial trial = ClinicalTrial.findById(site.trialId);
+            final ClinicalTrial trial = em.find(ClinicalTrial.class, site.trialId);
             if (trial == null) {
                 Log.warnf("Trial %s not found — safety officer notification skipped", site.trialId);
                 try {

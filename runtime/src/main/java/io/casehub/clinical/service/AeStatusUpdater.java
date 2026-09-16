@@ -3,6 +3,8 @@ package io.casehub.clinical.service;
 import io.casehub.clinical.api.model.AeEscalationStatus;
 import io.casehub.clinical.entity.AdverseEvent;
 import jakarta.enterprise.context.ApplicationScoped;
+import jakarta.inject.Inject;
+import jakarta.persistence.EntityManager;
 import jakarta.transaction.Transactional;
 import org.jboss.logging.Logger;
 
@@ -20,6 +22,8 @@ import java.util.UUID;
 public class AeStatusUpdater {
 
     private static final Logger LOG = Logger.getLogger(AeStatusUpdater.class);
+    @Inject
+    EntityManager em;
 
 
     public enum CompletionResult {
@@ -31,7 +35,7 @@ public class AeStatusUpdater {
 
     @Transactional(Transactional.TxType.REQUIRES_NEW)
     public CompletionResult markCompleted(UUID aeId, UUID expectedCaseId) {
-        AdverseEvent ae = AdverseEvent.findById(aeId);
+        AdverseEvent ae = em.find(AdverseEvent.class, aeId);
         if (ae == null) {
             LOG.warnf("AeStatusUpdater: AdverseEvent not found for aeId=%s — status not updated", aeId);
             return CompletionResult.NOT_FOUND;

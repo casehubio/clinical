@@ -21,7 +21,8 @@ import java.util.UUID;
 public class AeTrajectoryBuilder {
 
     private final PlanItemStore planItemStore;
-    private       java.util.function.Function<UUID, java.util.List<io.casehub.clinical.entity.AeGradeChange>> gradeHistoryFinder = io.casehub.clinical.entity.AeGradeChange::findByAdverseEventId;
+    private final jakarta.persistence.EntityManager em;
+    private       java.util.function.Function<UUID, java.util.List<io.casehub.clinical.entity.AeGradeChange>> gradeHistoryFinder;
 
     void setGradeHistoryFinder(java.util.function.Function<UUID, java.util.List<io.casehub.clinical.entity.AeGradeChange>> finder) {
         this.gradeHistoryFinder = finder;
@@ -29,8 +30,10 @@ public class AeTrajectoryBuilder {
 
 
     @Inject
-    public AeTrajectoryBuilder(PlanItemStore planItemStore) {
+    public AeTrajectoryBuilder(PlanItemStore planItemStore, jakarta.persistence.EntityManager em) {
         this.planItemStore = planItemStore;
+        this.em = em;
+        this.gradeHistoryFinder = aeId -> em.createNamedQuery("AeGradeChange.findByAdverseEventId", io.casehub.clinical.entity.AeGradeChange.class).setParameter("aeId", aeId).getResultList();
     }
 
     public List<Map<String, FeatureValue>> buildTrajectory(AdverseEvent ae, String tenantId) {

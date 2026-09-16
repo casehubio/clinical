@@ -33,6 +33,9 @@ class AdverseEventServiceTest {
 
     @Inject
     LedgerEntryRepository ledgerRepo;
+    @Inject
+    jakarta.persistence.EntityManager em;
+
 
     @Test
     @Transactional
@@ -118,7 +121,7 @@ class AdverseEventServiceTest {
     @Transactional
     void ae_tenantId_is_derived_from_enrollment_not_principal() {
         AdverseEvent ae = newAe(CtcaeGrade.GRADE_1);
-        PatientEnrollment enrollment = PatientEnrollment.findById(ae.enrollmentId);
+        PatientEnrollment enrollment = em.find(PatientEnrollment.class, ae.enrollmentId);
         service.reportAdverseEvent(ae);
         // enrollment.tenantId = "default" (entity field default, set in newAe())
         // principal.tenancyId() = "278776f9-..." (FixedCurrentPrincipal default)
@@ -133,13 +136,13 @@ class AdverseEventServiceTest {
         trial.phase = TrialPhase.PHASE_II;
         trial.sponsor = "Test";
         trial.targetEnrollment = 10;
-        trial.persist();
+        em.persist(trial);
 
         TrialSite site = new TrialSite();
         site.id = UUID.randomUUID();
         site.trialId = trial.id;
         site.investigatorId = "pi-svc-test";
-        site.persist();
+        em.persist(site);
 
         PatientEnrollment enrollment = new PatientEnrollment();
         enrollment.id = UUID.randomUUID();
@@ -147,7 +150,7 @@ class AdverseEventServiceTest {
         enrollment.patientId = "PAT-SVC-" + enrollment.id;
         enrollment.consentStatus = ConsentStatus.PENDING;
         enrollment.enrollmentStatus = EnrollmentStatus.CANDIDATE;
-        enrollment.persist();
+        em.persist(enrollment);
 
         AdverseEvent ae = new AdverseEvent();
         ae.id = UUID.randomUUID();

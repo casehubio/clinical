@@ -6,19 +6,21 @@ import io.casehub.clinical.api.IrbApprovalResolvedEvent;
 import io.casehub.clinical.api.model.IrbDecision;
 import io.casehub.clinical.entity.IrbApproval;
 import io.casehub.clinical.memory.ClinicalMemoryService;
-import io.casehub.work.api.WorkItemLifecycleEvent;
 import io.casehub.work.api.WorkItem;
+import io.casehub.work.api.WorkItemLifecycleEvent;
 import io.casehub.work.api.WorkItemStatus;
 import io.casehub.work.engine.CallerRef;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.enterprise.event.Event;
 import jakarta.enterprise.event.ObservesAsync;
 import jakarta.inject.Inject;
+import jakarta.persistence.EntityManager;
 import jakarta.transaction.Transactional;
+import org.jboss.logging.Logger;
+
 import java.time.Instant;
 import java.util.Map;
 import java.util.UUID;
-import org.jboss.logging.Logger;
 
 /**
  * Bridges IRB WorkItem lifecycle events to the IrbApproval domain entity and ledger.
@@ -41,6 +43,9 @@ public class IrbDecisionListener {
     @Inject ClinicalDeviationCaseHub caseHub;
     @Inject ObjectMapper objectMapper;
     @Inject ClinicalMemoryService memoryService;
+    @Inject
+            EntityManager         em;
+
 
     @Transactional
     public void onWorkItemLifecycle(@ObservesAsync WorkItemLifecycleEvent event) {
@@ -59,9 +64,9 @@ public class IrbDecisionListener {
             return;
         }
 
-        IrbApproval approval = IrbApproval
-                .find("deviationId = ?1 and decision = 'PENDING'", deviationId)
-                .firstResult();
+        IrbApproval approval = em.createQuery("SELECT a FROM IrbApproval a WHERE a.deviationId = :devId AND a.decision = io.casehub.clinical.api.model.IrbDecision.PENDING", IrbApproval.class)
+                .setParameter("devId", deviationId)
+                .getResultStream().findFirst().orElse(null);
         if (approval == null) {
             LOG.warnf("No PENDING IrbApproval for deviationId=%s — already resolved?", deviationId);
             return;
@@ -73,7 +78,7 @@ public class IrbDecisionListener {
         boolean ledgerDecisionWritten = false;
         try {
             approval.decision = decision;
-            approval.persist();
+            em.persist(approval);
 
             if (event.status() == WorkItemStatus.EXPIRED) {
                 CallerRef ref = CallerRef.parse(workItem.callerRef());

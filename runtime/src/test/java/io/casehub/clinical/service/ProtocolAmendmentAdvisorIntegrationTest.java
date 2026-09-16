@@ -38,6 +38,9 @@ import static org.mockito.Mockito.when;
 @QuarkusTest
 @TestSecurity(user = "test-actor", roles = {ClinicalGroups.SPONSOR, ClinicalGroups.INVESTIGATOR, ClinicalGroups.COORDINATOR})
 class ProtocolAmendmentAdvisorIntegrationTest {
+    @Inject
+    jakarta.persistence.EntityManager em;
+
 
     @Inject ProtocolAmendmentAdvisor advisor;
     @Inject FixedCurrentPrincipal principal;
@@ -48,11 +51,11 @@ class ProtocolAmendmentAdvisorIntegrationTest {
     @BeforeEach
     @Transactional
     void setUp() {
-        AdverseEvent.deleteAll();
-        ProtocolAmendment.deleteAll();
-        PatientEnrollment.deleteAll();
-        TrialSite.deleteAll();
-        ClinicalTrial.deleteAll();
+        em.createQuery("DELETE FROM AdverseEvent").executeUpdate();
+        em.createQuery("DELETE FROM ProtocolAmendment").executeUpdate();
+        em.createQuery("DELETE FROM PatientEnrollment").executeUpdate();
+        em.createQuery("DELETE FROM TrialSite").executeUpdate();
+        em.createQuery("DELETE FROM ClinicalTrial").executeUpdate();
 
         trialId = UUID.randomUUID();
         ClinicalTrial trial = new ClinicalTrial();
@@ -62,7 +65,7 @@ class ProtocolAmendmentAdvisorIntegrationTest {
         trial.sponsor = "TestPharma";
         trial.status = TrialStatus.ACTIVE;
         trial.tenantId = principal.tenancyId();
-        trial.persist();
+        em.persist(trial);
 
         UUID siteId = UUID.randomUUID();
         TrialSite site = new TrialSite();
@@ -70,14 +73,14 @@ class ProtocolAmendmentAdvisorIntegrationTest {
         site.trialId = trialId;
         site.investigatorId = "pi-test";
         site.tenantId = principal.tenancyId();
-        site.persist();
+        em.persist(site);
 
         PatientEnrollment enrollment = new PatientEnrollment();
         enrollment.id = UUID.randomUUID();
         enrollment.siteId = siteId;
         enrollment.patientId = "P001";
         enrollment.tenantId = principal.tenancyId();
-        enrollment.persist();
+        em.persist(enrollment);
 
         AdverseEvent ae = new AdverseEvent();
         ae.id = UUID.randomUUID();
@@ -89,7 +92,7 @@ class ProtocolAmendmentAdvisorIntegrationTest {
         ae.occurredAt = Instant.now();
         ae.reportedAt = Instant.now();
         ae.tenantId = principal.tenancyId();
-        ae.persist();
+        em.persist(ae);
 
         when(agentProvider.invoke(any(AgentSessionConfig.class)))
                 .thenReturn(Multi.createFrom().item(

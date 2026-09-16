@@ -42,6 +42,7 @@ import io.quarkus.runtime.StartupEvent;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.enterprise.event.Observes;
 import jakarta.inject.Inject;
+import jakarta.persistence.EntityManager;
 import jakarta.transaction.Transactional;
 import org.eclipse.microprofile.config.inject.ConfigProperty;
 import org.jboss.logging.Logger;
@@ -129,6 +130,7 @@ public class DemoDataSeeder {
     @Inject LedgerEntryRepository ledgerEntryRepository;
     @Inject
             ClinicalCbrService    cbrService;
+    @Inject EntityManager em;
 
 
     void onStartup(@Observes StartupEvent event) {
@@ -137,7 +139,8 @@ public class DemoDataSeeder {
             return;
         }
         boolean exists = QuarkusTransaction.requiringNew().call(() ->
-                ClinicalTrial.find("protocolId", "ONCO-2024-001").firstResult() != null);
+                em.createQuery("SELECT t FROM ClinicalTrial t WHERE t.protocolId = :protocolId", ClinicalTrial.class)
+                        .setParameter("protocolId", "ONCO-2024-001").getResultStream().findFirst().orElse(null) != null);
         if (exists) {
             LOG.info("Demo trial ONCO-2024-001 already exists — skipping seed");
             return;
@@ -212,7 +215,7 @@ public class DemoDataSeeder {
         trial.targetEnrollment = 300;
         trial.status = TrialStatus.PLANNING;
         trial.tenantId = principal.tenancyId();
-        trial.persist();
+        em.persist(trial);
 
         addSite(SITE_A_ID, "dr-chen", 120);
         addSite(SITE_B_ID, "dr-martinez", 100);
@@ -226,7 +229,7 @@ public class DemoDataSeeder {
         site.investigatorId = investigatorId;
         site.targetEnrollment = targetEnrollment;
         site.tenantId = principal.tenancyId();
-        site.persist();
+        em.persist(site);
     }
 
     @Transactional(Transactional.TxType.REQUIRES_NEW)
@@ -272,14 +275,14 @@ public class DemoDataSeeder {
         enrollment.consentStatus = ConsentStatus.OBTAINED;
         enrollment.enrolledAt    = enrolledAt;
         enrollment.tenantId      = principal.tenancyId();
-        enrollment.persist();
+        em.persist(enrollment);
     }
 
     // ── Phase 3: Site A — screening + AEs ────────────────────────────────────
 
     @Transactional(Transactional.TxType.REQUIRES_NEW)
     void screenPatientA() {
-        PatientEnrollment enrollment = PatientEnrollment.findById(PATIENT_A1_ID);
+        PatientEnrollment enrollment = em.find(PatientEnrollment.class, PATIENT_A1_ID);
         List<CriterionResult> criteria = List.of(
                 new CriterionResult("age-18-plus", true, false),
                 new CriterionResult("ecog-0-2", true, false),
@@ -322,7 +325,7 @@ public class DemoDataSeeder {
             ae.suspected = true;
             ae.eventType = "FATIGUE";
             ae.tenantId = principal.tenancyId();
-            ae.persist();
+            em.persist(ae);
 
             io.casehub.clinical.entity.AeGradeChange initial = new io.casehub.clinical.entity.AeGradeChange();
             initial.id = UUID.randomUUID();
@@ -332,7 +335,7 @@ public class DemoDataSeeder {
             initial.changedAt = ae.reportedAt;
             initial.changedBy = "system";
             initial.reason = "Initial report";
-            initial.persist();
+            em.persist(initial);
 
             io.casehub.clinical.entity.AeGradeChange regrade = new io.casehub.clinical.entity.AeGradeChange();
             regrade.id = UUID.randomUUID();
@@ -342,7 +345,7 @@ public class DemoDataSeeder {
             regrade.changedAt = Instant.now().minus(Duration.ofDays(3));
             regrade.changedBy = "dr-chen";
             regrade.reason = "Condition worsened — fatigue progressed to debilitating";
-            regrade.persist();
+            em.persist(regrade);
 
             ae.grade = CtcaeGrade.GRADE_3;
             ae.slaDeadline = regrade.changedAt.plus(Duration.ofHours(24));
@@ -395,12 +398,12 @@ public class DemoDataSeeder {
         // Step 2: Poll for SUSAR oversight case to start
         pollUntil("SUSAR oversight case start for aeId=" + aeId, () ->
                 QuarkusTransaction.requiringNew().call(() -> {
-                    AdverseEvent ae = AdverseEvent.findById(aeId);
+                    AdverseEvent ae = em.find(AdverseEvent.class, aeId);
                     return ae != null && ae.susarOversightCaseId != null;
                 }));
 
         UUID susarCaseId = QuarkusTransaction.requiringNew().call(() -> {
-            AdverseEvent ae = AdverseEvent.findById(aeId);
+            AdverseEvent ae = em.find(AdverseEvent.class, aeId);
             return ae.susarOversightCaseId;
         });
         LOG.infof("SUSAR %d: oversight case started, caseId=%s", index, susarCaseId);
@@ -429,7 +432,7 @@ public class DemoDataSeeder {
         // Step 5: Poll for SUSAR oversight to complete
         pollUntil("SUSAR oversight completion for aeId=" + aeId, () ->
                 QuarkusTransaction.requiringNew().call(() -> {
-                    AdverseEvent ae = AdverseEvent.findById(aeId);
+                    AdverseEvent ae = em.find(AdverseEvent.class, aeId);
                     return ae != null
                             && ae.susarOversightStatus == SusarOversightStatus.COMPLETED;
                 }));
@@ -457,14 +460,14 @@ public class DemoDataSeeder {
         // Step 2: Poll for COMMANDED state (channel created, COMMAND message sent)
         pollUntil("deviation COMMANDED state for " + deviationId, () ->
                 QuarkusTransaction.requiringNew().call(() -> {
-                    ProtocolDeviation dev = ProtocolDeviation.findById(deviationId);
+                    ProtocolDeviation dev = em.find(ProtocolDeviation.class, deviationId);
                     return dev != null
                             && dev.piApprovalStatus == PiApprovalStatus.COMMANDED;
                 }));
 
         // Step 3: Approve as PI via channel gateway
         QuarkusTransaction.requiringNew().run(() -> {
-            ProtocolDeviation dev = ProtocolDeviation.findById(deviationId);
+            ProtocolDeviation dev = em.find(ProtocolDeviation.class, deviationId);
             var channel = channelService.findByName(dev.piCommandChannelName)
                     .orElseThrow(() -> new IllegalStateException(
                             "PI oversight channel not found: " + dev.piCommandChannelName));
@@ -484,7 +487,7 @@ public class DemoDataSeeder {
         // Step 4: Poll for PI approval to be processed
         pollUntil("PI approval for deviation " + deviationId, () ->
                 QuarkusTransaction.requiringNew().call(() -> {
-                    ProtocolDeviation dev = ProtocolDeviation.findById(deviationId);
+                    ProtocolDeviation dev = em.find(ProtocolDeviation.class, deviationId);
                     return dev != null
                             && (dev.piApprovalStatus == PiApprovalStatus.APPROVED
                                 || dev.piApprovalStatus == PiApprovalStatus.ESCALATED);

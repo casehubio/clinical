@@ -1,11 +1,5 @@
 package io.casehub.clinical.service;
 
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.eq;
-import static org.mockito.Mockito.reset;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.verifyNoInteractions;
-
 import io.casehub.clinical.api.model.AeOutcome;
 import io.casehub.clinical.api.model.CtcaeGrade;
 import io.casehub.clinical.api.model.EventActuality;
@@ -18,14 +12,24 @@ import io.quarkus.test.InjectMock;
 import io.quarkus.test.junit.QuarkusTest;
 import jakarta.inject.Inject;
 import jakarta.transaction.Transactional;
-import java.time.Instant;
-import java.util.UUID;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
 
+import java.time.Instant;
+import java.util.UUID;
+
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.reset;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoInteractions;
+
 @QuarkusTest
 class SusarGateDecisionListenerTest {
+    @jakarta.inject.Inject
+    jakarta.persistence.EntityManager em;
+
 
     @Inject SusarGateDecisionListener listener;
     @InjectMock SusarDecisionLedgerWriter ledgerWriter;
@@ -110,7 +114,7 @@ class SusarGateDecisionListenerTest {
         ae.tenantId = "default";
         ae.susarOversightStatus = SusarOversightStatus.REQUESTED;
         ae.susarOversightCaseId = susarOversightCaseId;
-        ae.persist();
+        em.persist(ae);
         return ae;
     }
 }

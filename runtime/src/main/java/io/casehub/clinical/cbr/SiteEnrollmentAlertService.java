@@ -34,8 +34,9 @@ public class SiteEnrollmentAlertService {
     private final ClinicalCbrService cbrService;
     private final Event<SiteEnrollmentAlertEvent> alertEvents;
     private final ClinicalCbrConfig cbrConfig;
-    private Function<UUID, ClinicalTrial> trialFinder = id -> ClinicalTrial.findById(id);
-    private BiFunction<UUID, String, Instant> earliestEnrollmentFinder = SiteEnrollmentAlertService::defaultEarliestEnrollment;
+    private final jakarta.persistence.EntityManager em;
+    private Function<UUID, ClinicalTrial> trialFinder;
+    private BiFunction<UUID, String, Instant> earliestEnrollmentFinder;
 
     @ConfigProperty(name = "casehub.clinical.trajectory.alert.min-matches", defaultValue = "2")
     int minMatches;
@@ -50,11 +51,15 @@ public class SiteEnrollmentAlertService {
     public SiteEnrollmentAlertService(SiteEnrollmentTrajectoryBuilder trajectoryBuilder,
                                        ClinicalCbrService cbrService,
                                        Event<SiteEnrollmentAlertEvent> alertEvents,
-                                       ClinicalCbrConfig cbrConfig) {
+                                       ClinicalCbrConfig cbrConfig,
+                                       jakarta.persistence.EntityManager em) {
         this.trajectoryBuilder = trajectoryBuilder;
         this.cbrService = cbrService;
         this.alertEvents = alertEvents;
         this.cbrConfig = cbrConfig;
+        this.em = em;
+        this.trialFinder = id -> em.find(ClinicalTrial.class, id);
+        this.earliestEnrollmentFinder = (siteId, tenantId) -> em.createQuery("SELECT e.enrolledAt FROM PatientEnrollment e WHERE e.siteId = :siteId AND e.tenantId = :tenantId AND e.enrolledAt IS NOT NULL ORDER BY e.enrolledAt ASC", Instant.class).setParameter("siteId", siteId).setParameter("tenantId", tenantId).getResultStream().findFirst().orElse(null);
     }
 
     void setTrialFinder(Function<UUID, ClinicalTrial> finder) {
@@ -129,11 +134,5 @@ public class SiteEnrollmentAlertService {
         return new Prediction(winner.getKey(), winner.getValue() / totalScore);
     }
 
-    @SuppressWarnings("unchecked")
-    private static Instant defaultEarliestEnrollment(UUID siteId, String tenantId) {
-        return PatientEnrollment.<PatientEnrollment>find("siteId = ?1 AND tenantId = ?2 AND enrolledAt IS NOT NULL ORDER BY enrolledAt ASC", siteId, tenantId)
-                .firstResultOptional()
-                .map(e -> e.enrolledAt)
-                .orElse(null);
-    }
+
 }

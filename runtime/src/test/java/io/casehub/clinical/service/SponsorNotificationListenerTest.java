@@ -35,6 +35,9 @@ import static org.mockito.Mockito.when;
 
 @QuarkusTest
 class SponsorNotificationListenerTest {
+    @jakarta.inject.Inject
+    jakarta.persistence.EntityManager em;
+
 
     @Inject SponsorNotificationListener listener;
     @InjectMock SponsorNotifier sponsorNotifier;
@@ -63,14 +66,14 @@ class SponsorNotificationListenerTest {
         trial.status = TrialStatus.ACTIVE;
         trial.sponsorNotificationConnectorId = "slack";
         trial.sponsorNotificationDestination = "https://hooks.slack.com/test";
-        trial.persist();
+        em.persist(trial);
 
         TrialSite site = new TrialSite();
         site.id = siteId;
         site.trialId = trialId;
         site.investigatorId = "dr-smith@v1";
         site.status = SiteStatus.ACTIVE;
-        site.persist();
+        em.persist(site);
     }
 
     @Test
@@ -221,14 +224,14 @@ class SponsorNotificationListenerTest {
         trial.status = TrialStatus.PLANNING;
         trial.sponsorNotificationConnectorId = connectorId;
         trial.sponsorNotificationDestination = destination;
-        trial.persist();
+        em.persist(trial);
 
         TrialSite site = new TrialSite();
         site.id = newSiteId;
         site.trialId = newTrialId;
         site.investigatorId = "x";
         site.status = SiteStatus.PENDING;
-        site.persist();
+        em.persist(site);
 
         return site;
     }

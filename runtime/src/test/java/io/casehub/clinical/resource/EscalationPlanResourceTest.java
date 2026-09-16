@@ -17,12 +17,14 @@ import java.time.Instant;
 import java.util.UUID;
 
 import static io.restassured.RestAssured.given;
-import static org.hamcrest.Matchers.*;
 
 @QuarkusTest
 @TestSecurity(user = "test-actor", roles = {ClinicalGroups.SPONSOR, ClinicalGroups.INVESTIGATOR,
         ClinicalGroups.COORDINATOR, ClinicalGroups.MONITOR})
 class EscalationPlanResourceTest {
+    @jakarta.inject.Inject
+    jakarta.persistence.EntityManager em;
+
 
     private UUID aeId;
 
@@ -35,21 +37,21 @@ class EscalationPlanResourceTest {
         trial.phase = TrialPhase.PHASE_III;
         trial.sponsor = "Sponsor";
         trial.tenantId = "test-tenant";
-        trial.persist();
+        em.persist(trial);
 
         TrialSite site = new TrialSite();
         site.id = UUID.randomUUID();
         site.trialId = trial.id;
         site.investigatorId = "pi-1";
         site.tenantId = "test-tenant";
-        site.persist();
+        em.persist(site);
 
         PatientEnrollment enrollment = new PatientEnrollment();
         enrollment.id = UUID.randomUUID();
         enrollment.siteId = site.id;
         enrollment.patientId = "P001";
         enrollment.tenantId = "test-tenant";
-        enrollment.persist();
+        em.persist(enrollment);
 
         AdverseEvent ae = new AdverseEvent();
         ae.id = UUID.randomUUID();
@@ -59,7 +61,7 @@ class EscalationPlanResourceTest {
         ae.occurredAt = Instant.now();
         ae.reportedAt = Instant.now();
         ae.tenantId = "test-tenant";
-        ae.persist();
+        em.persist(ae);
         aeId = ae.id;
     }
 

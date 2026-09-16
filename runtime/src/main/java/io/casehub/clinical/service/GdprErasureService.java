@@ -11,12 +11,14 @@ import java.util.List;
 public class GdprErasureService {
 
     @Inject ConsentWithdrawalService consentWithdrawalService;
+    @Inject
+            jakarta.persistence.EntityManager em;
+
 
     @Transactional
     public int erasePatient(String patientId, String tenantId) {
-        List<PatientEnrollment> enrollments = PatientEnrollment.find(
-                "patientId = ?1 AND tenantId = ?2 AND consentStatus != ?3",
-                patientId, tenantId, ConsentStatus.WITHDRAWN).list();
+        List<PatientEnrollment> enrollments = em.createQuery("SELECT e FROM PatientEnrollment e WHERE e.patientId = :patientId AND e.tenantId = :tenantId AND e.consentStatus != :status", PatientEnrollment.class)
+                .setParameter("patientId", patientId).setParameter("tenantId", tenantId).setParameter("status", ConsentStatus.WITHDRAWN).getResultList();
 
         if (enrollments.isEmpty()) {
             throw new PatientNotFoundException(patientId);

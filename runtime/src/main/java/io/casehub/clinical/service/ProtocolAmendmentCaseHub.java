@@ -9,6 +9,7 @@ import io.casehub.worker.api.Worker;
 import io.casehub.worker.api.WorkerResult;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
+import jakarta.persistence.EntityManager;
 
 import java.util.Map;
 import java.util.UUID;
@@ -18,6 +19,9 @@ public class ProtocolAmendmentCaseHub extends YamlCaseHub {
 
     @Inject
     ProtocolAmendmentAdvisor advisor;
+    @Inject
+    EntityManager em;
+
 
     public ProtocolAmendmentCaseHub() {super("clinical/protocol-amendment.yaml");}
 
@@ -49,23 +53,21 @@ public class ProtocolAmendmentCaseHub extends YamlCaseHub {
 
     private Map<String, Object> buildTrialSnapshotInTx(UUID trialId) {
         java.util.HashMap<String, Object>        snapshot = new java.util.HashMap<>();
-        io.casehub.clinical.entity.ClinicalTrial trial    = io.casehub.clinical.entity.ClinicalTrial.findById(trialId);
+        io.casehub.clinical.entity.ClinicalTrial trial    = em.find(io.casehub.clinical.entity.ClinicalTrial.class, trialId);
         if (trial == null) {return snapshot;}
         snapshot.put("trialPhase", trial.phase != null ? trial.phase.name() : "UNKNOWN");
         snapshot.put("trialStatus", trial.status != null ? trial.status.name() : "UNKNOWN");
         snapshot.put("sponsor", trial.sponsor);
-        long totalAes = io.casehub.clinical.entity.AdverseEvent.count(
-                "enrollmentId in (select id from PatientEnrollment where siteId in (select id from TrialSite where trialId = ?1))", trialId);
+        long totalAes = em.createQuery("SELECT COUNT(a) FROM AdverseEvent a WHERE a.enrollmentId IN (SELECT p.id FROM PatientEnrollment p WHERE p.siteId IN (SELECT s.id FROM TrialSite s WHERE s.trialId = :trialId))", Long.class)
+                .setParameter("trialId", trialId).getSingleResult();
         snapshot.put("totalAdverseEvents", totalAes);
-        long grade3Plus = io.casehub.clinical.entity.AdverseEvent.count(
-                "grade in (?1, ?2, ?3) and enrollmentId in (select id from PatientEnrollment where siteId in (select id from TrialSite where trialId = ?4))",
-                io.casehub.clinical.api.model.CtcaeGrade.GRADE_3, io.casehub.clinical.api.model.CtcaeGrade.GRADE_4, io.casehub.clinical.api.model.CtcaeGrade.GRADE_5, trialId);
+        long grade3Plus = em.createQuery("SELECT COUNT(a) FROM AdverseEvent a WHERE a.grade IN (:g3, :g4, :g5) AND a.enrollmentId IN (SELECT p.id FROM PatientEnrollment p WHERE p.siteId IN (SELECT s.id FROM TrialSite s WHERE s.trialId = :trialId))", Long.class)
+                .setParameter("g3", io.casehub.clinical.api.model.CtcaeGrade.GRADE_3).setParameter("g4", io.casehub.clinical.api.model.CtcaeGrade.GRADE_4).setParameter("g5", io.casehub.clinical.api.model.CtcaeGrade.GRADE_5).setParameter("trialId", trialId).getSingleResult();
         snapshot.put("grade3PlusCount", grade3Plus);
-        boolean hasGrade5 = io.casehub.clinical.entity.AdverseEvent.count(
-                "grade = ?1 and enrollmentId in (select id from PatientEnrollment where siteId in (select id from TrialSite where trialId = ?2))",
-                io.casehub.clinical.api.model.CtcaeGrade.GRADE_5, trialId) > 0;
+        boolean hasGrade5 = em.createQuery("SELECT COUNT(a) FROM AdverseEvent a WHERE a.grade = :grade AND a.enrollmentId IN (SELECT p.id FROM PatientEnrollment p WHERE p.siteId IN (SELECT s.id FROM TrialSite s WHERE s.trialId = :trialId))", Long.class)
+                .setParameter("grade", io.casehub.clinical.api.model.CtcaeGrade.GRADE_5).setParameter("trialId", trialId).getSingleResult() > 0;
         snapshot.put("hasGrade5", hasGrade5);
-        snapshot.put("priorAmendmentCount", io.casehub.clinical.entity.ProtocolAmendment.findByTrialId(trialId).size());
+        snapshot.put("priorAmendmentCount", em.createNamedQuery("ProtocolAmendment.findByTrialId", io.casehub.clinical.entity.ProtocolAmendment.class).setParameter("trialId", trialId).getResultList().size());
         return snapshot;
     }
 }

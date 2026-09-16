@@ -2,20 +2,25 @@ package io.casehub.clinical.entity;
 
 import io.casehub.clinical.api.model.AbnormalFlag;
 import io.casehub.clinical.api.model.SpecimenType;
-import io.casehub.platform.api.identity.CurrentPrincipal;
-import io.quarkus.hibernate.orm.panache.PanacheEntityBase;
-import jakarta.persistence.*;
+import jakarta.persistence.Column;
+import jakarta.persistence.Entity;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
+import jakarta.persistence.Id;
+import jakarta.persistence.NamedQuery;
+import jakarta.persistence.Table;
 import org.hibernate.annotations.DynamicUpdate;
 
 import java.math.BigDecimal;
 import java.time.Instant;
-import java.util.List;
 import java.util.UUID;
 
 @Entity
 @Table(name = "lab_result")
+@NamedQuery(name = "LabResult.findByIdAndTenantId", query = "SELECT r FROM LabResult r WHERE r.id = :id AND r.tenantId = :tenantId")
+@NamedQuery(name = "LabResult.listByEnrollment", query = "SELECT r FROM LabResult r WHERE r.enrollmentId = :enrollmentId AND r.tenantId = :tenantId")
 @DynamicUpdate
-public class LabResult extends PanacheEntityBase {
+public class LabResult {
 
     @Id
     public UUID id;
@@ -60,15 +65,4 @@ public class LabResult extends PanacheEntityBase {
 
     @Column(name = "created_at", nullable = false)
     public Instant createdAt;
-
-    public static LabResult findByIdForTenant(UUID id, CurrentPrincipal principal) {
-        LabResult lr = findById(id);
-        if (lr == null) return null;
-        if (principal.isCrossTenantAdmin()) return lr;
-        return lr.tenantId.equals(principal.tenancyId()) ? lr : null;
-    }
-
-    public static List<LabResult> listByEnrollment(UUID enrollmentId, String tenantId) {
-        return list("enrollmentId = ?1 and tenantId = ?2", enrollmentId, tenantId);
-    }
 }

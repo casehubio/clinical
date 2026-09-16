@@ -7,6 +7,7 @@ import io.casehub.clinical.entity.ProtocolAmendment;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.enterprise.event.Event;
 import jakarta.inject.Inject;
+import jakarta.persistence.EntityManager;
 import jakarta.transaction.Transactional;
 import java.time.Instant;
 import java.util.UUID;
@@ -16,6 +17,9 @@ public class ProtocolAmendmentService {
 
     @Inject ProtocolAmendmentLedgerWriter ledgerWriter;
     @Inject Event<ProtocolAmendmentProposedEvent> proposedEvents;
+    @Inject
+            EntityManager                         em;
+
 
     public ProtocolAmendment propose(UUID trialId, String proposedChange, String tenantId) {
         ProtocolAmendment amendment = persistProposal(trialId, proposedChange, tenantId);
@@ -34,7 +38,7 @@ public class ProtocolAmendmentService {
         amendment.status = ProtocolAmendmentStatus.PROPOSED;
         amendment.amendmentCaseStatus = AmendmentCaseStatus.NONE;
         amendment.proposedAt = Instant.now();
-        amendment.persist();
+        em.persist(amendment);
         ledgerWriter.writeProposalEntry(amendment);
         return amendment;
     }

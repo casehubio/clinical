@@ -30,6 +30,9 @@ class ProtocolAmendmentListenerTest {
 
     @Inject ProtocolAmendmentListener listener;
     @InjectMock ProtocolAmendmentStatusUpdater statusUpdater;
+    @Inject
+                jakarta.persistence.EntityManager em;
+
 
     UUID amendmentId;
     UUID caseId;
@@ -48,7 +51,7 @@ class ProtocolAmendmentListenerTest {
         a.amendmentCaseStatus = AmendmentCaseStatus.REQUESTED;
         a.tenantId = "default";
         a.proposedAt = Instant.now();
-        a.persist();
+        em.persist(a);
 
         doNothing().when(statusUpdater).applyRecommendation(any(), any());
     }

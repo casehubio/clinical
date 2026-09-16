@@ -14,7 +14,6 @@ import org.junit.jupiter.api.Test;
 
 import java.time.Clock;
 import java.time.Instant;
-import java.time.ZoneOffset;
 import java.util.List;
 import java.util.UUID;
 
@@ -24,6 +23,9 @@ import static org.mockito.Mockito.when;
 
 @QuarkusTest
 class SponsorNotificationStoreTest {
+    @jakarta.inject.Inject
+    jakarta.persistence.EntityManager em;
+
 
     @Inject SponsorNotificationStore store;
     @InjectMock Clock clock;
@@ -256,29 +258,29 @@ class SponsorNotificationStoreTest {
 
     @Transactional
     SponsorNotification loadByDeviationId(final UUID devId) {
-        return SponsorNotification.<SponsorNotification>find("deviationId", devId)
-                .firstResult();
+        return em.createQuery("SELECT n FROM SponsorNotification n WHERE n.deviationId = :devId", SponsorNotification.class)
+                .setParameter("devId", devId).getResultStream().findFirst().orElse(null);
     }
 
     @Transactional
     SponsorNotification load(final UUID id) {
-        return SponsorNotification.findById(id);
+        return em.find(SponsorNotification.class, id);
     }
 
     @Transactional
     List<SponsorNotification> loadAll() {
-        return SponsorNotification.listAll();
+        return em.createQuery("SELECT n FROM SponsorNotification n", SponsorNotification.class).getResultList();
     }
 
     @Transactional
     void setStatus(final UUID id, final SponsorNotificationStatus status) {
-        final SponsorNotification n = SponsorNotification.findById(id);
+        final SponsorNotification n = em.find(SponsorNotification.class, id);
         n.status = status;
     }
 
     @Transactional
     void setFailedWithNextRetry(final UUID id, final Instant nextRetryAfter) {
-        final SponsorNotification n = SponsorNotification.findById(id);
+        final SponsorNotification n = em.find(SponsorNotification.class, id);
         n.status = SponsorNotificationStatus.FAILED;
         n.nextRetryAfter = nextRetryAfter;
     }

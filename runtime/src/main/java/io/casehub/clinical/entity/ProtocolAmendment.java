@@ -3,16 +3,22 @@ package io.casehub.clinical.entity;
 import io.casehub.clinical.api.model.AmendmentCaseStatus;
 import io.casehub.clinical.api.model.ProtocolAmendmentStatus;
 import io.casehub.clinical.api.spi.AmendmentRecommendation;
-import io.casehub.platform.api.identity.CurrentPrincipal;
-import io.quarkus.hibernate.orm.panache.PanacheEntityBase;
-import jakarta.persistence.*;
+import jakarta.persistence.Column;
+import jakarta.persistence.Entity;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
+import jakarta.persistence.Id;
+import jakarta.persistence.NamedQuery;
+import jakarta.persistence.Table;
+
 import java.time.Instant;
-import java.util.List;
 import java.util.UUID;
 
 @Entity
 @Table(name = "protocol_amendment")
-public class ProtocolAmendment extends PanacheEntityBase {
+@NamedQuery(name = "ProtocolAmendment.findByTrialId", query = "SELECT a FROM ProtocolAmendment a WHERE a.trialId = :trialId")
+@NamedQuery(name = "ProtocolAmendment.findByIdAndTenantId", query = "SELECT a FROM ProtocolAmendment a WHERE a.id = :id AND a.tenantId = :tenantId")
+public class ProtocolAmendment {
 
     @Id
     public UUID id;
@@ -43,13 +49,4 @@ public class ProtocolAmendment extends PanacheEntityBase {
 
     @Column(name = "proposed_at", nullable = false)
     public Instant proposedAt;
-
-    public static List<ProtocolAmendment> findByTrialId(UUID trialId) {
-        return list("trialId", trialId);
-    }
-
-    public static ProtocolAmendment findByIdForTenant(UUID id, CurrentPrincipal principal) {
-        if (principal.isCrossTenantAdmin()) return findById(id);
-        return find("id = ?1 and tenantId = ?2", id, principal.tenancyId()).firstResult();
-    }
 }

@@ -6,6 +6,7 @@ import io.casehub.clinical.api.model.SponsorNotificationStatus;
 import io.casehub.clinical.entity.SponsorNotification;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
+import jakarta.persistence.EntityManager;
 import jakarta.transaction.Transactional;
 import java.time.Clock;
 import java.time.Instant;
@@ -32,6 +33,9 @@ class SponsorNotificationStore {
 
     @Inject SponsorNotificationLedgerWriter ledgerWriter;
     @Inject Clock clock;
+    @Inject
+            EntityManager em;
+
 
     /** Creates a PENDING entity. Commits in its own REQUIRES_NEW so it survives listener rollback. */
     @Transactional(Transactional.TxType.REQUIRES_NEW)
@@ -57,7 +61,7 @@ class SponsorNotificationStore {
         n.severity = req.severity();
         n.terminalStatus = req.terminalStatus();
         n.deviationType = req.deviationType();
-        n.persist();
+        em.persist(n);
     }
 
     /**
@@ -68,7 +72,7 @@ class SponsorNotificationStore {
      */
     @Transactional
     SponsorNotification load(final UUID id) {
-        return SponsorNotification.findById(id);
+        return em.find(SponsorNotification.class, id);
     }
 
     /**
@@ -80,7 +84,7 @@ class SponsorNotificationStore {
      */
     @Transactional
     List<UUID> findEligibleIds(final Instant now, final int limit) {
-        return SponsorNotification.getEntityManager()
+        return em
                 .createQuery(
                         "SELECT n.id FROM SponsorNotification n"
                         + " WHERE n.status IN (:s1, :s2)"
@@ -100,7 +104,7 @@ class SponsorNotificationStore {
     @Transactional(Transactional.TxType.REQUIRES_NEW)
     void markDelivered(final UUID id, final SponsorNotification snapshot,
                        final int attemptNumber, final Instant deliveredAt) {
-        final SponsorNotification n = SponsorNotification.findById(id);
+        final SponsorNotification n = em.find(SponsorNotification.class, id);
         if (n == null) return;
         n.status = SponsorNotificationStatus.DELIVERED;
         n.attempts = attemptNumber;
@@ -116,7 +120,7 @@ class SponsorNotificationStore {
     @Transactional(Transactional.TxType.REQUIRES_NEW)
     void markFailed(final UUID id, final SponsorNotification snapshot,
                     final String reason, final int attemptNumber, final Instant nextRetry) {
-        final SponsorNotification n = SponsorNotification.findById(id);
+        final SponsorNotification n = em.find(SponsorNotification.class, id);
         if (n == null) return;
         // Guard: never regress a terminal state — DELIVERED or EXHAUSTED cannot go backwards
         if (n.status == SponsorNotificationStatus.DELIVERED
@@ -136,7 +140,7 @@ class SponsorNotificationStore {
     @Transactional(Transactional.TxType.REQUIRES_NEW)
     void markExhausted(final UUID id, final SponsorNotification snapshot,
                        final String reason, final int attemptNumber) {
-        final SponsorNotification n = SponsorNotification.findById(id);
+        final SponsorNotification n = em.find(SponsorNotification.class, id);
         if (n == null) return;
         // Guard: idempotent — EXHAUSTED cannot be re-driven backwards or re-exhausted
         if (n.status == SponsorNotificationStatus.DELIVERED

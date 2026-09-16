@@ -10,6 +10,7 @@ import io.casehub.qhorus.runtime.message.CommitmentService;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.enterprise.event.Event;
 import jakarta.inject.Inject;
+import jakarta.persistence.EntityManager;
 import jakarta.transaction.Transactional;
 
 import java.time.Instant;
@@ -31,19 +32,21 @@ public class DeviationExpirer {
     @Inject Event<ProtocolDeviationResolvedEvent> resolvedEvent;
     @Inject DeviationLedgerWriter ledgerWriter;
     @Inject io.casehub.clinical.memory.ClinicalMemoryService memoryService;
+    @Inject
+            EntityManager                                    em;
+
 
     @Transactional
     public List<UUID> findOverdueIds() {
-        return ProtocolDeviation
-            .find("piApprovalStatus = ?1 and responseDeadline < ?2",
-                  PiApprovalStatus.COMMANDED, Instant.now())
-            .<ProtocolDeviation>list()
+        return em.createQuery("SELECT d FROM ProtocolDeviation d WHERE d.piApprovalStatus = :status AND d.responseDeadline < :now", ProtocolDeviation.class)
+            .setParameter("status", PiApprovalStatus.COMMANDED).setParameter("now", Instant.now())
+            .getResultList()
             .stream().map(d -> d.id).toList();
     }
 
     @Transactional(Transactional.TxType.REQUIRES_NEW)
     public void expireOne(UUID deviationId) {
-        ProtocolDeviation d = ProtocolDeviation.findById(deviationId);
+        ProtocolDeviation d = em.find(ProtocolDeviation.class, deviationId);
         if (d == null || d.piApprovalStatus != PiApprovalStatus.COMMANDED) return;
 
         d.piApprovalStatus = PiApprovalStatus.EXPIRED;

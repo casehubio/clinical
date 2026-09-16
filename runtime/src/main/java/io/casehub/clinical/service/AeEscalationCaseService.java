@@ -1,6 +1,8 @@
 package io.casehub.clinical.service;
 
 import io.casehub.clinical.api.AdverseEventReportedEvent;
+import io.casehub.clinical.api.AeEscalationFailedEvent;
+import io.casehub.clinical.api.AeEscalationStartedEvent;
 import io.casehub.clinical.api.model.AeEscalationStatus;
 import io.casehub.clinical.api.model.CtcaeGrade;
 import io.casehub.clinical.api.spi.AdverseEventContext;
@@ -8,14 +10,12 @@ import io.casehub.clinical.api.spi.AdverseEventEscalationPolicy;
 import io.casehub.clinical.api.spi.AdverseEventEscalationRequirements;
 import io.casehub.clinical.entity.AdverseEvent;
 import jakarta.enterprise.context.ApplicationScoped;
+import jakarta.enterprise.event.Event;
 import jakarta.enterprise.event.ObservesAsync;
 import jakarta.inject.Inject;
+import jakarta.persistence.EntityManager;
 import jakarta.transaction.Transactional;
 import org.jboss.logging.Logger;
-
-import io.casehub.clinical.api.AeEscalationFailedEvent;
-import io.casehub.clinical.api.AeEscalationStartedEvent;
-import jakarta.enterprise.event.Event;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -44,6 +44,8 @@ public class AeEscalationCaseService {
             io.casehub.clinical.cbr.AeTrajectoryAlertService  aeTrajectoryAlertService;
     @Inject Event<AeEscalationStartedEvent> escalationStartedEvents;
     @Inject Event<AeEscalationFailedEvent>  escalationFailedEvents;
+    @Inject
+            EntityManager                   em;
 
 
     public void onAdverseEventReported(@ObservesAsync AdverseEventReportedEvent event) {
@@ -91,7 +93,7 @@ public class AeEscalationCaseService {
     @Transactional
     Map<String, Object> prepareAndMarkForRegrade(UUID aeId, UUID enrollmentId, UUID siteId,
                                                  io.casehub.clinical.api.model.CtcaeGrade grade, String tenantId) {
-        AdverseEvent ae = AdverseEvent.findById(aeId);
+        AdverseEvent ae = em.find(AdverseEvent.class, aeId);
         if (ae == null) {
             LOG.warnf("AE not found for regrade escalation aeId=%s", aeId);
             return null;
@@ -133,7 +135,7 @@ public class AeEscalationCaseService {
 
     @Transactional
     Map<String, Object> prepareAndMarkRequested(AdverseEventReportedEvent event) {
-        AdverseEvent ae = AdverseEvent.findById(event.aeId());
+        AdverseEvent ae = em.find(AdverseEvent.class, event.aeId());
         if (ae == null) {
             LOG.warnf("AeEscalationCaseService: AdverseEvent not found for aeId=%s — skipping escalation", event.aeId());
             return null;
@@ -168,7 +170,7 @@ public class AeEscalationCaseService {
 
     @Transactional
     void persistCaseId(UUID aeId, UUID caseId) {
-        AdverseEvent ae = AdverseEvent.findById(aeId);
+        AdverseEvent ae = em.find(AdverseEvent.class, aeId);
         if (ae == null) {
             LOG.warnf("AeEscalationCaseService: AdverseEvent not found in Phase 3 for aeId=%s", aeId);
             return;
@@ -178,7 +180,7 @@ public class AeEscalationCaseService {
 
     @Transactional
     void markFailed(UUID aeId) {
-        AdverseEvent ae = AdverseEvent.findById(aeId);
+        AdverseEvent ae = em.find(AdverseEvent.class, aeId);
         if (ae == null) {
             LOG.warnf("AeEscalationCaseService: AdverseEvent not found in markFailed for aeId=%s", aeId);
             return;

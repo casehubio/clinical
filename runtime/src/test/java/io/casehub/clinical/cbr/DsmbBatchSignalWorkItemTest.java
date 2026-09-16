@@ -36,6 +36,9 @@ class DsmbBatchSignalWorkItemTest {
     @Inject WorkItemQueries workItemQueries;
     @Inject WorkItemService workItemService;
     @Inject CurrentPrincipal principal;
+    @Inject
+            jakarta.persistence.EntityManager em;
+
 
     private UUID trialId;
 
@@ -96,7 +99,7 @@ class DsmbBatchSignalWorkItemTest {
         trial.targetEnrollment = 100;
         trial.status = TrialStatus.ACTIVE;
         trial.tenantId = "default";
-        trial.persist();
+        em.persist(trial);
 
         for (int i = 0; i < 4; i++) {
             TrialSite site = new TrialSite();
@@ -105,14 +108,14 @@ class DsmbBatchSignalWorkItemTest {
             site.investigatorId = "pi-batch-" + i;
             site.status = SiteStatus.ACTIVE;
             site.tenantId = "default";
-            site.persist();
+            em.persist(site);
 
             PatientEnrollment enrollment = new PatientEnrollment();
             enrollment.id = UUID.randomUUID();
             enrollment.siteId = site.id;
             enrollment.patientId = "patient-batch-" + i + "-" + UUID.randomUUID().toString().substring(0, 4);
             enrollment.tenantId = "default";
-            enrollment.persist();
+            em.persist(enrollment);
 
             AdverseEvent ae1 = new AdverseEvent();
             ae1.id = UUID.randomUUID();
@@ -124,7 +127,7 @@ class DsmbBatchSignalWorkItemTest {
             ae1.occurredAt = Instant.now();
             ae1.reportedAt = Instant.now();
             ae1.tenantId = "default";
-            ae1.persist();
+            em.persist(ae1);
 
             AdverseEvent ae2 = new AdverseEvent();
             ae2.id = UUID.randomUUID();
@@ -136,18 +139,18 @@ class DsmbBatchSignalWorkItemTest {
             ae2.occurredAt = Instant.now();
             ae2.reportedAt = Instant.now();
             ae2.tenantId = "default";
-            ae2.persist();
+            em.persist(ae2);
         }
         return trial.id;
     }
 
     @Transactional
     TrialSafetySignal findSignal(UUID trialId, String signalType) {
-        return TrialSafetySignal.findByTrialAndType(trialId, signalType, "default");
+        return em.createNamedQuery("TrialSafetySignal.findByTrialAndType", TrialSafetySignal.class).setParameter("trialId", trialId).setParameter("signalType", signalType).setParameter("tenantId", "default").getResultStream().findFirst().orElse(null);
     }
 
     List<WorkItem> dsmbBatchWorkItems() {
-        TrialSafetySignal signal = TrialSafetySignal.findByTrialAndType(trialId, "GRADE_THRESHOLD", "default");
+        TrialSafetySignal signal = em.createNamedQuery("TrialSafetySignal.findByTrialAndType", TrialSafetySignal.class).setParameter("trialId", trialId).setParameter("signalType", "GRADE_THRESHOLD").setParameter("tenantId", "default").getResultStream().findFirst().orElse(null);
         if (signal == null) return List.of();
         String expectedCallerRef = "clinical:trial-safety-signal/" + signal.id;
         return workItemQueries.scanAll().stream()

@@ -6,7 +6,10 @@ import io.casehub.clinical.entity.ProtocolAmendment;
 import io.casehub.clinical.entity.ProtocolDeviation;
 import io.casehub.clinical.entity.TrialSite;
 import io.casehub.platform.api.path.Path;
+import jakarta.annotation.PostConstruct;
 import jakarta.enterprise.context.ApplicationScoped;
+import jakarta.inject.Inject;
+import jakarta.persistence.EntityManager;
 
 import java.util.Optional;
 import java.util.UUID;
@@ -14,7 +17,15 @@ import java.util.UUID;
 @ApplicationScoped
 public class ClinicalScopeResolver {
 
-    private EntityResolver entityResolver = new PanacheEntityResolver();
+    @Inject
+    EntityManager em;
+
+    private EntityResolver entityResolver;
+
+    @PostConstruct
+    void init() {
+        this.entityResolver = new JpaEntityResolver();
+    }
 
     void setEntityResolver(EntityResolver resolver) {
         this.entityResolver = resolver;
@@ -57,14 +68,14 @@ public class ClinicalScopeResolver {
         ClinicalTrial findTrial(UUID id);
     }
 
-    private static class PanacheEntityResolver implements EntityResolver {
+    private class JpaEntityResolver implements EntityResolver {
         @Override
-        public PatientEnrollment findEnrollment(UUID id) { return PatientEnrollment.findById(id); }
+        public PatientEnrollment findEnrollment(UUID id) { return em.find(PatientEnrollment.class, id); }
 
         @Override
-        public TrialSite findSite(UUID id) { return TrialSite.findById(id); }
+        public TrialSite findSite(UUID id) { return em.find(TrialSite.class, id); }
 
         @Override
-        public ClinicalTrial findTrial(UUID id) { return ClinicalTrial.findById(id); }
+        public ClinicalTrial findTrial(UUID id) { return em.find(ClinicalTrial.class, id); }
     }
 }

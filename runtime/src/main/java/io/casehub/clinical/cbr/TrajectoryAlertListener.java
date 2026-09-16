@@ -34,6 +34,7 @@ public class TrajectoryAlertListener {
     private final Iterable<Connector> connectors;
     private final String connectorId;
     private final String destination;
+    @Inject jakarta.persistence.EntityManager em;
 
     @Inject
     public TrajectoryAlertListener(@Any Instance<Connector> connectors,
@@ -79,7 +80,7 @@ public class TrajectoryAlertListener {
 
     private void updateAeFlags(AeTrajectoryAlertEvent event) {
         io.casehub.clinical.entity.AdverseEvent ae =
-                io.casehub.clinical.entity.AdverseEvent.findById(event.aeId());
+                em.find(io.casehub.clinical.entity.AdverseEvent.class, event.aeId());
         if (ae != null) {
             ae.trajectoryMatchCount       = event.matchCount();
             ae.trajectoryPredictedOutcome = event.predictedOutcome();

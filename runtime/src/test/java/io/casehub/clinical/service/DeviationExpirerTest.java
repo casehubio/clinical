@@ -1,13 +1,21 @@
 package io.casehub.clinical.service;
 
-import io.casehub.clinical.api.model.*;
-import io.casehub.clinical.entity.*;
+import io.casehub.clinical.api.model.DeviationSeverity;
+import io.casehub.clinical.api.model.EscalationRequirement;
+import io.casehub.clinical.api.model.PiApprovalStatus;
+import io.casehub.clinical.api.model.TrialPhase;
+import io.casehub.clinical.api.model.TrialStatus;
+import io.casehub.clinical.entity.ClinicalTrial;
+import io.casehub.clinical.entity.ProtocolDeviation;
+import io.casehub.clinical.entity.TrialSite;
 import io.casehub.clinical.ledger.ProtocolDeviationLedgerEntry;
 import io.casehub.ledger.api.spi.LedgerEntryRepository;
 import io.quarkus.test.junit.QuarkusTest;
 import jakarta.inject.Inject;
 import jakarta.transaction.Transactional;
-import org.junit.jupiter.api.*;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.TestInstance;
 
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
@@ -22,6 +30,9 @@ class DeviationExpirerTest {
     @Inject DeviationExpirer expirer;
     @Inject LedgerEntryRepository ledgerRepo;
     @Inject TestDeviationPersister persister;
+    @Inject
+            jakarta.persistence.EntityManager em;
+
 
     private UUID siteId;
 
@@ -37,12 +48,12 @@ class DeviationExpirerTest {
         trial.sponsor = "S";
         trial.targetEnrollment = 5;
         trial.status = TrialStatus.ACTIVE;
-        trial.persist();
+        em.persist(trial);
         TrialSite site = new TrialSite();
         site.id = siteId;
         site.trialId = trialId;
         site.investigatorId = "pi-expr";
-        site.persist();
+        em.persist(site);
     }
 
     @Test
@@ -68,7 +79,7 @@ class DeviationExpirerTest {
 
         expirer.expireOne(devId);
 
-        ProtocolDeviation loaded = ProtocolDeviation.findById(devId);
+        ProtocolDeviation loaded = em.find(ProtocolDeviation.class, devId);
         assertThat(loaded.piApprovalStatus).isEqualTo(PiApprovalStatus.EXPIRED);
 
         var entries = ledgerRepo.findBySubjectId(devId, "default");

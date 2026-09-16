@@ -1,18 +1,19 @@
 package io.casehub.clinical.entity;
 
-import io.quarkus.hibernate.orm.panache.PanacheEntityBase;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.Id;
+import jakarta.persistence.NamedQuery;
 import jakarta.persistence.Table;
 
 import java.time.Instant;
-import java.util.List;
 import java.util.UUID;
 
 @Entity
 @Table(name = "trial_safety_signal")
-public class TrialSafetySignal extends PanacheEntityBase {
+@NamedQuery(name = "TrialSafetySignal.findByTrialAndType", query = "SELECT s FROM TrialSafetySignal s WHERE s.trialId = :trialId AND s.signalType = :signalType AND s.tenantId = :tenantId")
+@NamedQuery(name = "TrialSafetySignal.findActiveByTrial", query = "SELECT s FROM TrialSafetySignal s WHERE s.trialId = :trialId AND s.tenantId = :tenantId AND s.resolvedAt IS NULL")
+public class TrialSafetySignal {
 
     @Id
     public UUID id;
@@ -43,12 +44,4 @@ public class TrialSafetySignal extends PanacheEntityBase {
     @Column(name = "work_item_id")
     public UUID    workItemId;
 
-
-    public static TrialSafetySignal findByTrialAndType(UUID trialId, String signalType, String tenantId) {
-        return find("trialId = ?1 AND signalType = ?2 AND tenantId = ?3", trialId, signalType, tenantId).firstResult();
-    }
-
-    public static List<TrialSafetySignal> findActiveByTrial(UUID trialId, String tenantId) {
-        return list("trialId = ?1 AND tenantId = ?2 AND resolvedAt IS NULL", trialId, tenantId);
-    }
 }

@@ -1,9 +1,5 @@
 package io.casehub.clinical.service;
 
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.when;
-
 import io.casehub.clinical.api.ProtocolDeviationResolvedEvent;
 import io.casehub.clinical.api.model.DeviationSeverity;
 import io.casehub.clinical.api.model.EscalationRequirement;
@@ -17,10 +13,15 @@ import io.quarkus.test.InjectMock;
 import io.quarkus.test.junit.QuarkusTest;
 import jakarta.inject.Inject;
 import jakarta.transaction.Transactional;
-import java.util.List;
-import java.util.UUID;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+
+import java.util.List;
+import java.util.UUID;
+
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.when;
 
 /**
  * Verifies that IrbDeviationCaseService delegates committee assignment to the
@@ -37,6 +38,9 @@ class IrbCommitteePolicySpiTest {
 
     @InjectMock IrbCommitteeAssignmentPolicy committeePolicy;
     @Inject IrbDeviationCaseService irbDeviationCaseService;
+    @Inject
+            jakarta.persistence.EntityManager em;
+
 
     private UUID deviationId;
     private UUID siteId;
@@ -56,7 +60,7 @@ class IrbCommitteePolicySpiTest {
         site.id = siteId;
         site.trialId = trialId;
         site.investigatorId = "test-pi";
-        site.persist();
+        em.persist(site);
 
         ProtocolDeviation deviation = new ProtocolDeviation();
         deviation.id = deviationId;
@@ -64,7 +68,7 @@ class IrbCommitteePolicySpiTest {
         deviation.deviationType = "CONSENT_DEVIATION";
         deviation.severity = DeviationSeverity.CRITICAL;
         deviation.piApprovalStatus = PiApprovalStatus.APPROVED;
-        deviation.persist();
+        em.persist(deviation);
     }
 
     @Test
@@ -80,7 +84,7 @@ class IrbCommitteePolicySpiTest {
 
     @Transactional
     IrbApproval findApproval(UUID forDeviationId) {
-        return IrbApproval.find("deviationId = ?1", forDeviationId).firstResult();
+        return em.createQuery("SELECT a FROM IrbApproval a WHERE a.deviationId = :devId", IrbApproval.class).setParameter("devId", forDeviationId).getResultStream().findFirst().orElse(null);
     }
 
     private ProtocolDeviationResolvedEvent criticalDeviationApproved() {

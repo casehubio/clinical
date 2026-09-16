@@ -30,7 +30,7 @@ class AeTrajectoryBuilderTest {
     @BeforeEach
     void setUp() {
         planItemStore = mock(PlanItemStore.class);
-        builder       = new AeTrajectoryBuilder(planItemStore);
+        builder       = new AeTrajectoryBuilder(planItemStore, null);
         builder.setGradeHistoryFinder(id -> java.util.List.of());}
 
     @Test

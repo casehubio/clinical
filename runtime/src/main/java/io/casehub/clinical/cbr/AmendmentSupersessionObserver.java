@@ -6,6 +6,7 @@ import io.casehub.neocortex.memory.cbr.CbrCaseMemoryStore;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.enterprise.event.ObservesAsync;
 import jakarta.inject.Inject;
+import jakarta.persistence.EntityManager;
 import jakarta.transaction.Transactional;
 import org.jboss.logging.Logger;
 
@@ -19,16 +20,19 @@ public class AmendmentSupersessionObserver {
     private static final Logger LOG = Logger.getLogger(AmendmentSupersessionObserver.class);
 
     private final CbrCaseMemoryStore store;
+    private final EntityManager em;
 
     @Inject
-    public AmendmentSupersessionObserver(CbrCaseMemoryStore store) {
+    public AmendmentSupersessionObserver(CbrCaseMemoryStore store, EntityManager em) {
         this.store = store;
+        this.em = em;
     }
 
     @Transactional
     public void onAmendmentResolved(@ObservesAsync ProtocolAmendmentResolvedEvent event) {
         try {
-            List<ProtocolAmendment> amendments = ProtocolAmendment.findByTrialId(event.trialId());
+            List<ProtocolAmendment> amendments = em.createNamedQuery("ProtocolAmendment.findByTrialId", ProtocolAmendment.class)
+                    .setParameter("trialId", event.trialId()).getResultList();
             onAmendmentResolved(event, amendments);
         } catch (Exception e) {
             LOG.errorf(e, "Amendment supersession failed for amendment %s", event.amendmentId());

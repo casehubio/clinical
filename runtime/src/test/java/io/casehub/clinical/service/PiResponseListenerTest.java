@@ -1,18 +1,31 @@
 package io.casehub.clinical.service;
 
-import io.casehub.clinical.api.model.*;
-import io.casehub.clinical.entity.*;
+import io.casehub.clinical.api.model.DeviationSeverity;
+import io.casehub.clinical.api.model.EscalationRequirement;
+import io.casehub.clinical.api.model.PiApprovalStatus;
+import io.casehub.clinical.api.model.TrialPhase;
+import io.casehub.clinical.api.model.TrialStatus;
+import io.casehub.clinical.entity.ClinicalTrial;
+import io.casehub.clinical.entity.ProtocolDeviation;
+import io.casehub.clinical.entity.TrialSite;
 import io.casehub.clinical.ledger.ProtocolDeviationLedgerEntry;
-import io.casehub.platform.api.identity.ActorType;
 import io.casehub.ledger.api.spi.LedgerEntryRepository;
+import io.casehub.platform.api.identity.ActorType;
 import io.casehub.qhorus.api.message.MessageType;
 import io.quarkus.test.junit.QuarkusTest;
 import jakarta.inject.Inject;
 import jakarta.transaction.Transactional;
-import org.junit.jupiter.api.*;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.MethodOrderer;
+import org.junit.jupiter.api.Order;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.TestInstance;
+import org.junit.jupiter.api.TestMethodOrder;
+
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
 import java.util.UUID;
+
 import static org.assertj.core.api.Assertions.assertThat;
 
 @QuarkusTest
@@ -22,6 +35,9 @@ class PiResponseListenerTest {
 
     @Inject PiResponseListener listener;
     @Inject LedgerEntryRepository ledgerRepo;
+    @Inject
+            jakarta.persistence.EntityManager em;
+
 
     private UUID minorDeviationId, criticalDeviationId, rejectedDeviationId;
 
@@ -32,10 +48,10 @@ class PiResponseListenerTest {
         ClinicalTrial trial = new ClinicalTrial();
         trial.id = trialId; trial.protocolId = "P"; trial.phase = TrialPhase.PHASE_II;
         trial.sponsor = "S"; trial.targetEnrollment = 5; trial.status = TrialStatus.ACTIVE;
-        trial.persist();
+        em.persist(trial);
         TrialSite site = new TrialSite();
         site.id = siteId; site.trialId = trialId; site.investigatorId = "pi-L";
-        site.persist();
+        em.persist(site);
         minorDeviationId = persistCommanded(siteId, DeviationSeverity.MINOR, EscalationRequirement.NONE);
         criticalDeviationId = persistCommanded(siteId, DeviationSeverity.CRITICAL, EscalationRequirement.IRB_REVIEW);
         rejectedDeviationId = persistCommanded(siteId, DeviationSeverity.MINOR, EscalationRequirement.NONE);
@@ -49,7 +65,7 @@ class PiResponseListenerTest {
         d.piCommandChannelName = "clinical/deviation/dev-" + d.id + "/pi-oversight";
         d.commandedAt = Instant.now();
         d.responseDeadline = Instant.now().plus(24, ChronoUnit.HOURS);
-        d.persist();
+        em.persist(d);
         return d.id;
     }
 
@@ -57,7 +73,7 @@ class PiResponseListenerTest {
     void approvedMinorDeviationSetsApproved() {
         listener.process("clinical/deviation/dev-" +minorDeviationId + "/pi-oversight",
             MessageType.DONE, "human:pi-L");
-        ProtocolDeviation loaded = ProtocolDeviation.findById(minorDeviationId);
+        ProtocolDeviation loaded = em.find(ProtocolDeviation.class, minorDeviationId);
         assertThat(loaded.piApprovalStatus).isEqualTo(PiApprovalStatus.APPROVED);
     }
 
@@ -65,7 +81,7 @@ class PiResponseListenerTest {
     void approvedCriticalDeviationSetsEscalated() {
         listener.process("clinical/deviation/dev-" +criticalDeviationId + "/pi-oversight",
             MessageType.DONE, "human:pi-L");
-        ProtocolDeviation loaded = ProtocolDeviation.findById(criticalDeviationId);
+        ProtocolDeviation loaded = em.find(ProtocolDeviation.class, criticalDeviationId);
         assertThat(loaded.piApprovalStatus).isEqualTo(PiApprovalStatus.ESCALATED);
     }
 
@@ -73,7 +89,7 @@ class PiResponseListenerTest {
     void rejectedDeviationSetsRejected() {
         listener.process("clinical/deviation/dev-" +rejectedDeviationId + "/pi-oversight",
             MessageType.DECLINE, "human:pi-L");
-        ProtocolDeviation loaded = ProtocolDeviation.findById(rejectedDeviationId);
+        ProtocolDeviation loaded = em.find(ProtocolDeviation.class, rejectedDeviationId);
         assertThat(loaded.piApprovalStatus).isEqualTo(PiApprovalStatus.REJECTED);
     }
 
@@ -87,7 +103,7 @@ class PiResponseListenerTest {
     void alreadyTerminalDeviationIsIdempotent() {
         listener.process("clinical/deviation/dev-" +minorDeviationId + "/pi-oversight",
             MessageType.DONE, "human:pi-L");
-        ProtocolDeviation loaded = ProtocolDeviation.findById(minorDeviationId);
+        ProtocolDeviation loaded = em.find(ProtocolDeviation.class, minorDeviationId);
         assertThat(loaded.piApprovalStatus).isEqualTo(PiApprovalStatus.APPROVED);
     }
 

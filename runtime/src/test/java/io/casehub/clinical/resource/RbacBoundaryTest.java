@@ -22,6 +22,9 @@ import static io.restassured.RestAssured.given;
 class RbacBoundaryTest {
 
     @Inject FixedCurrentPrincipal principal;
+    @Inject
+            jakarta.persistence.EntityManager em;
+
 
     private String trialId;
     private String siteId;
@@ -41,7 +44,7 @@ class RbacBoundaryTest {
         trial.targetEnrollment = 10;
         trial.status = TrialStatus.PLANNING;
         trial.tenantId = principal.tenancyId();
-        trial.persist();
+        em.persist(trial);
         trialId = trial.id.toString();
 
         // Create site directly
@@ -50,7 +53,7 @@ class RbacBoundaryTest {
         site.trialId = trial.id;
         site.investigatorId = "PI-001";
         site.tenantId = principal.tenancyId();
-        site.persist();
+        em.persist(site);
         siteId = site.id.toString();
 
         // Create enrollment directly
@@ -59,7 +62,7 @@ class RbacBoundaryTest {
         enrollment.siteId = site.id;
         enrollment.patientId = "RBAC-PAT-001";
         enrollment.tenantId = principal.tenancyId();
-        enrollment.persist();
+        em.persist(enrollment);
         enrollmentId = enrollment.id.toString();
     }
 

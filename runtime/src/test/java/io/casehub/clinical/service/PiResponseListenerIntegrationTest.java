@@ -1,24 +1,34 @@
 package io.casehub.clinical.service;
 
-import io.casehub.clinical.api.model.*;
-import io.casehub.clinical.entity.*;
+import io.casehub.clinical.api.model.DeviationSeverity;
+import io.casehub.clinical.api.model.PiApprovalStatus;
+import io.casehub.clinical.api.model.TrialPhase;
+import io.casehub.clinical.api.model.TrialStatus;
+import io.casehub.clinical.entity.ClinicalTrial;
+import io.casehub.clinical.entity.ProtocolDeviation;
+import io.casehub.clinical.entity.TrialSite;
 import io.casehub.qhorus.api.gateway.ChannelRef;
 import io.casehub.qhorus.api.gateway.InboundHumanMessage;
 import io.casehub.qhorus.runtime.channel.ChannelService;
 import io.casehub.qhorus.runtime.gateway.ChannelGateway;
+import io.quarkus.narayana.jta.QuarkusTransaction;
 import io.quarkus.test.junit.QuarkusTest;
 import jakarta.inject.Inject;
 import jakarta.transaction.Transactional;
-import org.junit.jupiter.api.*;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.MethodOrderer;
+import org.junit.jupiter.api.Order;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.TestInstance;
+import org.junit.jupiter.api.TestMethodOrder;
 
+import java.time.Duration;
 import java.time.Instant;
 import java.util.Map;
 import java.util.UUID;
 
-import io.quarkus.narayana.jta.QuarkusTransaction;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.awaitility.Awaitility.await;
-import java.time.Duration;
 
 /**
  * Full channel-flow integration test: receiveHumanMessage → MessageReceivedEvent CDI event → PiResponseListener.
@@ -34,6 +44,9 @@ class PiResponseListenerIntegrationTest {
     @Inject ChannelService channelService;
     @Inject ChannelGateway channelGateway;
     @Inject io.casehub.platform.testing.FixedCurrentPrincipal principal;
+    @Inject
+            jakarta.persistence.EntityManager                 em;
+
 
     private UUID siteId;
     private UUID minorDeviationId;
@@ -48,11 +61,11 @@ class PiResponseListenerIntegrationTest {
         trial.id = trialId; trial.protocolId = "INT-" + trialId; trial.phase = TrialPhase.PHASE_II;
         trial.sponsor = "S"; trial.targetEnrollment = 10; trial.status = TrialStatus.ACTIVE;
         trial.tenantId = principal.tenancyId();
-        trial.persist();
+        em.persist(trial);
         TrialSite site = new TrialSite();
         site.id = siteId; site.trialId = trialId; site.investigatorId = "pi-int";
         site.tenantId = principal.tenancyId();
-        site.persist();
+        em.persist(site);
     }
 
     @Test
@@ -67,7 +80,7 @@ class PiResponseListenerIntegrationTest {
         minorDeviationId = dev.id;
         deviationService.reportDeviation(dev);
 
-        ProtocolDeviation loaded = ProtocolDeviation.findById(dev.id);
+        ProtocolDeviation loaded = em.find(ProtocolDeviation.class, dev.id);
         assertThat(loaded.piApprovalStatus).isEqualTo(PiApprovalStatus.COMMANDED);
         assertThat(loaded.piCommandChannelName).contains("/pi-oversight");
     }
@@ -84,7 +97,7 @@ class PiResponseListenerIntegrationTest {
         criticalDeviationId = dev.id;
         deviationService.reportDeviation(dev);
 
-        ProtocolDeviation loaded = ProtocolDeviation.findById(dev.id);
+        ProtocolDeviation loaded = em.find(ProtocolDeviation.class, dev.id);
         assertThat(loaded.piApprovalStatus).isEqualTo(PiApprovalStatus.COMMANDED);
     }
 
@@ -93,7 +106,7 @@ class PiResponseListenerIntegrationTest {
     void piApprovalViaChannelGateway_minorDeviationMovesToApproved() throws Exception {
         assertThat(minorDeviationId).as("set by Order(1)").isNotNull();
 
-        ProtocolDeviation dev = ProtocolDeviation.findById(minorDeviationId);
+        ProtocolDeviation dev = em.find(ProtocolDeviation.class, minorDeviationId);
         var channelRef = channelService.findByName(dev.piCommandChannelName)
             .map(c -> new ChannelRef(c.id(), c.name()))
             .orElseThrow(() -> new AssertionError("channel not found: " + dev.piCommandChannelName));
@@ -104,7 +117,7 @@ class PiResponseListenerIntegrationTest {
 
         await().atMost(Duration.ofSeconds(5)).untilAsserted(() ->
             QuarkusTransaction.requiringNew().call(() -> {
-                ProtocolDeviation loaded = ProtocolDeviation.findById(minorDeviationId);
+                ProtocolDeviation loaded = em.find(ProtocolDeviation.class, minorDeviationId);
                 assertThat(loaded.piApprovalStatus).isEqualTo(PiApprovalStatus.APPROVED);
                 return null;
             }));
@@ -115,7 +128,7 @@ class PiResponseListenerIntegrationTest {
     void piApprovalViaChannelGateway_criticalDeviationMovesToEscalated() throws Exception {
         assertThat(criticalDeviationId).as("set by Order(2)").isNotNull();
 
-        ProtocolDeviation dev = ProtocolDeviation.findById(criticalDeviationId);
+        ProtocolDeviation dev = em.find(ProtocolDeviation.class, criticalDeviationId);
         var channelRef = channelService.findByName(dev.piCommandChannelName)
             .map(c -> new ChannelRef(c.id(), c.name()))
             .orElseThrow(() -> new AssertionError("channel not found: " + dev.piCommandChannelName));
@@ -126,7 +139,7 @@ class PiResponseListenerIntegrationTest {
 
         await().atMost(Duration.ofSeconds(5)).untilAsserted(() ->
             QuarkusTransaction.requiringNew().call(() -> {
-                ProtocolDeviation loaded = ProtocolDeviation.findById(criticalDeviationId);
+                ProtocolDeviation loaded = em.find(ProtocolDeviation.class, criticalDeviationId);
                 assertThat(loaded.piApprovalStatus).isEqualTo(PiApprovalStatus.ESCALATED);
                 return null;
             }));

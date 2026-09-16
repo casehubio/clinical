@@ -44,7 +44,7 @@ class AeTrajectoryAlertServiceTest {
         ClinicalScopeResolver scopeResolver = mock(ClinicalScopeResolver.class);
         when(scopeResolver.forAdverseEvent(any())).thenReturn(java.util.Optional.of(io.casehub.platform.api.path.Path.of("t", "s", "p")));
         ClinicalCbrConfig config = mock(ClinicalCbrConfig.class);
-        service = new AeTrajectoryAlertService(trajectoryBuilder, cbrService, alertEvents, scopeResolver, config);
+        service = new AeTrajectoryAlertService(trajectoryBuilder, cbrService, alertEvents, scopeResolver, config, null);
         service.minMatches = 2;
         service.minSimilarity = 0.5;
         service.minProbability = 0.6;

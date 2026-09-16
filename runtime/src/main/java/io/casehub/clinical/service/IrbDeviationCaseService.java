@@ -13,6 +13,7 @@ import io.casehub.clinical.entity.TrialSite;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.enterprise.event.ObservesAsync;
 import jakarta.inject.Inject;
+import jakarta.persistence.EntityManager;
 import jakarta.transaction.Transactional;
 import org.jboss.logging.Logger;
 
@@ -36,6 +37,9 @@ public class IrbDeviationCaseService {
 
     @Inject ClinicalDeviationCaseHub caseHub;
     @Inject IrbCommitteeAssignmentPolicy committeePolicy;
+    @Inject
+            EntityManager                em;
+
 
     public void onDeviationResolved(@ObservesAsync ProtocolDeviationResolvedEvent event) {
         if (event.escalationRequirement() != EscalationRequirement.IRB_REVIEW) return;
@@ -52,7 +56,7 @@ public class IrbDeviationCaseService {
 
     @Transactional
     Map<String, Object> prepareAndCreateApproval(ProtocolDeviationResolvedEvent event) {
-        TrialSite site = TrialSite.findById(event.siteId());
+        TrialSite site = em.find(TrialSite.class, event.siteId());
         UUID trialId = site != null ? site.trialId : null;
 
         IrbCommitteeContext committeeCtx = new IrbCommitteeContext(
@@ -69,7 +73,7 @@ public class IrbDeviationCaseService {
         approval.committeeId = assignment.committeeId();
         approval.decisionDeadline = Instant.now().plus(Duration.ofHours(72));
         approval.decision = IrbDecision.PENDING;
-        approval.persist();
+        em.persist(approval);
 
         Map<String, Object> ctx = new HashMap<>();
         ctx.put("deviationId", event.deviationId().toString());
@@ -84,7 +88,7 @@ public class IrbDeviationCaseService {
 
     @Transactional
     void persistDeviationCaseId(UUID deviationId, UUID caseId) {
-        ProtocolDeviation deviation = ProtocolDeviation.findById(deviationId);
+        ProtocolDeviation deviation = em.find(ProtocolDeviation.class, deviationId);
         if (deviation == null) {
             LOG.warnf("IrbDeviationCaseService: ProtocolDeviation not found for deviationId=%s", deviationId);
             return;

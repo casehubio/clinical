@@ -1,10 +1,5 @@
 package io.casehub.clinical.service;
 
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.argThat;
-import static org.mockito.Mockito.*;
-
 import io.casehub.clinical.api.ProtocolAmendmentResolvedEvent;
 import io.casehub.clinical.api.model.AmendmentCaseStatus;
 import io.casehub.clinical.api.model.ProtocolAmendmentStatus;
@@ -15,13 +10,24 @@ import io.quarkus.test.junit.QuarkusTest;
 import jakarta.enterprise.event.Event;
 import jakarta.inject.Inject;
 import jakarta.transaction.Transactional;
-import java.time.Instant;
-import java.util.UUID;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
+import java.time.Instant;
+import java.util.UUID;
+
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.argThat;
+import static org.mockito.Mockito.reset;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoInteractions;
+
 @QuarkusTest
 class ProtocolAmendmentStatusUpdaterTest {
+    @jakarta.inject.Inject
+    jakarta.persistence.EntityManager em;
+
 
     @Inject ProtocolAmendmentStatusUpdater updater;
     @InjectMock ProtocolAmendmentLedgerWriter ledgerWriter;
@@ -41,7 +47,7 @@ class ProtocolAmendmentStatusUpdaterTest {
         a.amendmentCaseStatus = AmendmentCaseStatus.REQUESTED;
         a.tenantId = "default";
         a.proposedAt = Instant.now();
-        a.persist();
+        em.persist(a);
     }
 
     @Test
@@ -156,6 +162,6 @@ class ProtocolAmendmentStatusUpdaterTest {
 
     @Transactional
     ProtocolAmendment findAmendment(UUID id) {
-        return ProtocolAmendment.findById(id);
+        return em.find(ProtocolAmendment.class, id);
     }
 }

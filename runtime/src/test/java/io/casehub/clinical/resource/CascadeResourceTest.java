@@ -1,11 +1,11 @@
 package io.casehub.clinical.resource;
 
+import io.casehub.clinical.api.model.ConsentStatus;
 import io.casehub.clinical.api.model.CtcaeGrade;
+import io.casehub.clinical.api.model.EnrollmentStatus;
 import io.casehub.clinical.api.model.EventActuality;
 import io.casehub.clinical.api.model.TrialPhase;
 import io.casehub.clinical.api.model.TrialStatus;
-import io.casehub.clinical.api.model.EnrollmentStatus;
-import io.casehub.clinical.api.model.ConsentStatus;
 import io.casehub.clinical.entity.AdverseEvent;
 import io.casehub.clinical.entity.ClinicalTrial;
 import io.casehub.clinical.entity.PatientEnrollment;
@@ -22,13 +22,16 @@ import java.time.Instant;
 import java.util.UUID;
 
 import static io.restassured.RestAssured.given;
-import static org.hamcrest.Matchers.*;
+import static org.hamcrest.Matchers.equalTo;
 
 @QuarkusTest
 @TestSecurity(user = "test-actor", roles = {"SPONSOR", "INVESTIGATOR", "COORDINATOR"})
 class CascadeResourceTest {
 
     @Inject CurrentPrincipal principal;
+    @Inject
+            jakarta.persistence.EntityManager em;
+
 
     private UUID aeId;
     private UUID aeIdGrade1;
@@ -43,14 +46,14 @@ class CascadeResourceTest {
         trial.sponsor = "test-sponsor";
         trial.status = TrialStatus.ENROLLING;
         trial.tenantId = principal.tenancyId();
-        trial.persist();
+        em.persist(trial);
 
         TrialSite site = new TrialSite();
         site.id = UUID.randomUUID();
         site.trialId = trial.id;
         site.investigatorId = "test-investigator";
         site.tenantId = principal.tenancyId();
-        site.persist();
+        em.persist(site);
 
         PatientEnrollment enrollment = new PatientEnrollment();
         enrollment.id = UUID.randomUUID();
@@ -59,7 +62,7 @@ class CascadeResourceTest {
         enrollment.enrollmentStatus = EnrollmentStatus.ENROLLED;
         enrollment.consentStatus = ConsentStatus.OBTAINED;
         enrollment.tenantId = principal.tenancyId();
-        enrollment.persist();
+        em.persist(enrollment);
 
         AdverseEvent ae4 = new AdverseEvent();
         ae4.id = UUID.randomUUID();
@@ -70,7 +73,7 @@ class CascadeResourceTest {
         ae4.occurredAt = Instant.now();
         ae4.slaDeadline = Instant.now().plusSeconds(86400);
         ae4.tenantId = principal.tenancyId();
-        ae4.persist();
+        em.persist(ae4);
         aeId = ae4.id;
 
         AdverseEvent ae1 = new AdverseEvent();
@@ -82,7 +85,7 @@ class CascadeResourceTest {
         ae1.occurredAt = Instant.now();
         ae1.slaDeadline = Instant.now().plusSeconds(604800);
         ae1.tenantId = principal.tenancyId();
-        ae1.persist();
+        em.persist(ae1);
         aeIdGrade1 = ae1.id;
     }
 

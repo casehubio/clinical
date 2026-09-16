@@ -8,17 +8,19 @@ import io.casehub.engine.common.internal.event.ActionGateApprovedEvent;
 import io.casehub.engine.common.internal.event.ActionGateExpiredEvent;
 import io.casehub.engine.common.internal.event.ActionGateRejectedEvent;
 import io.casehub.ledger.api.model.AttestationVerdict;
-import io.casehub.ledger.repository.CaseLedgerEntryRepository;
 import io.casehub.ledger.api.model.LedgerAttestation;
 import io.casehub.ledger.api.spi.LedgerEntryRepository;
+import io.casehub.ledger.repository.CaseLedgerEntryRepository;
 import io.casehub.platform.api.identity.ActorType;
 import io.quarkus.vertx.ConsumeEvent;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
+import jakarta.persistence.EntityManager;
 import jakarta.transaction.Transactional;
+import org.jboss.logging.Logger;
+
 import java.time.Clock;
 import java.util.UUID;
-import org.jboss.logging.Logger;
 
 /**
  * Writes LedgerAttestation quality signals when SUSAR oversight gates are decided.
@@ -45,6 +47,9 @@ public class SusarAgentAttestationWriter {
     @Inject CaseLedgerEntryRepository caseLedgerEntryRepository;
     @Inject LedgerEntryRepository ledgerEntryRepository;
     @Inject Clock clock;
+    @Inject
+            EntityManager em;
+
 
     @ConsumeEvent(value = "casehub.action.gate.approved", blocking = true)
     @Transactional
@@ -65,7 +70,7 @@ public class SusarAgentAttestationWriter {
     }
 
     private void writeAttestation(UUID caseId, AttestationVerdict verdict, String attestorId) {
-        AdverseEvent ae = AdverseEvent.findBySusarOversightCaseId(caseId);
+        AdverseEvent ae = em.createNamedQuery("AdverseEvent.findBySusarOversightCaseId", AdverseEvent.class).setParameter("caseId", caseId).getResultStream().findFirst().orElse(null);
         if (ae == null) return; // not a SUSAR oversight gate
 
         caseLedgerEntryRepository.findWorkerDecisionsByCaseId(ae.susarOversightCaseId)

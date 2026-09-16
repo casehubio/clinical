@@ -16,7 +16,8 @@ import org.junit.jupiter.api.Test;
 import java.util.Map;
 import java.util.UUID;
 
-import static org.junit.jupiter.api.Assertions.*;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 
 @QuarkusTest
 @TestSecurity(user = "test-actor", roles = {ClinicalGroups.SPONSOR, ClinicalGroups.INVESTIGATOR, ClinicalGroups.COORDINATOR})
@@ -24,6 +25,9 @@ class ScenarioSmokeTest {
 
     @Inject ClinicalScenarioActions actions;
     @Inject FixedCurrentPrincipal principal;
+    @Inject
+            jakarta.persistence.EntityManager em;
+
 
     @AfterEach
     void resetPrincipal() { principal.reset(); }
@@ -52,14 +56,14 @@ class ScenarioSmokeTest {
                 "siteId", siteA.get("siteId").toString(),
                 "patientId", "PAT-SMOKE-001")));
 
-        ClinicalTrial t = ClinicalTrial.findById(UUID.fromString(trialId));
+        ClinicalTrial t = em.find(ClinicalTrial.class, UUID.fromString(trialId));
         assertNotNull(t);
         assertEquals("ACTIVE", t.status.name());
 
-        long siteCount = TrialSite.count("trialId", UUID.fromString(trialId));
+        long siteCount = em.createQuery("SELECT COUNT(s) FROM TrialSite s WHERE s.trialId = :trialId", Long.class).setParameter("trialId", UUID.fromString(trialId)).getSingleResult();
         assertEquals(2, siteCount);
 
-        PatientEnrollment enrollment = PatientEnrollment.findById(
+        PatientEnrollment enrollment = em.find(PatientEnrollment.class,
                 UUID.fromString(patient.get("enrollmentId").toString()));
         assertNotNull(enrollment);
         assertEquals("PAT-SMOKE-001", enrollment.patientId);

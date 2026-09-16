@@ -30,7 +30,7 @@ class SiteEnrollmentTrajectoryJobTest {
     void setUp() {
         trajectoryBuilder = new SiteEnrollmentTrajectoryBuilder();
         cbrService = Mockito.mock(ClinicalCbrService.class);
-        job = new SiteEnrollmentTrajectoryJob(trajectoryBuilder, cbrService, new ClinicalScopeResolver());
+        job = new SiteEnrollmentTrajectoryJob(trajectoryBuilder, cbrService, new ClinicalScopeResolver(), null);
     }
 
     @Test

@@ -48,7 +48,7 @@ class AeCbrCaseBuilderTest {
         trustScoreRepository = mock(io.casehub.ledger.runtime.repository.ActorTrustScoreRepository.class);
 
         builder = spy(new AeCbrCaseBuilder(cbrService, scopeResolver, planItemStore,
-            trajectoryBuilder, trustScoreRepository));
+            trajectoryBuilder, trustScoreRepository, null));
         doReturn(0L).when(builder).countPriorAes(any(), any());
         doReturn(0L).when(builder).countEnrollmentsAtSite(any());
 

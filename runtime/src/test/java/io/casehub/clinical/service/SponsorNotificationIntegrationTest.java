@@ -1,9 +1,17 @@
 package io.casehub.clinical.service;
 
 import io.casehub.clinical.api.SponsorNotifier;
-import io.casehub.clinical.api.model.*;
+import io.casehub.clinical.api.model.DeviationSeverity;
+import io.casehub.clinical.api.model.EscalationRequirement;
+import io.casehub.clinical.api.model.PiApprovalStatus;
+import io.casehub.clinical.api.model.SiteStatus;
+import io.casehub.clinical.api.model.SponsorNotificationStatus;
+import io.casehub.clinical.api.model.TrialPhase;
+import io.casehub.clinical.api.model.TrialStatus;
 import io.casehub.clinical.api.spi.PiIdentityResolver;
-import io.casehub.clinical.entity.*;
+import io.casehub.clinical.entity.ClinicalTrial;
+import io.casehub.clinical.entity.ProtocolDeviation;
+import io.casehub.clinical.entity.TrialSite;
 import io.casehub.qhorus.api.message.MessageType;
 import io.quarkus.test.InjectMock;
 import io.quarkus.test.junit.QuarkusTest;
@@ -34,6 +42,9 @@ import static org.mockito.Mockito.when;
  */
 @QuarkusTest
 class SponsorNotificationIntegrationTest {
+    @jakarta.inject.Inject
+    jakarta.persistence.EntityManager em;
+
 
     @Inject PiResponseListener piResponseListener;
     @Inject SponsorNotifier sponsorNotifier;
@@ -82,14 +93,14 @@ class SponsorNotificationIntegrationTest {
         trial.status = TrialStatus.ACTIVE;
         trial.sponsorNotificationConnectorId = "slack";
         trial.sponsorNotificationDestination = "https://hooks.slack.com/integration-test";
-        trial.persist();
+        em.persist(trial);
 
         final TrialSite site = new TrialSite();
         site.id = siteId;
         site.trialId = trialId;
         site.investigatorId = "dr-jones@v1";
         site.status = SiteStatus.ACTIVE;
-        site.persist();
+        em.persist(site);
 
         final ProtocolDeviation dev = new ProtocolDeviation();
         dev.id = deviationId;
@@ -101,7 +112,7 @@ class SponsorNotificationIntegrationTest {
         dev.piCommandChannelName = channelName;
         dev.commandedAt = Instant.now();
         dev.responseDeadline = Instant.now().plusSeconds(3600);
-        dev.persist();
+        em.persist(dev);
     }
 
     @Test
@@ -172,8 +183,8 @@ class SponsorNotificationIntegrationTest {
 
     @Transactional
     io.casehub.clinical.entity.SponsorNotification findNotification() {
-        return io.casehub.clinical.entity.SponsorNotification
-                .<io.casehub.clinical.entity.SponsorNotification>find("deviationId", deviationId)
-                .firstResult();
+        return em.createQuery("SELECT n FROM SponsorNotification n WHERE n.deviationId = :deviationId", io.casehub.clinical.entity.SponsorNotification.class)
+                .setParameter("deviationId", deviationId)
+                .getResultStream().findFirst().orElse(null);
     }
 }

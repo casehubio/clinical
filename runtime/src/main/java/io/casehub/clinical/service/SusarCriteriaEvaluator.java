@@ -1,13 +1,16 @@
 package io.casehub.clinical.service;
 
-import io.casehub.worker.api.PlannedAction;
-import io.casehub.worker.api.WorkerResult;
 import io.casehub.clinical.api.model.ClinicalActionType;
 import io.casehub.clinical.api.model.CtcaeGrade;
 import io.casehub.clinical.entity.AdverseEvent;
+import io.casehub.worker.api.PlannedAction;
+import io.casehub.worker.api.WorkerResult;
 import io.quarkus.arc.DefaultBean;
 import jakarta.enterprise.context.ApplicationScoped;
+import jakarta.inject.Inject;
+import jakarta.persistence.EntityManager;
 import jakarta.transaction.Transactional;
+
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
@@ -28,6 +31,9 @@ import java.util.UUID;
 @DefaultBean
 @ApplicationScoped
 public class SusarCriteriaEvaluator implements SusarEvaluatorFunction {
+    @Inject
+    EntityManager em;
+
 
     private static final Set<CtcaeGrade> GATE_GRADES = Set.of(
             CtcaeGrade.GRADE_4, CtcaeGrade.GRADE_5);
@@ -51,7 +57,7 @@ public class SusarCriteriaEvaluator implements SusarEvaluatorFunction {
         } catch (IllegalArgumentException e) {
             return noGate();
         }
-        final AdverseEvent ae = AdverseEvent.findById(aeId);
+        final AdverseEvent ae = em.find(AdverseEvent.class, aeId);
         if (ae == null) {
             return noGate();
         }

@@ -26,11 +26,14 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatCode;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.doThrow;
-import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoInteractions;
 
 @QuarkusTest
 class SafetyOfficerNotificationListenerTest {
+    @jakarta.inject.Inject
+    jakarta.persistence.EntityManager em;
+
 
     @Inject SafetyOfficerNotificationListener listener;
     @InjectMock SafetyOfficerNotifier safetyOfficerNotifier;
@@ -54,14 +57,14 @@ class SafetyOfficerNotificationListenerTest {
         trial.status = TrialStatus.ACTIVE;
         trial.safetyOfficerConnectorId = "slack";
         trial.safetyOfficerDestination = "https://hooks.slack.com/safety-officer";
-        trial.persist();
+        em.persist(trial);
 
         TrialSite site = new TrialSite();
         site.id = siteId;
         site.trialId = trialId;
         site.investigatorId = "dr-jones@v1";
         site.status = SiteStatus.ACTIVE;
-        site.persist();
+        em.persist(site);
     }
 
     @Test
@@ -134,14 +137,14 @@ class SafetyOfficerNotificationListenerTest {
         trial.targetEnrollment = 1;
         trial.status = TrialStatus.PLANNING;
         // safety officer config intentionally absent
-        trial.persist();
+        em.persist(trial);
 
         final TrialSite site = new TrialSite();
         site.id = newSiteId;
         site.trialId = newTrialId;
         site.investigatorId = "x";
         site.status = SiteStatus.PENDING;
-        site.persist();
+        em.persist(site);
 
         listener.onAeReported(new AdverseEventReportedEvent(
             UUID.randomUUID(), UUID.randomUUID(), newSiteId,
@@ -179,14 +182,14 @@ class SafetyOfficerNotificationListenerTest {
         trial.status = TrialStatus.PLANNING;
         trial.safetyOfficerConnectorId = connectorId;
         trial.safetyOfficerDestination = destination;
-        trial.persist();
+        em.persist(trial);
 
         final TrialSite site = new TrialSite();
         site.id = newSiteId;
         site.trialId = newTrialId;
         site.investigatorId = "x";
         site.status = SiteStatus.PENDING;
-        site.persist();
+        em.persist(site);
 
         return site;
     }

@@ -9,8 +9,9 @@ import io.quarkus.test.junit.QuarkusTest;
 import io.quarkus.test.security.TestSecurity;
 import jakarta.inject.Inject;
 import jakarta.transaction.Transactional;
-import java.util.UUID;
 import org.junit.jupiter.api.Test;
+
+import java.util.UUID;
 
 import static io.restassured.RestAssured.given;
 
@@ -18,6 +19,9 @@ import static io.restassured.RestAssured.given;
 class GdprErasureResourceTest {
 
     @Inject FixedCurrentPrincipal principal;
+    @Inject
+            jakarta.persistence.EntityManager em;
+
 
     @Test
     @TestSecurity(user = "sponsor-user", roles = {ClinicalGroups.SPONSOR})
@@ -71,6 +75,6 @@ class GdprErasureResourceTest {
         e.tenantId = principal.tenancyId();
         e.consentStatus = ConsentStatus.PENDING;
         e.enrollmentStatus = EnrollmentStatus.CANDIDATE;
-        e.persist();
+        em.persist(e);
     }
 }

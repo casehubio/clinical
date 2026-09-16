@@ -30,17 +30,20 @@ import static org.hamcrest.Matchers.equalTo;
 class AeRegradeResourceTest {
 
     @Inject FixedCurrentPrincipal principal;
+    @Inject
+            jakarta.persistence.EntityManager em;
+
 
     private UUID trialId, siteId, enrollmentId, aeId;
 
     @BeforeEach
     @Transactional
     void setup() {
-        AeGradeChange.deleteAll();
-        AdverseEvent.deleteAll();
-        PatientEnrollment.deleteAll();
-        TrialSite.deleteAll();
-        ClinicalTrial.deleteAll();
+        em.createQuery("DELETE FROM AeGradeChange").executeUpdate();
+        em.createQuery("DELETE FROM AdverseEvent").executeUpdate();
+        em.createQuery("DELETE FROM PatientEnrollment").executeUpdate();
+        em.createQuery("DELETE FROM TrialSite").executeUpdate();
+        em.createQuery("DELETE FROM ClinicalTrial").executeUpdate();
 
         trialId = UUID.randomUUID();
         ClinicalTrial trial = new ClinicalTrial();
@@ -50,7 +53,7 @@ class AeRegradeResourceTest {
         trial.phase            = io.casehub.clinical.api.model.TrialPhase.PHASE_III;
         trial.targetEnrollment = 100;
         trial.tenantId         = principal.tenancyId();
-        trial.persist();
+        em.persist(trial);
 
         siteId = UUID.randomUUID();
         TrialSite site = new TrialSite();
@@ -58,7 +61,7 @@ class AeRegradeResourceTest {
         site.trialId        = trialId;
         site.investigatorId = "inv-1";
         site.tenantId       = principal.tenancyId();
-        site.persist();
+        em.persist(site);
 
         enrollmentId = UUID.randomUUID();
         PatientEnrollment enrollment = new PatientEnrollment();
@@ -66,7 +69,7 @@ class AeRegradeResourceTest {
         enrollment.siteId    = siteId;
         enrollment.patientId = "P-001";
         enrollment.tenantId  = principal.tenancyId();
-        enrollment.persist();
+        em.persist(enrollment);
 
         aeId = UUID.randomUUID();
         AdverseEvent ae = new AdverseEvent();
@@ -77,7 +80,7 @@ class AeRegradeResourceTest {
         ae.reportedAt   = Instant.now().minus(Duration.ofHours(1));
         ae.slaDeadline  = ae.reportedAt.plus(Duration.ofDays(7));
         ae.tenantId     = principal.tenancyId();
-        ae.persist();}
+        em.persist(ae);}
 
     @Test
     void regrade_updatesGrade() {

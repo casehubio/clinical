@@ -3,15 +3,21 @@ package io.casehub.clinical.entity;
 import io.casehub.clinical.api.model.DeviationSeverity;
 import io.casehub.clinical.api.model.EscalationRequirement;
 import io.casehub.clinical.api.model.PiApprovalStatus;
-import io.casehub.platform.api.identity.CurrentPrincipal;
-import io.quarkus.hibernate.orm.panache.PanacheEntityBase;
-import jakarta.persistence.*;
+import jakarta.persistence.Column;
+import jakarta.persistence.Entity;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
+import jakarta.persistence.Id;
+import jakarta.persistence.NamedQuery;
+import jakarta.persistence.Table;
+
 import java.time.Instant;
 import java.util.UUID;
 
 @Entity
 @Table(name = "protocol_deviation")
-public class ProtocolDeviation extends PanacheEntityBase {
+@NamedQuery(name = "ProtocolDeviation.findByIdAndTenantId", query = "SELECT d FROM ProtocolDeviation d WHERE d.id = :id AND d.tenantId = :tenantId")
+public class ProtocolDeviation {
 
     @Id
     public UUID id;
@@ -49,9 +55,4 @@ public class ProtocolDeviation extends PanacheEntityBase {
     /** Links this CRITICAL deviation to its IRB review engine case. Null until IrbDeviationCaseService starts the case. */
     @Column(name = "engine_case_id")
     public UUID engineCaseId;
-
-    public static ProtocolDeviation findByIdForTenant(UUID id, CurrentPrincipal principal) {
-        if (principal.isCrossTenantAdmin()) return findById(id);
-        return find("id = ?1 AND tenantId = ?2", id, principal.tenancyId()).firstResult();
-    }
 }

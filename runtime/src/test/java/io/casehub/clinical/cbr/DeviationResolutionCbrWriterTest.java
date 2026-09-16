@@ -1,33 +1,36 @@
 package io.casehub.clinical.cbr;
 
+import io.casehub.clinical.api.ClinicalGroups;
 import io.casehub.clinical.api.IrbApprovalResolvedEvent;
 import io.casehub.clinical.api.ProtocolDeviationResolvedEvent;
-import io.casehub.clinical.api.model.*;
+import io.casehub.clinical.api.model.DeviationSeverity;
+import io.casehub.clinical.api.model.EscalationRequirement;
+import io.casehub.clinical.api.model.IrbDecision;
+import io.casehub.clinical.api.model.PiApprovalStatus;
 import io.casehub.clinical.entity.IrbApproval;
 import io.casehub.clinical.entity.ProtocolDeviation;
-import io.casehub.clinical.api.ClinicalGroups;
 import io.casehub.neocortex.memory.cbr.FeatureValue;
 import io.casehub.neocortex.memory.cbr.FeatureVectorCbrCase;
-
 import io.casehub.platform.testing.FixedCurrentPrincipal;
+import io.quarkus.test.InjectMock;
 import io.quarkus.test.TestTransaction;
 import io.quarkus.test.junit.QuarkusTest;
-import io.quarkus.test.InjectMock;
 import io.quarkus.test.security.TestSecurity;
+import jakarta.inject.Inject;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
 
-import jakarta.inject.Inject;
 import java.time.Instant;
-import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
-import static org.mockito.Mockito.*;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
 /**
  * Unit test for {@link DeviationResolutionCbrWriter} with mocked service.
@@ -49,13 +52,16 @@ class DeviationResolutionCbrWriterTest {
 
     @Inject
     FixedCurrentPrincipal principal;
+    @jakarta.inject.Inject
+    jakarta.persistence.EntityManager em;
+
 
     @BeforeEach
     @TestTransaction
     void setup() {
         // Clean entities and stub service
-        ProtocolDeviation.deleteAll();
-        IrbApproval.deleteAll();
+        em.createQuery("DELETE FROM ProtocolDeviation").executeUpdate();
+        em.createQuery("DELETE FROM IrbApproval").executeUpdate();
 
         when(scopeResolver.forDeviation(any())).thenReturn(java.util.Optional.of(io.casehub.platform.api.path.Path.of("trial-1", "site-1")));
         when(cbrService.storeIdempotent(any(), any(), any(), any(), any(), any(), any()))
@@ -79,7 +85,7 @@ class DeviationResolutionCbrWriterTest {
         deviation.escalationRequirement = EscalationRequirement.NONE;
         deviation.piApprovalStatus = PiApprovalStatus.APPROVED;
         deviation.engineCaseId = UUID.randomUUID();
-        deviation.persist();
+        em.persist(deviation);
 
         var event = new ProtocolDeviationResolvedEvent(
             deviationId,
@@ -141,7 +147,7 @@ class DeviationResolutionCbrWriterTest {
         deviation.escalationRequirement = EscalationRequirement.IRB_REVIEW;
         deviation.piApprovalStatus = PiApprovalStatus.ESCALATED;
         deviation.engineCaseId = UUID.randomUUID();
-        deviation.persist();
+        em.persist(deviation);
 
         // IRB approval exists but decision is still PENDING
         var irbApproval = new IrbApproval();
@@ -153,7 +159,7 @@ class DeviationResolutionCbrWriterTest {
         irbApproval.committeeId = "irb-001";
         irbApproval.decisionDeadline = Instant.now().plusSeconds(72 * 3600);
         irbApproval.decision = IrbDecision.PENDING;
-        irbApproval.persist();
+        em.persist(irbApproval);
 
         var event = new ProtocolDeviationResolvedEvent(
             deviationId,
@@ -207,7 +213,7 @@ class DeviationResolutionCbrWriterTest {
         deviation.escalationRequirement = EscalationRequirement.IRB_REVIEW;
         deviation.piApprovalStatus = PiApprovalStatus.ESCALATED;
         deviation.engineCaseId = UUID.randomUUID();
-        deviation.persist();
+        em.persist(deviation);
 
         var irbApproval = new IrbApproval();
         irbApproval.id = approvalId;
@@ -218,7 +224,7 @@ class DeviationResolutionCbrWriterTest {
         irbApproval.committeeId = "irb-001";
         irbApproval.decisionDeadline = Instant.now().plusSeconds(72 * 3600);
         irbApproval.decision = IrbDecision.APPROVED;
-        irbApproval.persist();
+        em.persist(irbApproval);
 
         var event = new IrbApprovalResolvedEvent(
             approvalId,
@@ -293,7 +299,7 @@ class DeviationResolutionCbrWriterTest {
         deviation.escalationRequirement = EscalationRequirement.NONE;
         deviation.piApprovalStatus = PiApprovalStatus.EXPIRED;
         deviation.engineCaseId = null;  // No case started
-        deviation.persist();
+        em.persist(deviation);
 
         var event = new ProtocolDeviationResolvedEvent(
             deviationId,

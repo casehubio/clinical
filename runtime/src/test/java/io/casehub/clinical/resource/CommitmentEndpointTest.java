@@ -1,8 +1,5 @@
 package io.casehub.clinical.resource;
 
-import static io.restassured.RestAssured.given;
-import static org.hamcrest.Matchers.*;
-
 import io.casehub.clinical.api.ClinicalGroups;
 import io.casehub.clinical.api.model.DeviationSeverity;
 import io.casehub.clinical.api.model.PiApprovalStatus;
@@ -18,13 +15,16 @@ import io.quarkus.test.junit.QuarkusTest;
 import io.quarkus.test.security.TestSecurity;
 import jakarta.inject.Inject;
 import jakarta.transaction.Transactional;
-import java.time.Instant;
-import java.util.Optional;
-import java.util.UUID;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
-import static org.mockito.ArgumentMatchers.anyString;
+import java.time.Instant;
+import java.util.Optional;
+import java.util.UUID;
+
+import static io.restassured.RestAssured.given;
+import static org.hamcrest.Matchers.is;
+import static org.hamcrest.Matchers.notNullValue;
 import static org.mockito.Mockito.when;
 
 @QuarkusTest
@@ -33,6 +33,9 @@ public class CommitmentEndpointTest {
 
     @Inject FixedCurrentPrincipal principal;
     @InjectMock CommitmentReader commitmentReader;
+    @Inject
+                jakarta.persistence.EntityManager em;
+
 
     private UUID trialId;
     private UUID deviationId;
@@ -47,7 +50,7 @@ public class CommitmentEndpointTest {
         trial.phase = io.casehub.clinical.api.model.TrialPhase.PHASE_III;
         trial.sponsor = "Test Sponsor";
         trial.tenantId = principal.tenancyId();
-        trial.persist();
+        em.persist(trial);
 
         UUID siteId = UUID.randomUUID();
         TrialSite site = new TrialSite();
@@ -55,7 +58,7 @@ public class CommitmentEndpointTest {
         site.trialId = trialId;
         site.investigatorId = "pi-test";
         site.tenantId = principal.tenancyId();
-        site.persist();
+        em.persist(site);
 
         deviationId = UUID.randomUUID();
         ProtocolDeviation dev = new ProtocolDeviation();
@@ -67,7 +70,7 @@ public class CommitmentEndpointTest {
         dev.piCommandChannelName = "clinical/deviation/dev-test-123/pi-oversight";
         dev.commandedAt = Instant.now();
         dev.tenantId = principal.tenancyId();
-        dev.persist();
+        em.persist(dev);
 
         Commitment commitment = Commitment.builder()
                 .id(UUID.randomUUID())

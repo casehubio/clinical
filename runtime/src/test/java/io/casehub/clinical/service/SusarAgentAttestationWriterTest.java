@@ -1,13 +1,5 @@
 package io.casehub.clinical.service;
 
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.argThat;
-import static org.mockito.ArgumentMatchers.eq;
-import static org.mockito.Mockito.never;
-import static org.mockito.Mockito.reset;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
-
 import io.casehub.clinical.api.ClinicalCapabilities;
 import io.casehub.clinical.api.ClinicalTrustDimensions;
 import io.casehub.clinical.api.model.AeOutcome;
@@ -19,23 +11,35 @@ import io.casehub.engine.common.internal.event.ActionGateApprovedEvent;
 import io.casehub.engine.common.internal.event.ActionGateExpiredEvent;
 import io.casehub.engine.common.internal.event.ActionGateRejectedEvent;
 import io.casehub.ledger.api.model.AttestationVerdict;
+import io.casehub.ledger.api.spi.LedgerEntryRepository;
 import io.casehub.ledger.model.WorkerDecisionEntry;
 import io.casehub.ledger.repository.CaseLedgerEntryRepository;
-import io.casehub.ledger.api.spi.LedgerEntryRepository;
 import io.casehub.platform.api.identity.ActorType;
 import io.quarkus.test.InjectMock;
 import io.quarkus.test.junit.QuarkusTest;
 import jakarta.inject.Inject;
 import jakarta.transaction.Transactional;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+
 import java.time.Clock;
 import java.time.Instant;
 import java.util.List;
 import java.util.UUID;
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Test;
+
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.argThat;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.reset;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
 @QuarkusTest
 class SusarAgentAttestationWriterTest {
+    @jakarta.inject.Inject
+    jakarta.persistence.EntityManager em;
+
 
     @Inject SusarAgentAttestationWriter writer;
     @InjectMock CaseLedgerEntryRepository caseLedgerEntryRepository;
@@ -137,6 +141,6 @@ class SusarAgentAttestationWriterTest {
         ae.tenantId = "test-tenant";
         ae.susarOversightStatus = SusarOversightStatus.REQUESTED;
         ae.susarOversightCaseId = susarOversightCaseId;
-        ae.persist();
+        em.persist(ae);
     }
 }

@@ -38,6 +38,9 @@ import static org.assertj.core.api.Assertions.assertThat;
  */
 @QuarkusTest
 class SafetyOfficerNotificationIntegrationTest {
+    @jakarta.inject.Inject
+    jakarta.persistence.EntityManager em;
+
 
     @Inject SafetyOfficerNotificationListener listener;
     @Inject TestSlackConnector slackConnector;
@@ -62,14 +65,14 @@ class SafetyOfficerNotificationIntegrationTest {
         trial.status = TrialStatus.ACTIVE;
         trial.safetyOfficerConnectorId = "slack";
         trial.safetyOfficerDestination = "https://hooks.slack.com/safety-officer-integration-test";
-        trial.persist();
+        em.persist(trial);
 
         TrialSite site = new TrialSite();
         site.id = siteId;
         site.trialId = trialId;
         site.investigatorId = "dr-jones@v1";
         site.status = SiteStatus.ACTIVE;
-        site.persist();
+        em.persist(site);
     }
 
     @Test

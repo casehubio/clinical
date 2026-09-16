@@ -21,6 +21,7 @@ import io.casehub.pages.scenario.client.ScenarioAction;
 import io.casehub.platform.api.identity.CurrentPrincipal;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
+import jakarta.persistence.EntityManager;
 import jakarta.transaction.Transactional;
 
 import java.time.Instant;
@@ -35,6 +36,7 @@ public class ClinicalScenarioActions {
     @Inject AdverseEventService adverseEventService;
     @Inject ProtocolDeviationService deviationService;
     @Inject LedgerVerificationService ledgerVerificationService;
+    @Inject EntityManager em;
 
     @ScenarioAction("createTrial")
     @Transactional
@@ -47,7 +49,7 @@ public class ClinicalScenarioActions {
         trial.targetEnrollment = ctx.data("targetEnrollment", Integer.class);
         trial.status = TrialStatus.PLANNING;
         trial.tenantId = principal.tenancyId();
-        trial.persist();
+        em.persist(trial);
         return Map.of("trialId", trial.id.toString());
     }
 
@@ -62,13 +64,13 @@ public class ClinicalScenarioActions {
     @Transactional
     public Map<String, Object> addSite(ActionContext ctx) {
         UUID trialId = UUID.fromString(ctx.data("trialId"));
-        ClinicalTrial trial = ClinicalTrial.findById(trialId);
+        ClinicalTrial trial = em.find(ClinicalTrial.class, trialId);
         TrialSite site = new TrialSite();
         site.id = UUID.randomUUID();
         site.trialId = trialId;
         site.investigatorId = ctx.data("investigatorId");
         site.tenantId = trial.tenantId;
-        site.persist();
+        em.persist(site);
         return Map.of("siteId", site.id.toString());
     }
 
@@ -76,7 +78,7 @@ public class ClinicalScenarioActions {
     @Transactional
     public Map<String, Object> enrollPatient(ActionContext ctx) {
         UUID siteId = UUID.fromString(ctx.data("siteId"));
-        TrialSite site = TrialSite.findById(siteId);
+        TrialSite site = em.find(TrialSite.class, siteId);
         PatientEnrollment enrollment = new PatientEnrollment();
         enrollment.id = UUID.randomUUID();
         enrollment.siteId = siteId;
@@ -84,7 +86,7 @@ public class ClinicalScenarioActions {
         enrollment.enrollmentStatus = EnrollmentStatus.CANDIDATE;
         enrollment.consentStatus = ConsentStatus.OBTAINED;
         enrollment.tenantId = site.tenantId;
-        enrollment.persist();
+        em.persist(enrollment);
         return Map.of("enrollmentId", enrollment.id.toString());
     }
 
@@ -115,7 +117,7 @@ public class ClinicalScenarioActions {
     @ScenarioAction("reportDeviation")
     public Map<String, Object> reportDeviation(ActionContext ctx) {
         UUID siteId = UUID.fromString(ctx.data("siteId"));
-        TrialSite site = TrialSite.findById(siteId);
+        TrialSite site = em.find(TrialSite.class, siteId);
 
         ProtocolDeviation deviation = new ProtocolDeviation();
         deviation.id = UUID.randomUUID();

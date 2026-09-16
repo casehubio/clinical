@@ -3,8 +3,14 @@ package io.casehub.clinical.entity;
 import io.casehub.clinical.api.model.DeviationSeverity;
 import io.casehub.clinical.api.model.PiApprovalStatus;
 import io.casehub.clinical.api.model.SponsorNotificationStatus;
-import io.quarkus.hibernate.orm.panache.PanacheEntityBase;
-import jakarta.persistence.*;
+import jakarta.persistence.Column;
+import jakarta.persistence.Entity;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
+import jakarta.persistence.Id;
+import jakarta.persistence.Index;
+import jakarta.persistence.Table;
+
 import java.time.Instant;
 import java.util.UUID;
 
@@ -26,7 +32,7 @@ import java.util.UUID;
         name = "sponsor_notification",
         indexes = @Index(name = "idx_sn_eligible", columnList = "status, next_retry_after")
 )
-public class SponsorNotification extends PanacheEntityBase {
+public class SponsorNotification {
 
     @Id
     @Column(nullable = false)

@@ -6,6 +6,7 @@ import io.casehub.clinical.entity.PatientEnrollment;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.enterprise.event.ObservesAsync;
 import jakarta.inject.Inject;
+import jakarta.persistence.EntityManager;
 import jakarta.transaction.Transactional;
 import org.jboss.logging.Logger;
 
@@ -23,6 +24,9 @@ public class EligibilityScreeningCaseService {
     private static final Logger LOG = Logger.getLogger(EligibilityScreeningCaseService.class);
 
     @Inject EligibilityScreeningCaseHub caseHub;
+    @Inject
+            EntityManager               em;
+
 
     public void onScreeningEvent(@ObservesAsync EligibilityScreeningEvent event) {
         try {
@@ -45,7 +49,7 @@ public class EligibilityScreeningCaseService {
         // Phase 1 — load entity inside @Transactional so Hibernate manages the session
         // Uses findById (base Panache), not findByIdForTenant — @ObservesAsync runs off-request
         // with no @RequestScoped CurrentPrincipal active.
-        PatientEnrollment enrollment = PatientEnrollment.findById(event.enrollmentId());
+        PatientEnrollment enrollment = em.find(PatientEnrollment.class, event.enrollmentId());
         if (enrollment == null) {
             LOG.warnf("EligibilityScreeningCaseService: enrollment not found %s", event.enrollmentId());
             return null;
@@ -69,13 +73,13 @@ public class EligibilityScreeningCaseService {
 
     @Transactional
     void persistCaseId(UUID enrollmentId, UUID caseId) {
-        PatientEnrollment e = PatientEnrollment.findById(enrollmentId);
+        PatientEnrollment e = em.find(PatientEnrollment.class, enrollmentId);
         if (e != null) e.eligibilityEngineCaseId = caseId;
     }
 
     @Transactional
     void markFailed(UUID enrollmentId) {
-        PatientEnrollment e = PatientEnrollment.findById(enrollmentId);
+        PatientEnrollment e = em.find(PatientEnrollment.class, enrollmentId);
         if (e != null) e.eligibilityScreeningCaseStatus = EligibilityScreeningCaseStatus.FAILED;
     }
 }

@@ -34,7 +34,7 @@ class ClinicalCaseOutcomeObserverTest {
         scopeResolver = mock(ClinicalScopeResolver.class);
         when(scopeResolver.forAdverseEvent(any())).thenReturn(java.util.Optional.of(io.casehub.platform.api.path.Path.of("trial-1", "site-1", "patient-1")));
         AeTrajectoryBuilder trajectoryBuilder = mock(AeTrajectoryBuilder.class);
-        observer = new ClinicalCaseOutcomeObserver(cbrService, store, planItemStore, trajectoryBuilder, scopeResolver, mock(io.casehub.ledger.runtime.repository.ActorTrustScoreRepository.class));
+        observer = new ClinicalCaseOutcomeObserver(cbrService, store, planItemStore, trajectoryBuilder, scopeResolver, null, mock(io.casehub.ledger.runtime.repository.ActorTrustScoreRepository.class));
     }
 
     @Test

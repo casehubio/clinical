@@ -33,6 +33,9 @@ import static org.mockito.Mockito.verify;
 @QuarkusTest
 @TestSecurity(user = "test-actor", roles = {SPONSOR, INVESTIGATOR, COORDINATOR})
 class AdverseEventRegradeTest {
+    @Inject
+    jakarta.persistence.EntityManager em;
+
 
     @Inject AdverseEventService service;
     @Inject FixedCurrentPrincipal principal;
@@ -44,10 +47,10 @@ class AdverseEventRegradeTest {
     @BeforeEach
     @Transactional
     void setup() {
-        AeGradeChange.deleteAll();
-        AdverseEvent.deleteAll();
-        PatientEnrollment.deleteAll();
-        TrialSite.deleteAll();
+        em.createQuery("DELETE FROM AeGradeChange").executeUpdate();
+        em.createQuery("DELETE FROM AdverseEvent").executeUpdate();
+        em.createQuery("DELETE FROM PatientEnrollment").executeUpdate();
+        em.createQuery("DELETE FROM TrialSite").executeUpdate();
 
         UUID trialId = UUID.randomUUID();
         UUID siteId = UUID.randomUUID();
@@ -58,14 +61,14 @@ class AdverseEventRegradeTest {
         site.trialId = trialId;
         site.investigatorId = "inv-1";
         site.tenantId = principal.tenancyId();
-        site.persist();
+        em.persist(site);
 
         PatientEnrollment enrollment = new PatientEnrollment();
         enrollment.id = enrollmentId;
         enrollment.siteId = siteId;
         enrollment.patientId = "P-001";
         enrollment.tenantId = principal.tenancyId();
-        enrollment.persist();
+        em.persist(enrollment);
 
         aeId = UUID.randomUUID();
         AdverseEvent ae = new AdverseEvent();
@@ -76,17 +79,17 @@ class AdverseEventRegradeTest {
         ae.reportedAt = Instant.now().minus(Duration.ofHours(1));
         ae.slaDeadline = ae.reportedAt.plus(Duration.ofDays(7));
         ae.tenantId = principal.tenancyId();
-        ae.persist();
+        em.persist(ae);
     }
 
     @Test
     void regrade_updatesGradeAndCreatesHistory() {
         service.regradeAdverseEvent(aeId, CtcaeGrade.GRADE_3, "dr-smith", "Condition worsened");
 
-        AdverseEvent ae = AdverseEvent.findById(aeId);
+        AdverseEvent ae = em.find(AdverseEvent.class, aeId);
         assertEquals(CtcaeGrade.GRADE_3, ae.grade);
 
-        List<AeGradeChange> history = AeGradeChange.findByAdverseEventId(aeId);
+        List<AeGradeChange> history = em.createNamedQuery("AeGradeChange.findByAdverseEventId", AeGradeChange.class).setParameter("aeId", aeId).getResultList();
         assertEquals(1, history.size());
         assertEquals(CtcaeGrade.GRADE_1, history.get(0).previousGrade);
         assertEquals(CtcaeGrade.GRADE_3, history.get(0).newGrade);
@@ -98,7 +101,7 @@ class AdverseEventRegradeTest {
     void regrade_sameGrade_noOp() {
         service.regradeAdverseEvent(aeId, CtcaeGrade.GRADE_1, "dr-smith", "No change");
 
-        List<AeGradeChange> history = AeGradeChange.findByAdverseEventId(aeId);
+        List<AeGradeChange> history = em.createNamedQuery("AeGradeChange.findByAdverseEventId", AeGradeChange.class).setParameter("aeId", aeId).getResultList();
         assertTrue(history.isEmpty());
         verify(gradeChangeLedgerWriter, never()).writeGradeChangeEntry(any(), any(), any());
     }
@@ -106,12 +109,12 @@ class AdverseEventRegradeTest {
     @Test
     @Transactional
     void regrade_upgrade_tightensSla() {
-        AdverseEvent aeBefore    = AdverseEvent.findById(aeId);
+        AdverseEvent aeBefore    = em.find(AdverseEvent.class, aeId);
         Instant      oldDeadline = aeBefore.slaDeadline;
 
         service.regradeAdverseEvent(aeId, CtcaeGrade.GRADE_3, "dr-smith", "Escalated");
 
-        AdverseEvent ae = AdverseEvent.findById(aeId);
+        AdverseEvent ae = em.find(AdverseEvent.class, aeId);
         assertTrue(ae.slaDeadline.isBefore(oldDeadline),
                    "SLA should tighten on upgrade: new=" + ae.slaDeadline + " old=" + oldDeadline);
         long hoursUntilDeadline = Duration.between(Instant.now(), ae.slaDeadline).toHours();
@@ -122,12 +125,12 @@ class AdverseEventRegradeTest {
     @Transactional
     void regrade_downgrade_doesNotRelaxSla() {
         service.regradeAdverseEvent(aeId, CtcaeGrade.GRADE_3, "dr-smith", "Up");
-        AdverseEvent aeAfterUpgrade = AdverseEvent.findById(aeId);
+        AdverseEvent aeAfterUpgrade = em.find(AdverseEvent.class, aeId);
         Instant      tightDeadline  = aeAfterUpgrade.slaDeadline;
 
         service.regradeAdverseEvent(aeId, CtcaeGrade.GRADE_1, "dr-smith", "Down");
 
-        AdverseEvent ae = AdverseEvent.findById(aeId);
+        AdverseEvent ae = em.find(AdverseEvent.class, aeId);
         assertEquals(tightDeadline, ae.slaDeadline, "Downgrade should not relax SLA");
     }
 
