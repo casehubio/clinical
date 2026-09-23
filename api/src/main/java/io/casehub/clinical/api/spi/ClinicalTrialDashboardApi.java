@@ -119,7 +119,7 @@ public interface ClinicalTrialDashboardApi {
     @RolesAllowed({ClinicalGroups.SPONSOR, ClinicalGroups.INVESTIGATOR,
                    ClinicalGroups.COORDINATOR, ClinicalGroups.MONITOR})
     AeTrajectoryMatchView aeTrajectoryMatches(@PathParam UUID trialId, @PathParam UUID aeId,
-                                               int limit, double minScore,
+                                               Integer limit, Double minScore,
                                                @ContextParam("tenancyId") String tenancyId);
 
     @PlatformQuery("Get site enrollment trajectory with trend analysis")

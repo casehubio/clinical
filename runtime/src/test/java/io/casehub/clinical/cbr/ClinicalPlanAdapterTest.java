@@ -13,9 +13,9 @@ class ClinicalPlanAdapterTest {
 
     private final ClinicalPlanAdapter adapter = new ClinicalPlanAdapter();
 
-    private ScoredCbrCase<ResolvedCase> buildCase(Map<String, FeatureValue> features) {
-        var cbrCase = new ResolvedCase("problem", "solution", "COMPLETED", Confidence.unknown(1.0), features, List.of(), null, null);
-        return new ScoredCbrCase<>(cbrCase, "case-1", 0.87);
+    private CbrMatch<CbrPlanRecord> buildCase(Map<String, FeatureValue> features) {
+        var cbrCase = new CbrPlanRecord("problem", "solution", "COMPLETED", Confidence.unknown(1.0), features, List.of(), null, null);
+        return new CbrMatch<>(cbrCase, "case-1", "clinical-ae", 0.87);
     }
 
     @Test

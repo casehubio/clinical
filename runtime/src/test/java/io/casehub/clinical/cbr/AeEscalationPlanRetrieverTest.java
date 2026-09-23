@@ -23,13 +23,13 @@ import static org.mockito.Mockito.when;
 class AeEscalationPlanRetrieverTest {
 
     private ClinicalCbrService cbrService;
-    private PlanAdapter planAdapter;
+    private CbrPlanAdapter planAdapter;
     private AeEscalationPlanRetriever retriever;
 
     @BeforeEach
     void setup() {
         cbrService = mock(ClinicalCbrService.class);
-        planAdapter = mock(PlanAdapter.class);
+        planAdapter = mock(CbrPlanAdapter.class);
         ClinicalScopeResolver scopeResolver = mock(ClinicalScopeResolver.class);
         when(scopeResolver.forAdverseEvent(any())).thenReturn(java.util.Optional.of(io.casehub.platform.api.path.Path.of("t", "s", "p")));
         ClinicalCbrConfig config = mock(ClinicalCbrConfig.class);
@@ -41,7 +41,7 @@ class AeEscalationPlanRetrieverTest {
 
     @Test
     void retrieve_noSimilarCases_returnsNone() {
-        when(cbrService.retrieveWithAudit(any(), eq(ResolvedCase.class), any(), any()))
+        when(cbrService.retrieveWithAudit(any(), eq(CbrPlanRecord.class), any(), any()))
                 .thenReturn(new AuditedRetrievalResult<>(List.of(), "trace-1", null));
 
         AdverseEvent ae = buildAe(CtcaeGrade.GRADE_3);
@@ -51,9 +51,9 @@ class AeEscalationPlanRetrieverTest {
 
     @Test
     void retrieve_withSimilarCase_adaptsAndReturns() {
-        var planCase = new ResolvedCase("problem", "solution", "COMPLETED", Confidence.unknown(1.0), Map.of("grade", FeatureValue.number(3)), List.of(), null, null);
-        var scored = new ScoredCbrCase<>(planCase, "case-1", 0.87);
-        when(cbrService.retrieveWithAudit(any(), eq(ResolvedCase.class), any(), any()))
+        var planCase = new CbrPlanRecord("problem", "solution", "COMPLETED", Confidence.unknown(1.0), Map.of("grade", FeatureValue.number(3)), List.of(), null, null);
+        var scored = new CbrMatch<>(planCase, "case-1", "clinical-ae", 0.87);
+        when(cbrService.retrieveWithAudit(any(), eq(CbrPlanRecord.class), any(), any()))
                 .thenReturn(new AuditedRetrievalResult<>(List.of(scored), "trace-1", "expl"));
 
         var adapted = new AdaptedPlan(List.of(new AdaptedStep("safety-review", "safety-monitoring",
@@ -71,7 +71,7 @@ class AeEscalationPlanRetrieverTest {
 
     @Test
     void retrieve_cbrServiceThrows_returnsNone() {
-        when(cbrService.retrieveWithAudit(any(), eq(ResolvedCase.class), any(), any()))
+        when(cbrService.retrieveWithAudit(any(), eq(CbrPlanRecord.class), any(), any()))
                 .thenThrow(new RuntimeException("CBR unavailable"));
 
         AdverseEvent ae = buildAe(CtcaeGrade.GRADE_3);
@@ -81,9 +81,9 @@ class AeEscalationPlanRetrieverTest {
 
     @Test
     void retrieve_adapterThrows_returnsNone() {
-        var planCase = new ResolvedCase("problem", "solution", "COMPLETED", Confidence.unknown(1.0), Map.of("grade", FeatureValue.number(3)), List.of(), null, null);
-        var scored = new ScoredCbrCase<>(planCase, "case-1", 0.87);
-        when(cbrService.retrieveWithAudit(any(), eq(ResolvedCase.class), any(), any()))
+        var planCase = new CbrPlanRecord("problem", "solution", "COMPLETED", Confidence.unknown(1.0), Map.of("grade", FeatureValue.number(3)), List.of(), null, null);
+        var scored = new CbrMatch<>(planCase, "case-1", "clinical-ae", 0.87);
+        when(cbrService.retrieveWithAudit(any(), eq(CbrPlanRecord.class), any(), any()))
                 .thenReturn(new AuditedRetrievalResult<>(List.of(scored), "trace-1", null));
         when(planAdapter.adapt(any(), any(), any()))
                 .thenThrow(new RuntimeException("adaptation failed"));

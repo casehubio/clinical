@@ -10,7 +10,7 @@ import io.casehub.clinical.entity.TrialSite;
 import io.casehub.neocortex.cognitive.Confidence;
 import io.casehub.neocortex.memory.cbr.AdaptationAction;
 import io.casehub.neocortex.memory.cbr.FeatureValue;
-import io.casehub.neocortex.memory.cbr.FeatureVectorCbrCase;
+import io.casehub.neocortex.memory.cbr.CbrFeatureRecord;
 import io.quarkus.test.junit.QuarkusTest;
 import io.quarkus.test.security.TestSecurity;
 import jakarta.inject.Inject;
@@ -74,7 +74,7 @@ class AeEscalationPlanRetrieverIntegrationTest {
                 "trialPhase", "PHASE_III", "unexpected", "false",
                 "suspected", "false", "treatmentArm", "UNASSIGNED",
                 "priorAeCount", "NONE");
-        var cbrCase = new FeatureVectorCbrCase("Grade 3 hepatotoxicity", "Safety review completed", "COMPLETED", Confidence.unknown(1.0), FeatureValue.toFeatureMap(features), null, null);
+        var cbrCase = new CbrFeatureRecord("Grade 3 hepatotoxicity", "Safety review completed", "COMPLETED", Confidence.unknown(1.0), FeatureValue.toFeatureMap(features), null, null);
 
         cbrService.storeIdempotent(cbrCase, "clinical-ae", "past-ae-1",
                 ClinicalCbrDomains.AE, "test-tenant", null,

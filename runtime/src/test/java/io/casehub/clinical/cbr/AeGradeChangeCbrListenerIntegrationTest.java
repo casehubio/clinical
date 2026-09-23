@@ -10,8 +10,8 @@ import io.casehub.clinical.entity.ClinicalTrial;
 import io.casehub.clinical.entity.PatientEnrollment;
 import io.casehub.clinical.entity.TrialSite;
 import io.casehub.neocortex.memory.cbr.CbrQuery;
-import io.casehub.neocortex.memory.cbr.FeatureVectorCbrCase;
-import io.casehub.neocortex.memory.cbr.ScoredCbrCase;
+import io.casehub.neocortex.memory.cbr.CbrFeatureRecord;
+import io.casehub.neocortex.memory.cbr.CbrMatch;
 import io.casehub.platform.api.path.Path;
 import io.casehub.platform.testing.FixedCurrentPrincipal;
 import io.quarkus.test.junit.QuarkusTest;
@@ -122,10 +122,10 @@ class AeGradeChangeCbrListenerIntegrationTest {
         var query = CbrQuery.of(principal.tenancyId(), ClinicalCbrDomains.AE,
             Path.of(trialId.toString(), siteId.toString(), "P-001"),
             "clinical-ae", Map.of(), 100);
-        List<ScoredCbrCase<FeatureVectorCbrCase>> cases = cbrService.retrieveSimilar(query, FeatureVectorCbrCase.class);
+        List<CbrMatch<CbrFeatureRecord>> cases = cbrService.retrieveSimilar(query, CbrFeatureRecord.class);
         assertFalse(cases.isEmpty(), "CBR case should be stored");
 
-        FeatureVectorCbrCase stored = cases.get(0).cbrCase();
+        CbrFeatureRecord stored = cases.get(0).cbrRecord();
         assertNotNull(stored.features().get("regradeSource"),
             "regradeSource should be set");
     }
@@ -143,7 +143,7 @@ class AeGradeChangeCbrListenerIntegrationTest {
         var query = CbrQuery.of(principal.tenancyId(), ClinicalCbrDomains.AE,
             Path.of(trialId.toString(), siteId.toString(), "P-001"),
             "clinical-ae", Map.of(), 100);
-        List<ScoredCbrCase<FeatureVectorCbrCase>> cases = cbrService.retrieveSimilar(query, FeatureVectorCbrCase.class);
+        List<CbrMatch<CbrFeatureRecord>> cases = cbrService.retrieveSimilar(query, CbrFeatureRecord.class);
         assertTrue(cases.isEmpty(), "No CBR case should be stored for non-COMPLETED AE");
     }
 

@@ -4,7 +4,7 @@ import io.casehub.clinical.api.ProtocolAmendmentResolvedEvent;
 import io.casehub.clinical.api.model.ProtocolAmendmentStatus;
 import io.casehub.clinical.api.spi.AmendmentRecommendation;
 import io.casehub.clinical.entity.ProtocolAmendment;
-import io.casehub.neocortex.memory.cbr.CbrCaseMemoryStore;
+import io.casehub.neocortex.memory.cbr.CbrRecordStore;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
@@ -16,13 +16,13 @@ import static org.mockito.Mockito.*;
 
 class AmendmentSupersessionObserverTest {
 
-    private CbrCaseMemoryStore store;
+    private CbrRecordStore store;
     private AmendmentSupersessionObserver observer;
     private UUID trialId;
 
     @BeforeEach
     void setup() {
-        store = mock(CbrCaseMemoryStore.class);
+        store = mock(CbrRecordStore.class);
         observer = new AmendmentSupersessionObserver(store, null);
         trialId = UUID.randomUUID();
     }

@@ -25,7 +25,7 @@ public class ClinicalExplanationRenderer implements ExplanationRenderer {
             var top = trace.results().getFirst();
             sb.append("\nTop precedent: score ").append(String.format("%.2f", top.score()));
             if (top.confidence() != null) {
-                sb.append(", confidence ").append(String.format("%.2f", top.confidence()));
+                sb.append(", confidence ").append(String.format("%.2f", top.confidence().value()));
             }
             sb.append(".");
 

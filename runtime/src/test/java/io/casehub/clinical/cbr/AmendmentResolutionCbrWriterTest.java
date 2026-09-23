@@ -5,7 +5,7 @@ import io.casehub.clinical.api.model.AmendmentCaseStatus;
 import io.casehub.clinical.api.model.ProtocolAmendmentStatus;
 import io.casehub.clinical.api.spi.AmendmentRecommendation;
 import io.casehub.clinical.entity.ProtocolAmendment;
-import io.casehub.neocortex.memory.cbr.FeatureVectorCbrCase;
+import io.casehub.neocortex.memory.cbr.CbrFeatureRecord;
 import io.quarkus.test.InjectMock;
 import io.quarkus.test.junit.QuarkusTest;
 import jakarta.inject.Inject;
@@ -75,7 +75,7 @@ class AmendmentResolutionCbrWriterTest {
 
         writer.onAmendmentResolved(event);
 
-        ArgumentCaptor<FeatureVectorCbrCase> caseCaptor = ArgumentCaptor.forClass(FeatureVectorCbrCase.class);
+        ArgumentCaptor<CbrFeatureRecord> caseCaptor = ArgumentCaptor.forClass(CbrFeatureRecord.class);
         verify(cbrService).storeIdempotent(
             caseCaptor.capture(),
             eq("clinical-amendment"),
@@ -86,7 +86,7 @@ class AmendmentResolutionCbrWriterTest {
             any()
         );
 
-        FeatureVectorCbrCase stored = caseCaptor.getValue();
+        CbrFeatureRecord stored = caseCaptor.getValue();
         assertThat(stored.problem()).isEqualTo("Increase dose by 20%");
         assertThat(stored.solution()).isEqualTo("PROCEED");
         assertThat(stored.outcome()).isEqualTo("APPROVED");
@@ -106,13 +106,13 @@ class AmendmentResolutionCbrWriterTest {
 
         writer.onAmendmentResolved(event);
 
-        ArgumentCaptor<FeatureVectorCbrCase> caseCaptor = ArgumentCaptor.forClass(FeatureVectorCbrCase.class);
+        ArgumentCaptor<CbrFeatureRecord> caseCaptor = ArgumentCaptor.forClass(CbrFeatureRecord.class);
         verify(cbrService).storeIdempotent(
             caseCaptor.capture(),
             anyString(), anyString(), any(), anyString(), anyString(), any()
         );
 
-        FeatureVectorCbrCase stored = caseCaptor.getValue();
+        CbrFeatureRecord stored = caseCaptor.getValue();
         assertThat(stored.solution()).isEqualTo("HALT");
         assertThat(stored.outcome()).isEqualTo("HALTED");
     }
@@ -130,13 +130,13 @@ class AmendmentResolutionCbrWriterTest {
 
         writer.onAmendmentResolved(event);
 
-        ArgumentCaptor<FeatureVectorCbrCase> caseCaptor = ArgumentCaptor.forClass(FeatureVectorCbrCase.class);
+        ArgumentCaptor<CbrFeatureRecord> caseCaptor = ArgumentCaptor.forClass(CbrFeatureRecord.class);
         verify(cbrService).storeIdempotent(
             caseCaptor.capture(),
             anyString(), anyString(), any(), anyString(), anyString(), any()
         );
 
-        FeatureVectorCbrCase stored = caseCaptor.getValue();
+        CbrFeatureRecord stored = caseCaptor.getValue();
         assertThat(stored.solution()).isEqualTo("REFER_TO_DSMB");
         assertThat(stored.outcome()).isEqualTo("SUPERVISED");
     }
@@ -152,13 +152,13 @@ class AmendmentResolutionCbrWriterTest {
 
         writer.onAmendmentResolved(event);
 
-        ArgumentCaptor<FeatureVectorCbrCase> caseCaptor = ArgumentCaptor.forClass(FeatureVectorCbrCase.class);
+        ArgumentCaptor<CbrFeatureRecord> caseCaptor = ArgumentCaptor.forClass(CbrFeatureRecord.class);
         verify(cbrService).storeIdempotent(
             caseCaptor.capture(),
             anyString(), anyString(), any(), anyString(), anyString(), any()
         );
 
-        FeatureVectorCbrCase stored = caseCaptor.getValue();
+        CbrFeatureRecord stored = caseCaptor.getValue();
         assertThat(stored.solution()).isEqualTo("UNKNOWN");
     }
 
@@ -176,7 +176,7 @@ class AmendmentResolutionCbrWriterTest {
         writer.onAmendmentResolved(event);
 
         verify(cbrService).storeIdempotent(
-            any(FeatureVectorCbrCase.class),
+            any(CbrFeatureRecord.class),
             eq("clinical-amendment"),
             eq(amendmentId.toString()),
             eq(ClinicalCbrDomains.AMENDMENT),

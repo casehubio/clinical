@@ -1,5 +1,6 @@
 package io.casehub.clinical.demo;
 
+import io.casehub.platform.api.mcp.HandWrittenEndpoint;
 import io.casehub.clinical.api.model.PiApprovalStatus;
 import io.casehub.clinical.api.model.SusarOversightStatus;
 import io.casehub.clinical.entity.AdverseEvent;
@@ -38,6 +39,7 @@ import org.jboss.logging.Logger;
  *
  * <p>Active only in dev profile via {@code @IfBuildProfile("dev")}.
  */
+@HandWrittenEndpoint("demo actions — POST-only mutation endpoints for demo scenarios")
 @Path("/demo")
 @Produces(MediaType.APPLICATION_JSON)
 @IfBuildProfile("dev")

@@ -56,8 +56,8 @@ import io.casehub.neocortex.memory.cbr.CbrFilter;
 import io.casehub.neocortex.memory.cbr.CbrQuery;
 import io.casehub.neocortex.memory.cbr.FeatureField;
 import io.casehub.neocortex.memory.cbr.FeatureValue;
-import io.casehub.neocortex.memory.cbr.FeatureVectorCbrCase;
-import io.casehub.neocortex.memory.cbr.ScoredCbrCase;
+import io.casehub.neocortex.memory.cbr.CbrFeatureRecord;
+import io.casehub.neocortex.memory.cbr.CbrMatch;
 import io.casehub.neocortex.memory.cbr.TrendAnalyzer;
 import io.casehub.platform.api.identity.CurrentPrincipal;
 import io.casehub.platform.api.path.Path;
@@ -436,7 +436,7 @@ public class DefaultClinicalTrialDashboardApi implements ClinicalTrialDashboardA
                 .withWeight("dsmbEscalated", 0.0).withWeight("indReportFiled", 0.0)
                 .withWeight("susarOversight", 0.0);
 
-        var result = cbrService.retrieveWithAudit(query, FeatureVectorCbrCase.class, aeId, actorId);
+        var result = cbrService.retrieveWithAudit(query, CbrFeatureRecord.class, aeId, actorId);
         List<AePrecedentResponse> precedents = result.cases().stream().map(this::mapToAeResponse).toList();
         return new AePrecedentSearchResponse(result.traceId(), result.explanation(), precedents);
     }
@@ -458,7 +458,7 @@ public class DefaultClinicalTrialDashboardApi implements ClinicalTrialDashboardA
                 .withMinSimilarity(0.3).withVectorWeight(0.0)
                 .withWeight("piDecision", 0.0).withWeight("irbDecision", 0.0);
 
-        var result = cbrService.retrieveWithAudit(query, FeatureVectorCbrCase.class, devId, actorId);
+        var result = cbrService.retrieveWithAudit(query, CbrFeatureRecord.class, devId, actorId);
         List<DeviationPrecedentResponse> precedents = result.cases().stream()
                 .map(this::mapToDeviationResponse).toList();
         return new DeviationPrecedentSearchResponse(result.traceId(), result.explanation(), precedents);
@@ -490,7 +490,7 @@ public class DefaultClinicalTrialDashboardApi implements ClinicalTrialDashboardA
 
     @Override
     public AeTrajectoryMatchView aeTrajectoryMatches(UUID trialId, UUID aeId,
-                                                      int limit, double minScore, String tenancyId) {
+                                                      Integer limit, Double minScore, String tenancyId) {
         AdverseEvent ae = TenantEntityLookup.findByIdForTenant(em, AdverseEvent.class, aeId, principal);
         if (ae == null) throw new NotFoundException("Adverse event not found: " + aeId);
 
@@ -508,16 +508,16 @@ public class DefaultClinicalTrialDashboardApi implements ClinicalTrialDashboardA
                 .withMinSimilarity(minScore)
                 .withFilter("eventType", CbrFilter.contains(ae.eventType != null ? ae.eventType : "UNKNOWN"));
 
-        var result = cbrService.retrieveWithAudit(query, FeatureVectorCbrCase.class,
+        var result = cbrService.retrieveWithAudit(query, CbrFeatureRecord.class,
                 ae.enrollmentId, ClinicalActors.CLINICAL_SERVICE);
 
         var matches = result.cases().stream().map(sc -> {
-            FeatureValue trajVal = sc.cbrCase().features().get("aeTrajectory");
+            FeatureValue trajVal = sc.cbrRecord().features().get("aeTrajectory");
             List<TrajectoryObservationView> matchTraj = List.of();
             if (trajVal instanceof FeatureValue.StructListVal sl) {
                 matchTraj = sl.items().stream().map(this::toTrajectoryObs).toList();
             }
-            return new TrajectoryMatchView(sc.caseId(), sc.score(), sc.cbrCase().outcome(), matchTraj);
+            return new TrajectoryMatchView(sc.caseId(), sc.score(), sc.cbrRecord().outcome(), matchTraj);
         }).toList();
 
         return new AeTrajectoryMatchView(matches, result.traceId(), result.explanation());
@@ -619,8 +619,8 @@ public class DefaultClinicalTrialDashboardApi implements ClinicalTrialDashboardA
         return value != null ? String.valueOf(value) : fallback;
     }
 
-    private AePrecedentResponse mapToAeResponse(ScoredCbrCase<FeatureVectorCbrCase> scored) {
-        FeatureVectorCbrCase c = scored.cbrCase();
+    private AePrecedentResponse mapToAeResponse(CbrMatch<CbrFeatureRecord> scored) {
+        CbrFeatureRecord c = scored.cbrRecord();
         Map<String, Object> features = FeatureValue.toRawMap(c.features());
 
         Object gradeObj = features.get("grade");
@@ -642,8 +642,8 @@ public class DefaultClinicalTrialDashboardApi implements ClinicalTrialDashboardA
                 List.of(), c.problem(), c.outcome());
     }
 
-    private DeviationPrecedentResponse mapToDeviationResponse(ScoredCbrCase<FeatureVectorCbrCase> scored) {
-        FeatureVectorCbrCase c = scored.cbrCase();
+    private DeviationPrecedentResponse mapToDeviationResponse(CbrMatch<CbrFeatureRecord> scored) {
+        CbrFeatureRecord c = scored.cbrRecord();
         Map<String, Object> features = FeatureValue.toRawMap(c.features());
 
         return new DeviationPrecedentResponse(

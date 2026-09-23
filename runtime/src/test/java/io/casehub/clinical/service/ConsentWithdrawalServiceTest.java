@@ -13,9 +13,9 @@ import io.casehub.clinical.entity.TrialSite;
 import io.casehub.clinical.ledger.ConsentWithdrawalLedgerEntry;
 import io.casehub.ledger.api.spi.LedgerEntryRepository;
 import io.casehub.neocortex.cognitive.Confidence;
-import io.casehub.neocortex.memory.cbr.CbrCaseMemoryStore;
+import io.casehub.neocortex.memory.cbr.CbrRecordStore;
 import io.casehub.neocortex.memory.cbr.CbrQuery;
-import io.casehub.neocortex.memory.cbr.FeatureVectorCbrCase;
+import io.casehub.neocortex.memory.cbr.CbrFeatureRecord;
 import io.casehub.platform.api.path.Path;
 import io.quarkus.test.junit.QuarkusTest;
 import jakarta.inject.Inject;
@@ -33,7 +33,7 @@ class ConsentWithdrawalServiceTest {
 
     @Inject ConsentWithdrawalService service;
     @Inject LedgerEntryRepository ledgerEntryRepository;
-    @Inject CbrCaseMemoryStore cbrStore;
+    @Inject CbrRecordStore cbrStore;
     @Inject ClinicalCbrService cbrService;
     @Inject
             jakarta.persistence.EntityManager em;
@@ -105,14 +105,14 @@ class ConsentWithdrawalServiceTest {
         Path patientScope = Path.of(trialId.toString(), siteId.toString(), patientId);
 
         cbrService.storeIdempotent(
-            new FeatureVectorCbrCase("AE for patient", "escalated", "resolved", Confidence.unknown(1.0), Map.of(), null, null),
+            new CbrFeatureRecord("AE for patient", "escalated", "resolved", Confidence.unknown(1.0), Map.of(), null, null),
             "clinical-ae", "ae-" + enrollmentId,
             ClinicalCbrDomains.AE, "default", null, patientScope);
 
         var before = cbrStore.retrieveSimilar(
             CbrQuery.of("default", ClinicalCbrDomains.AE, patientScope, "clinical-ae", Map.of(), 10)
                 .withProblem("AE for patient"),
-            FeatureVectorCbrCase.class);
+            CbrFeatureRecord.class);
         assertThat(before).isNotEmpty();
 
         service.withdraw(enrollmentId, "default");
@@ -120,7 +120,7 @@ class ConsentWithdrawalServiceTest {
         var after = cbrStore.retrieveSimilar(
             CbrQuery.of("default", ClinicalCbrDomains.AE, patientScope, "clinical-ae", Map.of(), 10)
                 .withProblem("AE for patient"),
-            FeatureVectorCbrCase.class);
+            CbrFeatureRecord.class);
         assertThat(after).isEmpty();
     }
 

@@ -1,7 +1,7 @@
 package io.casehub.clinical.cbr;
 
 import io.casehub.neocortex.memory.MemoryDomain;
-import io.casehub.neocortex.memory.cbr.CbrCaseMemoryStore;
+import io.casehub.neocortex.memory.cbr.CbrRecordStore;
 import io.casehub.neocortex.memory.cbr.CbrRetentionPolicy;
 import io.quarkus.scheduler.Scheduled;
 import jakarta.enterprise.context.ApplicationScoped;
@@ -17,7 +17,7 @@ public class CbrRetentionPurgeJob {
     private static final Logger LOG = Logger.getLogger(CbrRetentionPurgeJob.class);
     private static final int LARGE_DELETE_THRESHOLD = 10000;
 
-    private final CbrCaseMemoryStore store;
+    private final CbrRecordStore store;
 
     @ConfigProperty(name = "casehub.clinical.cbr.retention.tenant-id", defaultValue = "default")
     String tenantId;
@@ -62,7 +62,7 @@ public class CbrRetentionPurgeJob {
     Integer siteEnrollmentMaxCases;
 
     @Inject
-    public CbrRetentionPurgeJob(CbrCaseMemoryStore store) {
+    public CbrRetentionPurgeJob(CbrRecordStore store) {
         this.store = store;
     }
 

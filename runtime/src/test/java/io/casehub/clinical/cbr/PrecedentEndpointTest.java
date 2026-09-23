@@ -23,7 +23,7 @@ import io.casehub.clinical.entity.ProtocolDeviation;
 import io.casehub.clinical.entity.TrialSite;
 import io.casehub.neocortex.cognitive.Confidence;
 import io.casehub.neocortex.memory.cbr.FeatureValue;
-import io.casehub.neocortex.memory.cbr.FeatureVectorCbrCase;
+import io.casehub.neocortex.memory.cbr.CbrFeatureRecord;
 import io.casehub.platform.testing.FixedCurrentPrincipal;
 import io.quarkus.test.junit.QuarkusTest;
 import io.quarkus.test.security.TestSecurity;
@@ -163,7 +163,7 @@ class PrecedentEndpointTest {
 
     private void populateAePrecedents() {
         for (int i = 0; i < 3; i++) {
-            FeatureVectorCbrCase cbrCase = new FeatureVectorCbrCase("Grade 3 Neutropenia in PHASE_III trial, unexpected=true, suspected=true", "Safety review: CONTINUE_MONITORING. DSMB escalated: false. IND report: true. SUSAR oversight: true.", "COMPLETED", Confidence.unknown(1.0), FeatureValue.toFeatureMap(Map.ofEntries(
+            CbrFeatureRecord cbrCase = new CbrFeatureRecord("Grade 3 Neutropenia in PHASE_III trial, unexpected=true, suspected=true", "Safety review: CONTINUE_MONITORING. DSMB escalated: false. IND report: true. SUSAR oversight: true.", "COMPLETED", Confidence.unknown(1.0), FeatureValue.toFeatureMap(Map.ofEntries(
                             Map.entry("grade", 3),
                             Map.entry("eventType", List.of("Neutropenia")),
                             Map.entry("trialPhase", "PHASE_III"),
@@ -192,7 +192,7 @@ class PrecedentEndpointTest {
     private void populateDeviationPrecedents() {
         // Store 2 deviation precedents with plan traces
         for (int i = 0; i < 2; i++) {
-            FeatureVectorCbrCase cbrCase = new FeatureVectorCbrCase("CONSENT_TIMING_DELAY deviation, severity: MINOR", "PI decision: APPROVED, IRB decision: N/A", "RESOLVED", Confidence.unknown(1.0), FeatureValue.toFeatureMap(Map.of(
+            CbrFeatureRecord cbrCase = new CbrFeatureRecord("CONSENT_TIMING_DELAY deviation, severity: MINOR", "PI decision: APPROVED, IRB decision: N/A", "RESOLVED", Confidence.unknown(1.0), FeatureValue.toFeatureMap(Map.of(
                     "deviationType", "CONSENT_TIMING_DELAY",
                     "severity", "MINOR",
                     "escalationRequirement", "NONE",
@@ -215,7 +215,7 @@ class PrecedentEndpointTest {
     private void populateAmendmentPrecedents() {
         // Store 2 amendment precedents (textual, no features)
         for (int i = 0; i < 2; i++) {
-            FeatureVectorCbrCase cbrCase = new FeatureVectorCbrCase("Add imaging endpoint to protocol", "Advisor recommended: APPROVE_WITH_CONDITIONS", "APPROVED", Confidence.unknown(1.0), Map.of(), null, null);
+            CbrFeatureRecord cbrCase = new CbrFeatureRecord("Add imaging endpoint to protocol", "Advisor recommended: APPROVE_WITH_CONDITIONS", "APPROVED", Confidence.unknown(1.0), Map.of(), null, null);
 
             cbrService.storeIdempotent(
                 cbrCase,

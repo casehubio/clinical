@@ -12,7 +12,7 @@ import io.casehub.clinical.api.DsmbSafetySignalEvent;
 import io.casehub.clinical.api.model.CtcaeGrade;
 import io.casehub.clinical.service.DefaultSafetySignalAnalyzer;
 import io.casehub.clinical.service.DsmbBatchSignalNotifier;
-import io.casehub.neocortex.memory.cbr.FeatureVectorCbrCase;
+import io.casehub.neocortex.memory.cbr.CbrFeatureRecord;
 import io.casehub.work.api.spi.WorkItemStore;
 import io.casehub.work.runtime.service.WorkItemService;
 import jakarta.enterprise.event.Event;
@@ -145,7 +145,7 @@ class TrialSafetyAggregationJobTest {
 
         job.storeCbrCase(trialId, signal, 5, "PHASE_III", "default");
 
-        ArgumentCaptor<FeatureVectorCbrCase> captor = ArgumentCaptor.forClass(FeatureVectorCbrCase.class);
+        ArgumentCaptor<CbrFeatureRecord> captor = ArgumentCaptor.forClass(CbrFeatureRecord.class);
         verify(cbrService).storeIdempotent(
             captor.capture(),
             eq("clinical-trial-safety"),
@@ -155,7 +155,7 @@ class TrialSafetyAggregationJobTest {
             eq(null),
             any());
 
-        FeatureVectorCbrCase stored = captor.getValue();
+        CbrFeatureRecord stored = captor.getValue();
         assertThat(stored.problem()).contains("GRADE_THRESHOLD");
         assertThat(stored.problem()).contains("PHASE_III");
     }

@@ -11,6 +11,7 @@ import io.casehub.ledger.api.spi.LedgerEntryRepository;
 import io.casehub.ledger.runtime.service.LedgerProvExportService;
 import io.casehub.ledger.runtime.service.LedgerVerificationService;
 import io.casehub.platform.api.identity.CurrentPrincipal;
+import io.casehub.platform.api.mcp.HandWrittenEndpoint;
 import jakarta.annotation.security.RolesAllowed;
 import jakarta.inject.Inject;
 import jakarta.ws.rs.Consumes;
@@ -24,6 +25,7 @@ import jakarta.ws.rs.core.Response;
 
 import java.util.UUID;
 
+@HandWrittenEndpoint("patient compliance — ledger verification, PROV-O export, consent withdrawal")
 @Path("/trials/{trialId}/sites/{siteId}/patients/{enrollmentId}")
 @Produces(MediaType.APPLICATION_JSON)
 @Consumes(MediaType.APPLICATION_JSON)

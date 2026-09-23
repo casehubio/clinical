@@ -3,15 +3,15 @@ package io.casehub.clinical.cbr;
 import io.casehub.neocortex.cognitive.Confidence;
 import io.casehub.neocortex.memory.MemoryDomain;
 import io.casehub.neocortex.cognitive.Confidence;
-import io.casehub.neocortex.memory.cbr.CbrCaseMemoryStore;
+import io.casehub.neocortex.memory.cbr.CbrRecordStore;
 import io.casehub.neocortex.cognitive.Confidence;
 import io.casehub.neocortex.memory.cbr.CbrQuery;
 import io.casehub.neocortex.cognitive.Confidence;
 import io.casehub.neocortex.memory.cbr.FeatureValue;
 import io.casehub.neocortex.cognitive.Confidence;
-import io.casehub.neocortex.memory.cbr.FeatureVectorCbrCase;
+import io.casehub.neocortex.memory.cbr.CbrFeatureRecord;
 import io.casehub.neocortex.cognitive.Confidence;
-import io.casehub.neocortex.memory.cbr.ScoredCbrCase;
+import io.casehub.neocortex.memory.cbr.CbrMatch;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.InOrder;
@@ -27,12 +27,12 @@ import static org.mockito.Mockito.when;
 
 class ClinicalCbrServiceTest {
 
-    private CbrCaseMemoryStore store;
+    private CbrRecordStore store;
     private ClinicalCbrService service;
 
     @BeforeEach
     void setUp() {
-        store = mock(CbrCaseMemoryStore.class);
+        store = mock(CbrRecordStore.class);
         service = new ClinicalCbrService(store,
             mock(io.casehub.neocortex.memory.cbr.ExplanationRenderer.class),
             mock(io.casehub.clinical.service.CbrRetrievalLedgerWriter.class),
@@ -41,7 +41,7 @@ class ClinicalCbrServiceTest {
 
     @Test
     void storeIdempotent_erasesBeforeStore() {
-        final var cbrCase = new FeatureVectorCbrCase("problem", "solution", "outcome", Confidence.unknown(0.9), Map.of(), null, null);
+        final var cbrCase = new CbrFeatureRecord("problem", "solution", "outcome", Confidence.unknown(0.9), Map.of(), null, null);
         final String caseType = "clinical-ae";
         final String entityId = "ae-123";
         final MemoryDomain domain = new MemoryDomain("clinical-ae");
@@ -65,15 +65,15 @@ class ClinicalCbrServiceTest {
         final var query = CbrQuery.of("tenant-1", new MemoryDomain("clinical-ae"),
             io.casehub.platform.api.path.Path.root(), "clinical-ae", FeatureValue.toFeatureMap(Map.of("grade", 3.0)), 5);
         final var expected = List.of(
-            new ScoredCbrCase<>(new FeatureVectorCbrCase("p1", "s1", "o1", Confidence.unknown(0.9), Map.of(), null, null), "clinical-ae", 0.95),
-            new ScoredCbrCase<>(new FeatureVectorCbrCase("p2", "s2", "o2", Confidence.unknown(0.8), Map.of(), null, null), "clinical-ae", 0.85)
+            new CbrMatch<>(new CbrFeatureRecord("p1", "s1", "o1", Confidence.unknown(0.9), Map.of(), null, null), "clinical-ae", 0.95),
+            new CbrMatch<>(new CbrFeatureRecord("p2", "s2", "o2", Confidence.unknown(0.8), Map.of(), null, null), "clinical-ae", 0.85)
         );
 
-        when(store.retrieveSimilar(query, FeatureVectorCbrCase.class)).thenReturn(expected);
+        when(store.retrieveSimilar(query, CbrFeatureRecord.class)).thenReturn(expected);
 
-        final List<ScoredCbrCase<FeatureVectorCbrCase>> result = service.retrieveSimilar(query, FeatureVectorCbrCase.class);
+        final List<CbrMatch<CbrFeatureRecord>> result = service.retrieveSimilar(query, CbrFeatureRecord.class);
 
         assertThat(result).isEqualTo(expected);
-        verify(store).retrieveSimilar(query, FeatureVectorCbrCase.class);
+        verify(store).retrieveSimilar(query, CbrFeatureRecord.class);
     }
 }

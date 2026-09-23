@@ -21,7 +21,7 @@ import static org.mockito.Mockito.*;
 class ClinicalCaseOutcomeObserverTest {
 
     private ClinicalCbrService cbrService;
-    private CbrCaseMemoryStore store;
+    private CbrRecordStore store;
     private PlanItemStore planItemStore;
     private ClinicalScopeResolver scopeResolver;
     private ClinicalCaseOutcomeObserver observer;
@@ -29,7 +29,7 @@ class ClinicalCaseOutcomeObserverTest {
     @BeforeEach
     void setUp() {
         cbrService = mock(ClinicalCbrService.class);
-        store = mock(CbrCaseMemoryStore.class);
+        store = mock(CbrRecordStore.class);
         planItemStore = mock(PlanItemStore.class);
         scopeResolver = mock(ClinicalScopeResolver.class);
         when(scopeResolver.forAdverseEvent(any())).thenReturn(java.util.Optional.of(io.casehub.platform.api.path.Path.of("trial-1", "site-1", "patient-1")));
@@ -38,7 +38,7 @@ class ClinicalCaseOutcomeObserverTest {
     }
 
     @Test
-    void onOutcome_aeCase_storesFeatureVectorCbrCaseWithPlanTrace() {
+    void onOutcome_aeCase_storesCbrFeatureRecordWithPlanTrace() {
         UUID aeId = UUID.randomUUID();
         UUID caseId = UUID.randomUUID();
 
@@ -77,14 +77,14 @@ class ClinicalCaseOutcomeObserverTest {
 
         observer.onOutcome(event);
 
-        ArgumentCaptor<CbrCase> caseCaptor = ArgumentCaptor.forClass(CbrCase.class);
+        ArgumentCaptor<CbrRecord> caseCaptor = ArgumentCaptor.forClass(CbrRecord.class);
         verify(cbrService).storeIdempotent(
             caseCaptor.capture(), eq("clinical-ae"), eq(aeId.toString()),
             eq(ClinicalCbrDomains.AE), eq("test-tenant"), eq(caseId.toString()), any());
 
-        CbrCase stored = caseCaptor.getValue();
-        assertThat(stored).isInstanceOf(FeatureVectorCbrCase.class);
-        FeatureVectorCbrCase plan = (FeatureVectorCbrCase) stored;
+        CbrRecord stored = caseCaptor.getValue();
+        assertThat(stored).isInstanceOf(CbrFeatureRecord.class);
+        CbrFeatureRecord plan = (CbrFeatureRecord) stored;
         assertThat(plan.features()).hasSize(14);
 
     }
@@ -209,9 +209,9 @@ class ClinicalCaseOutcomeObserverTest {
 
         observer.onOutcome(event);
 
-        ArgumentCaptor<CbrCase> caseCaptor = ArgumentCaptor.forClass(CbrCase.class);
+        ArgumentCaptor<CbrRecord> caseCaptor = ArgumentCaptor.forClass(CbrRecord.class);
         verify(cbrService).storeIdempotent(caseCaptor.capture(), any(), any(), any(), any(), any(), any());
-        FeatureVectorCbrCase plan = (FeatureVectorCbrCase) caseCaptor.getValue();
+        CbrFeatureRecord plan = (CbrFeatureRecord) caseCaptor.getValue();
 
     }
 
@@ -247,9 +247,9 @@ class ClinicalCaseOutcomeObserverTest {
 
         observer.onOutcome(event);
 
-        ArgumentCaptor<CbrCase> caseCaptor = ArgumentCaptor.forClass(CbrCase.class);
+        ArgumentCaptor<CbrRecord> caseCaptor = ArgumentCaptor.forClass(CbrRecord.class);
         verify(cbrService).storeIdempotent(caseCaptor.capture(), any(), any(), any(), any(), any(), any());
-        FeatureVectorCbrCase plan = (FeatureVectorCbrCase) caseCaptor.getValue();
+        CbrFeatureRecord plan = (CbrFeatureRecord) caseCaptor.getValue();
 
     }
 
@@ -339,12 +339,12 @@ class ClinicalCaseOutcomeObserverTest {
 
         observer.onOutcome(event);
 
-        ArgumentCaptor<CbrCase> caseCaptor = ArgumentCaptor.forClass(CbrCase.class);
+        ArgumentCaptor<CbrRecord> caseCaptor = ArgumentCaptor.forClass(CbrRecord.class);
         verify(cbrService).storeIdempotent(
                 caseCaptor.capture(), eq("clinical-ae"), eq(aeId.toString()),
                 eq(ClinicalCbrDomains.AE), eq("test-tenant"), eq(caseId.toString()), any());
 
-        FeatureVectorCbrCase plan = (FeatureVectorCbrCase) caseCaptor.getValue();
+        CbrFeatureRecord plan = (CbrFeatureRecord) caseCaptor.getValue();
         assertThat(plan.features()).hasSize(14);
         assertThat(plan.features().get("siteEnrollmentCount")).isEqualTo(FeatureValue.number(45));
         assertThat(plan.features().get("siteTargetEnrollment")).isEqualTo(FeatureValue.number(100));
@@ -376,9 +376,9 @@ class ClinicalCaseOutcomeObserverTest {
 
         observer.onOutcome(event);
 
-        ArgumentCaptor<CbrCase> caseCaptor = ArgumentCaptor.forClass(CbrCase.class);
+        ArgumentCaptor<CbrRecord> caseCaptor = ArgumentCaptor.forClass(CbrRecord.class);
         verify(cbrService).storeIdempotent(caseCaptor.capture(), any(), any(), any(), any(), any(), any());
-        FeatureVectorCbrCase plan = (FeatureVectorCbrCase) caseCaptor.getValue();
+        CbrFeatureRecord plan = (CbrFeatureRecord) caseCaptor.getValue();
         assertThat(plan.features().get("agentTrustScore")).isEqualTo(FeatureValue.number(0.5));
     }
 

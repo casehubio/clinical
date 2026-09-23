@@ -15,8 +15,8 @@ import io.casehub.clinical.entity.ClinicalTrial;
 import io.casehub.clinical.entity.PatientEnrollment;
 import io.casehub.clinical.entity.TrialSite;
 import io.casehub.neocortex.memory.cbr.CbrQuery;
-import io.casehub.neocortex.memory.cbr.FeatureVectorCbrCase;
-import io.casehub.neocortex.memory.cbr.ScoredCbrCase;
+import io.casehub.neocortex.memory.cbr.CbrFeatureRecord;
+import io.casehub.neocortex.memory.cbr.CbrMatch;
 import io.casehub.platform.testing.FixedCurrentPrincipal;
 import io.quarkus.test.junit.QuarkusTest;
 import io.quarkus.test.security.TestSecurity;
@@ -105,7 +105,7 @@ class ClinicalCaseOutcomeObserverIntegrationTest {
     }
 
     @Test
-    void onOutcome_storesFeatureVectorCbrCaseWithFeatures() {
+    void onOutcome_storesCbrFeatureRecordWithFeatures() {
         UUID caseId = UUID.randomUUID();
         Map<String, Object> snapshot = new HashMap<>();
         snapshot.put("aeId", aeId.toString());
@@ -120,10 +120,10 @@ class ClinicalCaseOutcomeObserverIntegrationTest {
 
         CbrQuery query = CbrQuery.of(principal.tenancyId(), ClinicalCbrDomains.AE,
             io.casehub.platform.api.path.Path.of(trialId.toString(), siteId.toString(), "PAT-CBR"), "clinical-ae", Map.of(), 10);
-        List<ScoredCbrCase<FeatureVectorCbrCase>> results = cbrService.retrieveSimilar(query, FeatureVectorCbrCase.class);
+        List<CbrMatch<CbrFeatureRecord>> results = cbrService.retrieveSimilar(query, CbrFeatureRecord.class);
 
         assertThat(results).isNotEmpty();
-        FeatureVectorCbrCase stored = results.get(0).cbrCase();
+        CbrFeatureRecord stored = results.get(0).cbrRecord();
         assertThat(stored.features()).containsKey("grade");
         assertThat(stored.features()).containsKey("eventType");
         assertThat(stored.problem()).contains("Grade 3", "Neutropenia");
@@ -148,7 +148,7 @@ class ClinicalCaseOutcomeObserverIntegrationTest {
         CbrQuery query = CbrQuery.of(principal.tenancyId(), ClinicalCbrDomains.AE,
                                      io.casehub.platform.api.path.Path.of(trialId.toString(), siteId.toString(), "PAT-CBR"), "clinical-ae", Map.of(), 10)
                                  .withNotBefore(before);
-        List<ScoredCbrCase<FeatureVectorCbrCase>> results = cbrService.retrieveSimilar(query, FeatureVectorCbrCase.class);
+        List<CbrMatch<CbrFeatureRecord>> results = cbrService.retrieveSimilar(query, CbrFeatureRecord.class);
         assertThat(results).isEmpty();
     }
 }

@@ -15,12 +15,12 @@ import static org.mockito.Mockito.*;
 
 class CbrCompactionJobTest {
 
-    private CbrCaseMemoryStore store;
+    private CbrRecordStore store;
     private CbrCompactionJob job;
 
     @BeforeEach
     void setup() {
-        store = mock(CbrCaseMemoryStore.class);
+        store = mock(CbrRecordStore.class);
         job = new CbrCompactionJob(store);
         job.tenantId = "default";
         job.minGroupSize = 3;
@@ -32,11 +32,11 @@ class CbrCompactionJobTest {
         when(store.discoverTenants(ClinicalCbrDomains.AE)).thenReturn(Set.of("default"));
 
         var sameMergeKey = makeFeatures(3, "Neutropenia", "PHASE_III", 40, 0.8);
-        when(store.retrieveSimilar(any(), eq(FeatureVectorCbrCase.class)))
+        when(store.retrieveSimilar(any(), eq(CbrFeatureRecord.class)))
             .thenReturn(List.of(
-                scored("case-1", new FeatureVectorCbrCase("p", "s", "COMPLETED", Confidence.unknown(1.0), sameMergeKey, null, null)),
-                scored("case-2", new FeatureVectorCbrCase("p", "s", "COMPLETED", Confidence.unknown(0.9), withNumerics(sameMergeKey, 50, 0.7), null, null)),
-                scored("case-3", new FeatureVectorCbrCase("p", "s", "COMPLETED", Confidence.unknown(0.8), withNumerics(sameMergeKey, 60, 0.6), null, null))
+                scored("case-1", new CbrFeatureRecord("p", "s", "COMPLETED", Confidence.unknown(1.0), sameMergeKey, null, null)),
+                scored("case-2", new CbrFeatureRecord("p", "s", "COMPLETED", Confidence.unknown(0.9), withNumerics(sameMergeKey, 50, 0.7), null, null)),
+                scored("case-3", new CbrFeatureRecord("p", "s", "COMPLETED", Confidence.unknown(0.8), withNumerics(sameMergeKey, 60, 0.6), null, null))
             ));
 
         job.compact();
@@ -51,10 +51,10 @@ class CbrCompactionJobTest {
         when(store.discoverTenants(ClinicalCbrDomains.AE)).thenReturn(Set.of("default"));
 
         var features = makeFeatures(3, "Neutropenia", "PHASE_III", 40, 0.8);
-        when(store.retrieveSimilar(any(), eq(FeatureVectorCbrCase.class)))
+        when(store.retrieveSimilar(any(), eq(CbrFeatureRecord.class)))
             .thenReturn(List.of(
-                scored("case-1", new FeatureVectorCbrCase("p", "s", "COMPLETED", Confidence.unknown(1.0), features, null, null)),
-                scored("case-2", new FeatureVectorCbrCase("p", "s", "COMPLETED", Confidence.unknown(1.0), features, null, null))
+                scored("case-1", new CbrFeatureRecord("p", "s", "COMPLETED", Confidence.unknown(1.0), features, null, null)),
+                scored("case-2", new CbrFeatureRecord("p", "s", "COMPLETED", Confidence.unknown(1.0), features, null, null))
             ));
 
         job.compact();
@@ -70,14 +70,14 @@ class CbrCompactionJobTest {
         var keyA = makeFeatures(3, "Neutropenia", "PHASE_III", 40, 0.8);
         var keyB = makeFeatures(4, "Hepatotoxicity", "PHASE_II", 20, 0.6);
 
-        when(store.retrieveSimilar(any(), eq(FeatureVectorCbrCase.class)))
+        when(store.retrieveSimilar(any(), eq(CbrFeatureRecord.class)))
             .thenReturn(List.of(
-                scored("a1", new FeatureVectorCbrCase("p", "s", "COMPLETED", Confidence.unknown(1.0), keyA, null, null)),
-                scored("a2", new FeatureVectorCbrCase("p", "s", "COMPLETED", Confidence.unknown(1.0), keyA, null, null)),
-                scored("a3", new FeatureVectorCbrCase("p", "s", "COMPLETED", Confidence.unknown(1.0), keyA, null, null)),
-                scored("b1", new FeatureVectorCbrCase("p", "s", "COMPLETED", Confidence.unknown(1.0), keyB, null, null)),
-                scored("b2", new FeatureVectorCbrCase("p", "s", "COMPLETED", Confidence.unknown(1.0), keyB, null, null)),
-                scored("b3", new FeatureVectorCbrCase("p", "s", "COMPLETED", Confidence.unknown(1.0), keyB, null, null))
+                scored("a1", new CbrFeatureRecord("p", "s", "COMPLETED", Confidence.unknown(1.0), keyA, null, null)),
+                scored("a2", new CbrFeatureRecord("p", "s", "COMPLETED", Confidence.unknown(1.0), keyA, null, null)),
+                scored("a3", new CbrFeatureRecord("p", "s", "COMPLETED", Confidence.unknown(1.0), keyA, null, null)),
+                scored("b1", new CbrFeatureRecord("p", "s", "COMPLETED", Confidence.unknown(1.0), keyB, null, null)),
+                scored("b2", new CbrFeatureRecord("p", "s", "COMPLETED", Confidence.unknown(1.0), keyB, null, null)),
+                scored("b3", new CbrFeatureRecord("p", "s", "COMPLETED", Confidence.unknown(1.0), keyB, null, null))
             ));
 
         job.compact();
@@ -98,20 +98,20 @@ class CbrCompactionJobTest {
         var singleFeatures = new LinkedHashMap<>(baseFeatures);
         singleFeatures.put("agentTrustScore", FeatureValue.number(0.6));
 
-        when(store.retrieveSimilar(any(), eq(FeatureVectorCbrCase.class)))
+        when(store.retrieveSimilar(any(), eq(CbrFeatureRecord.class)))
             .thenReturn(List.of(
-                scored("compact-abc", new FeatureVectorCbrCase("p", "s", "COMPLETED", Confidence.unknown(0.9), compactFeatures, null, null)),
-                scored("new-1", new FeatureVectorCbrCase("p", "s", "COMPLETED", Confidence.unknown(0.7), singleFeatures, null, null)),
-                scored("new-2", new FeatureVectorCbrCase("p", "s", "COMPLETED", Confidence.unknown(0.7), singleFeatures, null, null))
+                scored("compact-abc", new CbrFeatureRecord("p", "s", "COMPLETED", Confidence.unknown(0.9), compactFeatures, null, null)),
+                scored("new-1", new CbrFeatureRecord("p", "s", "COMPLETED", Confidence.unknown(0.7), singleFeatures, null, null)),
+                scored("new-2", new CbrFeatureRecord("p", "s", "COMPLETED", Confidence.unknown(0.7), singleFeatures, null, null))
             ));
 
         job.compact();
 
-        ArgumentCaptor<CbrCase> captor = ArgumentCaptor.forClass(CbrCase.class);
+        ArgumentCaptor<CbrRecord> captor = ArgumentCaptor.forClass(CbrRecord.class);
         verify(store).store(captor.capture(), eq("clinical-ae"), anyString(),
             eq(ClinicalCbrDomains.AE), eq("default"), isNull(), any());
 
-        FeatureVectorCbrCase merged = (FeatureVectorCbrCase) captor.getValue();
+        CbrFeatureRecord merged = (CbrFeatureRecord) captor.getValue();
         assertThat(((FeatureValue.NumberVal) merged.features().get("mergeCount")).value()).isEqualTo(7.0);
 
         double expectedTrust = (5 * 0.8 + 1 * 0.6 + 1 * 0.6) / 7.0;
@@ -124,11 +124,11 @@ class CbrCompactionJobTest {
         when(store.discoverTenants(ClinicalCbrDomains.AE)).thenReturn(Set.of("default"));
 
         var features = makeFeatures(3, "Neutropenia", "PHASE_III", 40, 0.8);
-        when(store.retrieveSimilar(any(), eq(FeatureVectorCbrCase.class)))
+        when(store.retrieveSimilar(any(), eq(CbrFeatureRecord.class)))
             .thenReturn(List.of(
-                scored("c1", new FeatureVectorCbrCase("p", "s", "COMPLETED", Confidence.unknown(1.0), features, null, null)),
-                scored("c2", new FeatureVectorCbrCase("p", "s", "COMPLETED", Confidence.unknown(1.0), features, null, null)),
-                scored("c3", new FeatureVectorCbrCase("p", "s", "COMPLETED", Confidence.unknown(1.0), features, null, null))
+                scored("c1", new CbrFeatureRecord("p", "s", "COMPLETED", Confidence.unknown(1.0), features, null, null)),
+                scored("c2", new CbrFeatureRecord("p", "s", "COMPLETED", Confidence.unknown(1.0), features, null, null)),
+                scored("c3", new CbrFeatureRecord("p", "s", "COMPLETED", Confidence.unknown(1.0), features, null, null))
             ));
 
         job.compact();
@@ -138,11 +138,11 @@ class CbrCompactionJobTest {
 
         reset(store);
         when(store.discoverTenants(ClinicalCbrDomains.AE)).thenReturn(Set.of("default"));
-        when(store.retrieveSimilar(any(), eq(FeatureVectorCbrCase.class)))
+        when(store.retrieveSimilar(any(), eq(CbrFeatureRecord.class)))
             .thenReturn(List.of(
-                scored("c1", new FeatureVectorCbrCase("p", "s", "COMPLETED", Confidence.unknown(1.0), features, null, null)),
-                scored("c2", new FeatureVectorCbrCase("p", "s", "COMPLETED", Confidence.unknown(1.0), features, null, null)),
-                scored("c3", new FeatureVectorCbrCase("p", "s", "COMPLETED", Confidence.unknown(1.0), features, null, null))
+                scored("c1", new CbrFeatureRecord("p", "s", "COMPLETED", Confidence.unknown(1.0), features, null, null)),
+                scored("c2", new CbrFeatureRecord("p", "s", "COMPLETED", Confidence.unknown(1.0), features, null, null)),
+                scored("c3", new CbrFeatureRecord("p", "s", "COMPLETED", Confidence.unknown(1.0), features, null, null))
             ));
 
         job.compact();
@@ -158,8 +158,8 @@ class CbrCompactionJobTest {
         verify(store, never()).discoverTenants(any());
     }
 
-    private static <C extends CbrCase> ScoredCbrCase<C> scored(String caseId, C cbrCase) {
-        return new ScoredCbrCase<>(cbrCase, caseId, 1.0);
+    private static <C extends CbrRecord> CbrMatch<C> scored(String caseId, C cbrCase) {
+        return new CbrMatch<>(cbrCase, caseId, "clinical-ae", 1.0);
     }
 
     private Map<String, FeatureValue> makeFeatures(int grade, String eventType, String phase, long enrollment, double trust) {

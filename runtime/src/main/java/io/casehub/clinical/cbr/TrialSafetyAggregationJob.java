@@ -15,7 +15,7 @@ import io.casehub.clinical.entity.TrialSite;
 import io.casehub.clinical.service.DsmbBatchSignalNotifier;
 import io.casehub.neocortex.cognitive.Confidence;
 import io.casehub.neocortex.memory.cbr.FeatureValue;
-import io.casehub.neocortex.memory.cbr.FeatureVectorCbrCase;
+import io.casehub.neocortex.memory.cbr.CbrFeatureRecord;
 import io.casehub.platform.api.path.Path;
 import io.casehub.work.api.WorkItemCreateRequest;
 import io.casehub.work.api.WorkItemPriority;
@@ -269,7 +269,7 @@ public class TrialSafetyAggregationJob {
         Map<String, FeatureValue> features = FeatureValue.toFeatureMap(rawFeatures);
 
         String entityId = "trial-" + trialId + "-" + signal.signalType().toLowerCase();
-        FeatureVectorCbrCase cbrCase = new FeatureVectorCbrCase("%s signal in %s trial: %s".formatted(signal.signalType(), trialPhase, signal.summary()), signal.summary(), "DETECTED", Confidence.unknown(1.0), features, null, null);
+        CbrFeatureRecord cbrCase = new CbrFeatureRecord("%s signal in %s trial: %s".formatted(signal.signalType(), trialPhase, signal.summary()), signal.summary(), "DETECTED", Confidence.unknown(1.0), features, null, null);
 
         Path scope = Path.of(trialId.toString());
         cbrService.storeIdempotent(cbrCase, "clinical-trial-safety", entityId,

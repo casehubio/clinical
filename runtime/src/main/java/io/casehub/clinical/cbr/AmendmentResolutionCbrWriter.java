@@ -3,7 +3,7 @@ package io.casehub.clinical.cbr;
 import io.casehub.clinical.api.ProtocolAmendmentResolvedEvent;
 import io.casehub.clinical.entity.ProtocolAmendment;
 import io.casehub.neocortex.cognitive.Confidence;
-import io.casehub.neocortex.memory.cbr.FeatureVectorCbrCase;
+import io.casehub.neocortex.memory.cbr.CbrFeatureRecord;
 import java.util.Map;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.enterprise.event.ObservesAsync;
@@ -69,7 +69,7 @@ public class AmendmentResolutionCbrWriter {
                 ? event.recommendation().name()
                 : "UNKNOWN";
 
-            var cbrCase = new FeatureVectorCbrCase(amendment.proposedChange, solution, event.terminalStatus().name(), Confidence.unknown(1.0), Map.of(), null, null);
+            var cbrCase = new CbrFeatureRecord(amendment.proposedChange, solution, event.terminalStatus().name(), Confidence.unknown(1.0), Map.of(), null, null);
 
             String caseId = amendment.engineCaseId != null
                 ? amendment.engineCaseId.toString()

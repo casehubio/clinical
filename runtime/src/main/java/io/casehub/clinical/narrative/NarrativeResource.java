@@ -11,6 +11,7 @@ import jakarta.ws.rs.Path;
 import jakarta.ws.rs.PathParam;
 import jakarta.ws.rs.Produces;
 import jakarta.ws.rs.core.MediaType;
+import io.casehub.platform.api.mcp.HandWrittenEndpoint;
 
 import java.util.List;
 import java.util.Map;
@@ -18,6 +19,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CopyOnWriteArrayList;
 
 @ApplicationScoped
+@HandWrittenEndpoint("narrative timeline — stateful singleton with bus subscription")
 @Path("/api/narrative")
 @Produces(MediaType.APPLICATION_JSON)
 public class NarrativeResource {

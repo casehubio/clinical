@@ -10,7 +10,7 @@ import io.casehub.ledger.api.model.LedgerEntryType;
 import io.casehub.ledger.api.spi.LedgerEntryRepository;
 import io.casehub.ledger.runtime.privacy.LedgerErasureService;
 import io.casehub.neocortex.memory.CaseMemoryStore;
-import io.casehub.neocortex.memory.cbr.CbrCaseMemoryStore;
+import io.casehub.neocortex.memory.cbr.CbrRecordStore;
 import io.casehub.platform.api.identity.ActorType;
 import io.casehub.platform.api.path.Path;
 import jakarta.enterprise.context.ApplicationScoped;
@@ -53,7 +53,7 @@ public class ConsentWithdrawalService {
     @Inject LedgerEntryRepository ledgerEntryRepository;
     @Inject LedgerErasureService ledgerErasureService;
     @Inject CaseMemoryStore memoryStore;
-    @Inject CbrCaseMemoryStore cbrCaseMemoryStore;
+    @Inject CbrRecordStore cbrCaseMemoryStore;
     @Inject Clock clock;
     @Inject
             EntityManager em;

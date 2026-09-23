@@ -9,13 +9,13 @@ import java.util.Map;
 import java.util.Set;
 
 @ApplicationScoped
-public class ClinicalPlanAdapter implements PlanAdapter {
+public class ClinicalPlanAdapter implements CbrPlanAdapter {
 
     private static final String CASE_TYPE_AE = "clinical-ae";
     private static final Set<String> SAFETY_CAPABILITIES = Set.of("safety-monitoring", "data-safety-monitoring");
 
     @Override
-    public AdaptedPlan adapt(String caseType, ScoredCbrCase<ResolvedCase> retrieved,
+    public AdaptedPlan adapt(String caseType, CbrMatch<CbrPlanRecord> retrieved,
                              Map<String, FeatureValue> currentFeatures) {
         if (!CASE_TYPE_AE.equals(caseType)) {
             return passThrough(retrieved);
@@ -23,7 +23,7 @@ public class ClinicalPlanAdapter implements PlanAdapter {
 
         List<AdaptedStep> steps = new ArrayList<>();
 
-        if (shouldAddSusar(currentFeatures, retrieved.cbrCase().features())) {
+        if (shouldAddSusar(currentFeatures, retrieved.cbrRecord().features())) {
             steps.add(new AdaptedStep("susar-oversight", "susar-review", null, null,
                     20, Map.of(), AdaptationAction.ADDED,
                     "Current AE meets SUSAR criteria — not present in precedent case."));
@@ -52,7 +52,7 @@ public class ClinicalPlanAdapter implements PlanAdapter {
         return val instanceof FeatureValue.StringVal s && "true".equals(s.value());
     }
 
-    private AdaptedPlan passThrough(ScoredCbrCase<ResolvedCase> retrieved) {
+    private AdaptedPlan passThrough(CbrMatch<CbrPlanRecord> retrieved) {
         return new AdaptedPlan(List.of());
     }
 }

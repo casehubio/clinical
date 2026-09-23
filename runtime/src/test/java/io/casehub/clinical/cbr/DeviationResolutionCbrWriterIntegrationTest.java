@@ -14,11 +14,11 @@ import io.casehub.clinical.entity.ClinicalTrial;
 import io.casehub.clinical.entity.IrbApproval;
 import io.casehub.clinical.entity.ProtocolDeviation;
 import io.casehub.clinical.entity.TrialSite;
-import io.casehub.neocortex.memory.cbr.CbrCaseMemoryStore;
+import io.casehub.neocortex.memory.cbr.CbrRecordStore;
 import io.casehub.neocortex.memory.cbr.CbrQuery;
 import io.casehub.neocortex.memory.cbr.FeatureValue;
-import io.casehub.neocortex.memory.cbr.FeatureVectorCbrCase;
-import io.casehub.neocortex.memory.cbr.ScoredCbrCase;
+import io.casehub.neocortex.memory.cbr.CbrFeatureRecord;
+import io.casehub.neocortex.memory.cbr.CbrMatch;
 import io.casehub.platform.testing.FixedCurrentPrincipal;
 import io.quarkus.test.TestTransaction;
 import io.quarkus.test.junit.QuarkusTest;
@@ -46,7 +46,7 @@ class DeviationResolutionCbrWriterIntegrationTest {
     DeviationResolutionCbrWriter writer;
 
     @Inject
-    CbrCaseMemoryStore memoryStore;
+    CbrRecordStore memoryStore;
 
     @Inject
     FixedCurrentPrincipal principal;
@@ -139,10 +139,10 @@ class DeviationResolutionCbrWriterIntegrationTest {
             10
         );
 
-        List<ScoredCbrCase<FeatureVectorCbrCase>> results = memoryStore.retrieveSimilar(query, FeatureVectorCbrCase.class);
+        List<CbrMatch<CbrFeatureRecord>> results = memoryStore.retrieveSimilar(query, CbrFeatureRecord.class);
         assertThat(results).isNotEmpty();
 
-        FeatureVectorCbrCase retrieved = results.get(0).cbrCase();
+        CbrFeatureRecord retrieved = results.get(0).cbrRecord();
         assertThat(retrieved.problem()).contains("CONSENT_TIMING_DELAY", "MINOR");
         assertThat(retrieved.solution()).contains("PI decision: APPROVED");
         assertThat(retrieved.outcome()).isEqualTo("RESOLVED");
@@ -223,12 +223,12 @@ class DeviationResolutionCbrWriterIntegrationTest {
             10
         );
 
-        List<ScoredCbrCase<FeatureVectorCbrCase>> results = memoryStore.retrieveSimilar(query, FeatureVectorCbrCase.class);
+        List<CbrMatch<CbrFeatureRecord>> results = memoryStore.retrieveSimilar(query, CbrFeatureRecord.class);
         assertThat(results).isNotEmpty();
 
         // Find the case for this specific deviation
-        FeatureVectorCbrCase retrieved = results.stream()
-            .map(ScoredCbrCase::cbrCase)
+        CbrFeatureRecord retrieved = results.stream()
+            .map(CbrMatch::cbrRecord)
             .filter(c -> FeatureValue.toRawMap(c.features()).get("deviationType").equals("INFORMED_CONSENT_VIOLATION"))
             .findFirst()
             .orElseThrow();
@@ -284,10 +284,10 @@ class DeviationResolutionCbrWriterIntegrationTest {
             10
         );
 
-        List<ScoredCbrCase<FeatureVectorCbrCase>> results = memoryStore.retrieveSimilar(query, FeatureVectorCbrCase.class);
+        List<CbrMatch<CbrFeatureRecord>> results = memoryStore.retrieveSimilar(query, CbrFeatureRecord.class);
         assertThat(results).isNotEmpty();
 
-        FeatureVectorCbrCase retrieved = results.get(0).cbrCase();
+        CbrFeatureRecord retrieved = results.get(0).cbrRecord();
         assertThat(FeatureValue.toRawMap(retrieved.features()))
             .containsEntry("piDecision", "REJECTED")
             .containsEntry("severity", "MAJOR")

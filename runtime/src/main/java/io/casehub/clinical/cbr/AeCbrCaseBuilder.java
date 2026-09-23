@@ -8,7 +8,7 @@ import io.casehub.engine.common.internal.model.PlanItemRecord;
 import io.casehub.engine.common.spi.PlanItemStore;
 import io.casehub.neocortex.cognitive.Confidence;
 import io.casehub.neocortex.memory.cbr.FeatureValue;
-import io.casehub.neocortex.memory.cbr.FeatureVectorCbrCase;
+import io.casehub.neocortex.memory.cbr.CbrFeatureRecord;
 import io.casehub.platform.api.path.Path;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
@@ -86,7 +86,7 @@ public class AeCbrCaseBuilder {
         String problem = AeCbrFeatureBuilder.buildProblemSummary(ctx);
         String solution = AeCbrFeatureBuilder.buildSolutionSummary(ctx);
 
-        var cbrCase = new FeatureVectorCbrCase(problem, solution, "COMPLETED", Confidence.unknown(1.0), FeatureValue.toFeatureMap(features), null, null);
+        var cbrCase = new CbrFeatureRecord(problem, solution, "COMPLETED", Confidence.unknown(1.0), FeatureValue.toFeatureMap(features), null, null);
 
         cbrService.storeIdempotent(
             cbrCase, "clinical-ae", ae.id.toString(),
@@ -102,7 +102,7 @@ public class AeCbrCaseBuilder {
             if (!trajectory.isEmpty()) {
                 Map<String, Object> trajFeatures = new java.util.LinkedHashMap<>(features);
                 trajFeatures.put("aeTrajectory", trajectory);
-                var trajCbrCase = new FeatureVectorCbrCase(problem, solution, "COMPLETED", Confidence.unknown(1.0), FeatureValue.toFeatureMap(trajFeatures), null, null);
+                var trajCbrCase = new CbrFeatureRecord(problem, solution, "COMPLETED", Confidence.unknown(1.0), FeatureValue.toFeatureMap(trajFeatures), null, null);
                 cbrService.storeIdempotent(
                     trajCbrCase, "clinical-ae-trajectory", ae.id + "-trajectory",
                     ClinicalCbrDomains.AE_TRAJECTORY, tenantId,

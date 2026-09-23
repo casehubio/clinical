@@ -2,7 +2,7 @@ package io.casehub.clinical.cbr;
 
 import io.casehub.clinical.api.ProtocolAmendmentResolvedEvent;
 import io.casehub.clinical.entity.ProtocolAmendment;
-import io.casehub.neocortex.memory.cbr.CbrCaseMemoryStore;
+import io.casehub.neocortex.memory.cbr.CbrRecordStore;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.enterprise.event.ObservesAsync;
 import jakarta.inject.Inject;
@@ -19,11 +19,11 @@ public class AmendmentSupersessionObserver {
 
     private static final Logger LOG = Logger.getLogger(AmendmentSupersessionObserver.class);
 
-    private final CbrCaseMemoryStore store;
+    private final CbrRecordStore store;
     private final EntityManager em;
 
     @Inject
-    public AmendmentSupersessionObserver(CbrCaseMemoryStore store, EntityManager em) {
+    public AmendmentSupersessionObserver(CbrRecordStore store, EntityManager em) {
         this.store = store;
         this.em = em;
     }

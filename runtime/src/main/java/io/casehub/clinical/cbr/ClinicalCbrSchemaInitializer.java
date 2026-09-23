@@ -1,7 +1,7 @@
 package io.casehub.clinical.cbr;
 
-import io.casehub.neocortex.memory.cbr.CbrCaseMemoryStore;
-import io.casehub.neocortex.memory.cbr.CbrFeatureSchema;
+import io.casehub.neocortex.memory.cbr.CbrRecordStore;
+import io.casehub.neocortex.memory.cbr.CbrRecordSchema;
 import io.casehub.neocortex.memory.cbr.FeatureField;
 import io.casehub.neocortex.memory.cbr.SimilaritySpec;
 import io.casehub.neocortex.memory.cbr.TrendSpec;
@@ -31,10 +31,10 @@ public class ClinicalCbrSchemaInitializer {
 
     private static final Logger LOG = Logger.getLogger(ClinicalCbrSchemaInitializer.class);
 
-    private final CbrCaseMemoryStore store;
+    private final CbrRecordStore store;
 
     @Inject
-    public ClinicalCbrSchemaInitializer(final CbrCaseMemoryStore store) {
+    public ClinicalCbrSchemaInitializer(final CbrRecordStore store) {
         this.store = store;
     }
 
@@ -48,8 +48,8 @@ public class ClinicalCbrSchemaInitializer {
         store.registerSchema(trialSafetySchema());
     }
 
-    static CbrFeatureSchema aeSchema() {
-        return CbrFeatureSchema.of("clinical-ae",
+    static CbrRecordSchema aeSchema() {
+        return CbrRecordSchema.of("clinical-ae",
                                    FeatureField.numeric("grade", 1, 5),
                                    FeatureField.categoricalList("eventType"),
                                    FeatureField.categorical("trialPhase"),
@@ -67,8 +67,8 @@ public class ClinicalCbrSchemaInitializer {
                                    FeatureField.numeric("mergeCount", 1, 100000),
                                    FeatureField.categorical("regradeSource"));}
 
-    static CbrFeatureSchema deviationSchema() {
-        return CbrFeatureSchema.of("clinical-deviation",
+    static CbrRecordSchema deviationSchema() {
+        return CbrRecordSchema.of("clinical-deviation",
             FeatureField.categorical("deviationType"),
             FeatureField.categorical("severity"),
             FeatureField.categorical("escalationRequirement"),
@@ -76,12 +76,12 @@ public class ClinicalCbrSchemaInitializer {
             FeatureField.categorical("irbDecision"));
     }
 
-    static CbrFeatureSchema amendmentSchema() {
-        return CbrFeatureSchema.of("clinical-amendment"); // no features — pure text
+    static CbrRecordSchema amendmentSchema() {
+        return CbrRecordSchema.of("clinical-amendment"); // no features — pure text
     }
 
-    public static CbrFeatureSchema aeTrajectorySchema() {
-        return CbrFeatureSchema.of("clinical-ae-trajectory",
+    public static CbrRecordSchema aeTrajectorySchema() {
+        return CbrRecordSchema.of("clinical-ae-trajectory",
                                    FeatureField.numeric("grade", 1, 5),
                                    FeatureField.categoricalList("eventType"),
                                    FeatureField.categorical("trialPhase"),
@@ -97,8 +97,8 @@ public class ClinicalCbrSchemaInitializer {
                                                            FeatureField.numeric("grade", 1, 5)));
     }
 
-    public static CbrFeatureSchema siteEnrollmentSchema() {
-        return CbrFeatureSchema.of("clinical-site-enrollment",
+    public static CbrRecordSchema siteEnrollmentSchema() {
+        return CbrRecordSchema.of("clinical-site-enrollment",
                                    FeatureField.categorical("trialPhase"),
                                    FeatureField.timeSeries("enrollmentRate", "ts",
                                                            new SimilaritySpec.DtwSpec(new WarpingConstraint.SakoeChibaBand(3)),
@@ -108,8 +108,8 @@ public class ClinicalCbrSchemaInitializer {
                                                            FeatureField.numeric("periodCount", 0, 500)));
     }
 
-    public static CbrFeatureSchema trialSafetySchema() {
-        return CbrFeatureSchema.of("clinical-trial-safety",
+    public static CbrRecordSchema trialSafetySchema() {
+        return CbrRecordSchema.of("clinical-trial-safety",
                                    FeatureField.categorical("trialPhase"),
                                    FeatureField.numeric("aggregationPeriodDays", 1, 365),
                                    FeatureField.numeric("siteCount", 1, 1000),

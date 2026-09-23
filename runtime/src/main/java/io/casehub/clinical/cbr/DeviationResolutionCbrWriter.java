@@ -7,7 +7,7 @@ import io.casehub.clinical.entity.IrbApproval;
 import io.casehub.clinical.entity.ProtocolDeviation;
 import io.casehub.neocortex.cognitive.Confidence;
 import io.casehub.neocortex.memory.cbr.FeatureValue;
-import io.casehub.neocortex.memory.cbr.FeatureVectorCbrCase;
+import io.casehub.neocortex.memory.cbr.CbrFeatureRecord;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.enterprise.event.ObservesAsync;
 import jakarta.inject.Inject;
@@ -139,7 +139,7 @@ public class DeviationResolutionCbrWriter {
                 : ""
         );
 
-        FeatureVectorCbrCase cbrCase = new FeatureVectorCbrCase(problem, solution, "RESOLVED", Confidence.unknown(1.0), FeatureValue.toFeatureMap(features), null, null);
+        CbrFeatureRecord cbrCase = new CbrFeatureRecord(problem, solution, "RESOLVED", Confidence.unknown(1.0), FeatureValue.toFeatureMap(features), null, null);
 
         cbrService.storeIdempotent(
             cbrCase,

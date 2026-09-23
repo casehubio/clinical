@@ -6,8 +6,8 @@ import io.casehub.clinical.entity.ClinicalTrial;
 import io.casehub.clinical.entity.PatientEnrollment;
 import io.casehub.neocortex.memory.cbr.CbrQuery;
 import io.casehub.neocortex.memory.cbr.FeatureValue;
-import io.casehub.neocortex.memory.cbr.FeatureVectorCbrCase;
-import io.casehub.neocortex.memory.cbr.ScoredCbrCase;
+import io.casehub.neocortex.memory.cbr.CbrFeatureRecord;
+import io.casehub.neocortex.memory.cbr.CbrMatch;
 import io.casehub.platform.api.path.Path;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.enterprise.event.Event;
@@ -95,8 +95,8 @@ public class SiteEnrollmentAlertService {
                     .withScopeDecay(cbrConfig.siteEnrollmentScopeDecay())
                     .withTemporalDecay(cbrConfig.siteEnrollmentTemporalDecay());
 
-            AuditedRetrievalResult<FeatureVectorCbrCase> result = cbrService.retrieveWithAudit(
-                    query, FeatureVectorCbrCase.class, siteId, ClinicalActors.CLINICAL_SERVICE);
+            AuditedRetrievalResult<CbrFeatureRecord> result = cbrService.retrieveWithAudit(
+                    query, CbrFeatureRecord.class, siteId, ClinicalActors.CLINICAL_SERVICE);
 
             if (result.cases().size() < minMatches) return Optional.empty();
 
@@ -118,12 +118,12 @@ public class SiteEnrollmentAlertService {
 
     record Prediction(String outcome, double probability) {}
 
-    private Prediction predictOutcome(List<ScoredCbrCase<FeatureVectorCbrCase>> cases) {
+    private Prediction predictOutcome(List<CbrMatch<CbrFeatureRecord>> cases) {
         Map<String, Double> scoresByOutcome = cases.stream()
-                .filter(c -> c.cbrCase().outcome() != null)
+                .filter(c -> c.cbrRecord().outcome() != null)
                 .collect(Collectors.groupingBy(
-                        c -> c.cbrCase().outcome(),
-                        Collectors.summingDouble(ScoredCbrCase::score)));
+                        c -> c.cbrRecord().outcome(),
+                        Collectors.summingDouble(CbrMatch::score)));
 
         double totalScore = scoresByOutcome.values().stream().mapToDouble(Double::doubleValue).sum();
         if (totalScore == 0) return new Prediction("UNKNOWN", 0);

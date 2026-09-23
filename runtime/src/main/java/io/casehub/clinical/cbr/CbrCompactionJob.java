@@ -29,7 +29,7 @@ public class CbrCompactionJob {
     private static final List<String> CATEGORICAL_OUTCOME_FIELDS = List.of(
         "priorAeCount", "safetyReviewOutcome", "dsmbEscalated", "indReportFiled", "susarOversight");
 
-    private final CbrCaseMemoryStore store;
+    private final CbrRecordStore store;
 
     @ConfigProperty(name = "casehub.clinical.cbr.compaction.enabled", defaultValue = "false")
     boolean enabled;
@@ -41,7 +41,7 @@ public class CbrCompactionJob {
     String tenantId;
 
     @Inject
-    public CbrCompactionJob(CbrCaseMemoryStore store) {
+    public CbrCompactionJob(CbrRecordStore store) {
         this.store = store;
     }
 
@@ -71,15 +71,15 @@ public class CbrCompactionJob {
         try {
             var query = CbrQuery.of(tenant, ClinicalCbrDomains.AE, Path.root(),
                                     "clinical-ae", Map.of(), 10000).withMinSimilarity(0.0);
-            List<ScoredCbrCase<FeatureVectorCbrCase>> allCases = store.retrieveSimilar(query, FeatureVectorCbrCase.class);
+            List<CbrMatch<CbrFeatureRecord>> allCases = store.retrieveSimilar(query, CbrFeatureRecord.class);
 
-            for (ScoredCbrCase<FeatureVectorCbrCase> scored : allCases) {
-                String mergeKey = computeMergeKey(scored.cbrCase().features());
-                CbrCaseSummary summary = new CbrCaseSummary(
+            for (CbrMatch<CbrFeatureRecord> scored : allCases) {
+                String mergeKey = computeMergeKey(scored.cbrRecord().features());
+                CbrRecordSummary summary = new CbrRecordSummary(
                         scored.caseId(), scored.caseId(), "clinical-ae", null, null,
                         java.time.Instant.now());
                 groups.computeIfAbsent(mergeKey, k -> new ArrayList<>())
-                      .add(new CaseWithFeatures(summary, scored.cbrCase()));
+                      .add(new CaseWithFeatures(summary, scored.cbrRecord()));
             }
         } catch (Exception e) {
             LOG.errorf(e, "Compaction: failed to retrieve cases for tenant %s — skipping", tenant);
@@ -98,7 +98,7 @@ public class CbrCompactionJob {
                     store.eraseEntity(c.summary().entityId(), tenant);
                 }
 
-                FeatureVectorCbrCase merged = createMergedRepresentative(group);
+                CbrFeatureRecord merged = createMergedRepresentative(group);
                 store.store(merged, "clinical-ae", entityId,
                             ClinicalCbrDomains.AE, tenant, null, Path.root());
 
@@ -114,7 +114,7 @@ public class CbrCompactionJob {
                       tenant, totalCompacted, groups.values().stream().filter(g -> g.size() >= minGroupSize).count());
         }}
 
-    private FeatureVectorCbrCase createMergedRepresentative(List<CaseWithFeatures> group) {
+    private CbrFeatureRecord createMergedRepresentative(List<CaseWithFeatures> group) {
         Map<String, FeatureValue> merged = new LinkedHashMap<>();
 
         for (String field : MERGE_KEY_FIELDS) {
@@ -144,7 +144,7 @@ public class CbrCompactionJob {
             .max(Comparator.comparing(c -> c.summary().storedAt()))
             .orElse(group.get(0));
 
-        return new FeatureVectorCbrCase(mostRecent.planCase().problem(), mostRecent.planCase().solution(), mostRecent.planCase().outcome(), Confidence.unknown(weightedConfidence), merged, null, null);
+        return new CbrFeatureRecord(mostRecent.planCase().problem(), mostRecent.planCase().solution(), mostRecent.planCase().outcome(), Confidence.unknown(weightedConfidence), merged, null, null);
     }
 
     private FeatureValue weightedAverage(List<CaseWithFeatures> group, String field) {
@@ -184,7 +184,7 @@ public class CbrCompactionJob {
         return group.get(0).planCase().features().get(field);
     }
 
-    private long getMergeCount(FeatureVectorCbrCase planCase) {
+    private long getMergeCount(CbrFeatureRecord planCase) {
         FeatureValue mc = planCase.features().get("mergeCount");
         if (mc instanceof FeatureValue.NumberVal n) return (long) n.value();
         return 1;
@@ -210,5 +210,5 @@ public class CbrCompactionJob {
         }
     }
 
-    record CaseWithFeatures(CbrCaseSummary summary, FeatureVectorCbrCase planCase) {}
+    record CaseWithFeatures(CbrRecordSummary summary, CbrFeatureRecord planCase) {}
 }

@@ -1,6 +1,6 @@
 package io.casehub.clinical.cbr;
 
-import io.casehub.neocortex.memory.cbr.CbrCaseMemoryStore;
+import io.casehub.neocortex.memory.cbr.CbrRecordStore;
 import io.casehub.neocortex.memory.cbr.CbrRetentionPolicy;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -13,12 +13,12 @@ import static org.mockito.Mockito.*;
 
 class CbrRetentionPurgeJobTest {
 
-    private CbrCaseMemoryStore store;
+    private CbrRecordStore store;
     private CbrRetentionPurgeJob job;
 
     @BeforeEach
     void setup() {
-        store = mock(CbrCaseMemoryStore.class);
+        store = mock(CbrRecordStore.class);
         when(store.purge(any())).thenReturn(0);
 
         job = new CbrRetentionPurgeJob(store);

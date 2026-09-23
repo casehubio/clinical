@@ -6,8 +6,8 @@ import io.casehub.clinical.api.model.ProtocolAmendmentStatus;
 import io.casehub.clinical.api.spi.AmendmentRecommendation;
 import io.casehub.clinical.entity.ProtocolAmendment;
 import io.casehub.neocortex.memory.cbr.CbrQuery;
-import io.casehub.neocortex.memory.cbr.FeatureVectorCbrCase;
-import io.casehub.neocortex.memory.cbr.ScoredCbrCase;
+import io.casehub.neocortex.memory.cbr.CbrFeatureRecord;
+import io.casehub.neocortex.memory.cbr.CbrMatch;
 import io.quarkus.test.junit.QuarkusTest;
 import jakarta.inject.Inject;
 import jakarta.transaction.Transactional;
@@ -74,14 +74,14 @@ class AmendmentResolutionCbrWriterIntegrationTest {
             10
         ).withProblem("Extend enrollment period by 6 months");
 
-        List<ScoredCbrCase<FeatureVectorCbrCase>> results = cbrService.retrieveSimilar(query, FeatureVectorCbrCase.class);
+        List<CbrMatch<CbrFeatureRecord>> results = cbrService.retrieveSimilar(query, CbrFeatureRecord.class);
 
         assertThat(results).isNotEmpty();
-        ScoredCbrCase<FeatureVectorCbrCase> first = results.get(0);
-        assertThat(first.cbrCase().problem()).isEqualTo("Extend enrollment period by 6 months");
-        assertThat(first.cbrCase().solution()).isEqualTo("PROCEED");
-        assertThat(first.cbrCase().outcome()).isEqualTo("APPROVED");
-        assertThat(first.cbrCase().confidence()).isEqualTo(1.0);
+        CbrMatch<CbrFeatureRecord> first = results.get(0);
+        assertThat(first.cbrRecord().problem()).isEqualTo("Extend enrollment period by 6 months");
+        assertThat(first.cbrRecord().solution()).isEqualTo("PROCEED");
+        assertThat(first.cbrRecord().outcome()).isEqualTo("APPROVED");
+        assertThat(first.cbrRecord().confidence()).isEqualTo(1.0);
     }
 
     @Test
@@ -105,7 +105,7 @@ class AmendmentResolutionCbrWriterIntegrationTest {
             10
         ).withProblem("Extend enrollment period by 6 months");
 
-        List<ScoredCbrCase<FeatureVectorCbrCase>> results = cbrService.retrieveSimilar(query, FeatureVectorCbrCase.class);
+        List<CbrMatch<CbrFeatureRecord>> results = cbrService.retrieveSimilar(query, CbrFeatureRecord.class);
         assertThat(results).hasSize(1);
     }
 }

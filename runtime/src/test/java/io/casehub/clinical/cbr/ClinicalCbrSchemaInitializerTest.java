@@ -1,7 +1,7 @@
 package io.casehub.clinical.cbr;
 
-import io.casehub.neocortex.memory.cbr.CbrCaseMemoryStore;
-import io.casehub.neocortex.memory.cbr.CbrFeatureSchema;
+import io.casehub.neocortex.memory.cbr.CbrRecordStore;
+import io.casehub.neocortex.memory.cbr.CbrRecordSchema;
 import io.quarkus.runtime.StartupEvent;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -15,12 +15,12 @@ import static org.mockito.Mockito.verify;
 
 class ClinicalCbrSchemaInitializerTest {
 
-    private CbrCaseMemoryStore store;
+    private CbrRecordStore store;
     private ClinicalCbrSchemaInitializer initializer;
 
     @BeforeEach
     void setUp() {
-        store = mock(CbrCaseMemoryStore.class);
+        store = mock(CbrRecordStore.class);
         initializer = new ClinicalCbrSchemaInitializer(store);
     }
 
@@ -28,12 +28,12 @@ class ClinicalCbrSchemaInitializerTest {
     void onStartup_registersThreeSchemas() {
         initializer.onStartup(mock(StartupEvent.class));
 
-        verify(store, times(6)).registerSchema(any(CbrFeatureSchema.class));
+        verify(store, times(6)).registerSchema(any(CbrRecordSchema.class));
     }
 
     @Test
     void aeSchema_hasCorrectFieldsAndCaseType() {
-        final ArgumentCaptor<CbrFeatureSchema> captor = ArgumentCaptor.forClass(CbrFeatureSchema.class);
+        final ArgumentCaptor<CbrRecordSchema> captor = ArgumentCaptor.forClass(CbrRecordSchema.class);
         initializer.onStartup(mock(StartupEvent.class));
 
         verify(store, times(6)).registerSchema(captor.capture());
@@ -63,7 +63,7 @@ class ClinicalCbrSchemaInitializerTest {
 
     @Test
     void deviationSchema_hasCorrectFieldsAndCaseType() {
-        final ArgumentCaptor<CbrFeatureSchema> captor = ArgumentCaptor.forClass(CbrFeatureSchema.class);
+        final ArgumentCaptor<CbrRecordSchema> captor = ArgumentCaptor.forClass(CbrRecordSchema.class);
         initializer.onStartup(mock(StartupEvent.class));
 
         verify(store, times(6)).registerSchema(captor.capture());
@@ -82,7 +82,7 @@ class ClinicalCbrSchemaInitializerTest {
 
     @Test
     void amendmentSchema_hasNoFeaturesButCorrectCaseType() {
-        final ArgumentCaptor<CbrFeatureSchema> captor = ArgumentCaptor.forClass(CbrFeatureSchema.class);
+        final ArgumentCaptor<CbrRecordSchema> captor = ArgumentCaptor.forClass(CbrRecordSchema.class);
         initializer.onStartup(mock(StartupEvent.class));
 
         verify(store, times(6)).registerSchema(captor.capture());
@@ -98,7 +98,7 @@ class ClinicalCbrSchemaInitializerTest {
 
     @Test
     void aeTrajectorySchema_hasTimeSeriesFieldWithDtwAndTrend() {
-        final ArgumentCaptor<CbrFeatureSchema> captor = ArgumentCaptor.forClass(CbrFeatureSchema.class);
+        final ArgumentCaptor<CbrRecordSchema> captor = ArgumentCaptor.forClass(CbrRecordSchema.class);
         initializer.onStartup(mock(StartupEvent.class));
         verify(store, times(6)).registerSchema(captor.capture());
 
@@ -125,7 +125,7 @@ class ClinicalCbrSchemaInitializerTest {
 
     @Test
     void siteEnrollmentSchema_hasTimeSeriesFieldWithDtwAndTrend() {
-        final ArgumentCaptor<CbrFeatureSchema> captor = ArgumentCaptor.forClass(CbrFeatureSchema.class);
+        final ArgumentCaptor<CbrRecordSchema> captor = ArgumentCaptor.forClass(CbrRecordSchema.class);
         initializer.onStartup(mock(StartupEvent.class));
         verify(store, times(6)).registerSchema(captor.capture());
 
@@ -144,7 +144,7 @@ class ClinicalCbrSchemaInitializerTest {
 
     @Test
     void trialSafetySchema_hasCorrectFieldsAndCaseType() {
-        final ArgumentCaptor<CbrFeatureSchema> captor = ArgumentCaptor.forClass(CbrFeatureSchema.class);
+        final ArgumentCaptor<CbrRecordSchema> captor = ArgumentCaptor.forClass(CbrRecordSchema.class);
         initializer.onStartup(mock(StartupEvent.class));
         verify(store, times(6)).registerSchema(captor.capture());
 

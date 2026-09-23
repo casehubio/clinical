@@ -21,7 +21,7 @@ public class AeEscalationPlanRetriever {
     private static final Logger LOG = Logger.getLogger(AeEscalationPlanRetriever.class);
 
     private final ClinicalCbrService cbrService;
-    private final PlanAdapter planAdapter;
+    private final CbrPlanAdapter planAdapter;
     private final ClinicalScopeResolver scopeResolver;
     private final ClinicalCbrConfig cbrConfig;
     private final EntityManager em;
@@ -34,7 +34,7 @@ public class AeEscalationPlanRetriever {
     double minSimilarity;
 
     @Inject
-    public AeEscalationPlanRetriever(ClinicalCbrService cbrService, PlanAdapter planAdapter,
+    public AeEscalationPlanRetriever(ClinicalCbrService cbrService, CbrPlanAdapter planAdapter,
                                       ClinicalScopeResolver scopeResolver, ClinicalCbrConfig cbrConfig,
                                       EntityManager em) {
         this.cbrService = cbrService;
@@ -73,14 +73,14 @@ public class AeEscalationPlanRetriever {
                     .withScopeDecay(cbrConfig.aeScopeDecay())
                     .withTemporalDecay(cbrConfig.aeTemporalDecay());
 
-            AuditedRetrievalResult<ResolvedCase> result = cbrService.retrieveWithAudit(
-                    query, ResolvedCase.class, ae.id, "system:ae-escalation");
+            AuditedRetrievalResult<CbrPlanRecord> result = cbrService.retrieveWithAudit(
+                    query, CbrPlanRecord.class, ae.id, "system:ae-escalation");
 
             if (result.cases().isEmpty()) {
                 return EscalationPlanRecommendation.none();
             }
 
-            ScoredCbrCase<ResolvedCase> topCase = result.cases().get(0);
+            CbrMatch<CbrPlanRecord> topCase = result.cases().get(0);
             AdaptedPlan adapted = planAdapter.adapt("clinical-ae", topCase, featureMap);
 
             return new EscalationPlanRecommendation(

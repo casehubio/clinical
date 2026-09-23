@@ -11,8 +11,8 @@ import io.casehub.clinical.entity.ClinicalTrial;
 import io.casehub.clinical.entity.ProtocolAmendment;
 import io.casehub.clinical.service.ProtocolAmendmentService;
 import io.casehub.neocortex.memory.cbr.CbrQuery;
-import io.casehub.neocortex.memory.cbr.FeatureVectorCbrCase;
-import io.casehub.neocortex.memory.cbr.ScoredCbrCase;
+import io.casehub.neocortex.memory.cbr.CbrFeatureRecord;
+import io.casehub.neocortex.memory.cbr.CbrMatch;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 import jakarta.persistence.EntityManager;
@@ -65,14 +65,14 @@ public class DefaultClinicalAmendmentApi implements ClinicalAmendmentApi {
         CbrQuery query = CbrQuery.of(tenancyId, ClinicalCbrDomains.AMENDMENT, queryScope,
                                       "clinical-amendment", Map.of(), 10).withVectorWeight(0.0);
 
-        var result = cbrService.retrieveWithAudit(query, FeatureVectorCbrCase.class, amendmentId, actorId);
+        var result = cbrService.retrieveWithAudit(query, CbrFeatureRecord.class, amendmentId, actorId);
         List<AmendmentPrecedentResponse> precedents = result.cases().stream()
                 .map(this::mapToAmendmentResponse).toList();
         return new AmendmentPrecedentSearchResponse(result.traceId(), result.explanation(), precedents);
     }
 
-    private AmendmentPrecedentResponse mapToAmendmentResponse(ScoredCbrCase<FeatureVectorCbrCase> scored) {
-        FeatureVectorCbrCase c = scored.cbrCase();
+    private AmendmentPrecedentResponse mapToAmendmentResponse(CbrMatch<CbrFeatureRecord> scored) {
+        CbrFeatureRecord c = scored.cbrRecord();
         return new AmendmentPrecedentResponse(scored.score(), c.problem(), c.solution(), c.outcome());
     }
 

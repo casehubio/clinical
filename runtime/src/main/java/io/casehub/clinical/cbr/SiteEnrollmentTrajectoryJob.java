@@ -5,7 +5,7 @@ import io.casehub.clinical.entity.PatientEnrollment;
 import io.casehub.clinical.entity.TrialSite;
 import io.casehub.neocortex.cognitive.Confidence;
 import io.casehub.neocortex.memory.cbr.FeatureValue;
-import io.casehub.neocortex.memory.cbr.FeatureVectorCbrCase;
+import io.casehub.neocortex.memory.cbr.CbrFeatureRecord;
 import io.quarkus.narayana.jta.QuarkusTransaction;
 import io.quarkus.scheduler.Scheduled;
 import jakarta.enterprise.context.ApplicationScoped;
@@ -112,7 +112,7 @@ public class SiteEnrollmentTrajectoryJob {
         Map<String, FeatureValue> features = FeatureValue.toFeatureMap(rawFeatures);
 
         String entityId = "site-" + siteId + "-week-" + weeksSinceStart;
-        FeatureVectorCbrCase cbrCase = new FeatureVectorCbrCase("Site enrollment at week %d of %s trial, target=%d, enrolled=%d (%.1f%%)".formatted(
+        CbrFeatureRecord cbrCase = new CbrFeatureRecord("Site enrollment at week %d of %s trial, target=%d, enrolled=%d (%.1f%%)".formatted(
                 weeksSinceStart, trialPhase, targetEnrollment, currentCount, progress * 100), "Enrollment trajectory snapshot — periodic recording", "IN_PROGRESS", Confidence.unknown(1.0), features, null, null);
 
         io.casehub.platform.api.path.Path scope = io.casehub.platform.api.path.Path.of(trialId.toString(), siteId.toString());
