@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8"/>
+<style>
+  body { font-family: 'Liberation Sans', sans-serif; font-size: 10pt; margin: 2cm; }
+  h1 { font-size: 16pt; border-bottom: 2pt solid #333; padding-bottom: 4pt; }
+  h2 { font-size: 13pt; margin-top: 1.5em; color: #333; }
+  h3 { font-size: 11pt; margin-top: 1em; }
+  table { border-collapse: collapse; width: 100%; margin: 0.5em 0; }
+  th, td { border: 1px solid #999; padding: 4pt 6pt; text-align: left; font-size: 9pt; }
+  th { background-color: #f0f0f0; font-weight: bold; }
+  .summary-grid { display: flex; gap: 1em; margin: 0.5em 0; }
+  .summary-card { border: 1px solid #ccc; padding: 8pt; flex: 1; text-align: center; }
+  .summary-card .value { font-size: 18pt; font-weight: bold; }
+  .summary-card .label { font-size: 8pt; color: #666; }
+  .footer { margin-top: 2em; border-top: 1pt solid #999; padding-top: 4pt; font-size: 8pt; color: #666; }
+</style>
+</head>
+<body>
+<h1>IND Periodic Safety Report</h1>
+<p><strong>Protocol:</strong> {report.trial.protocolId} &mdash;
+   <strong>Phase:</strong> {report.trial.phase} &mdash;
+   <strong>Sponsor:</strong> {report.trial.sponsor}</p>
+<p><strong>Period:</strong> {report.metadata.periodStart} to {report.metadata.periodEnd}</p>
+
+<h2>Summary</h2>
+<div class="summary-grid">
+  <div class="summary-card"><div class="value">{report.period.totalAdverseEvents}</div><div class="label">Total AEs</div></div>
+  <div class="summary-card"><div class="value">{report.period.susarCount}</div><div class="label">SUSARs</div></div>
+  <div class="summary-card"><div class="value">{report.period.indReportsFiled}</div><div class="label">IND Filed</div></div>
+  <div class="summary-card"><div class="value">{report.period.indReportsBreached}</div><div class="label">Deadlines Missed</div></div>
+</div>
+
+<h3>AEs by Grade</h3>
+<table>
+  <tr><th>Grade</th><th>Count</th></tr>
+  {#each report.period.byGrade.entrySet}
+  <tr><td>{it.key}</td><td>{it.value}</td></tr>
+  {/each}
+</table>
+
+<h2>Individual Case Safety Reports ({report.icsrs.size})</h2>
+{#each report.icsrs}
+<h3>ICSR: {it.aeId}</h3>
+<table>
+  <tr><th>Field</th><th>Value</th></tr>
+  <tr><td>Patient</td><td>{it.patientEnrollmentId}</td></tr>
+  <tr><td>Grade</td><td>{it.grade}</td></tr>
+  <tr><td>Event Type</td><td>{it.eventType}</td></tr>
+  <tr><td>Reported</td><td>{it.reportedAt}</td></tr>
+  <tr><td>SLA Deadline</td><td>{it.slaDeadline}</td></tr>
+  <tr><td>Unexpected</td><td>{it.unexpected}</td></tr>
+  <tr><td>Suspected</td><td>{it.suspected}</td></tr>
+  <tr><td>Outcome</td><td>{it.outcome}</td></tr>
+  <tr><td>Regulatory Status</td><td>{it.regulatoryStatus}</td></tr>
+</table>
+{#if it.auditTrail.size > 0}
+<p><strong>Audit Trail ({it.auditTrail.size} entries)</strong></p>
+<table>
+  <tr><th>Type</th><th>Occurred</th><th>Actor</th><th>Seq</th></tr>
+  {#each it.auditTrail}
+  <tr><td>{it.entryType}</td><td>{it.occurredAt}</td><td>{it.actorId}</td><td>{it.sequenceNumber}</td></tr>
+  {/each}
+</table>
+{/if}
+{/each}
+
+<h2>SLA Compliance</h2>
+<table>
+  <tr><th>Metric</th><th>Value</th></tr>
+  <tr><td>Total Obligations</td><td>{report.slaCompliance.totalObligations}</td></tr>
+  <tr><td>Met Within SLA</td><td>{report.slaCompliance.metWithinSla}</td></tr>
+  <tr><td>Breached</td><td>{report.slaCompliance.breached}</td></tr>
+  <tr><td>Compliance Rate</td><td>{report.slaCompliance.complianceRate}</td></tr>
+</table>
+
+<div class="footer">
+  Generated: {report.metadata.generatedAt} | Report Type: {report.metadata.reportType}
+</div>
+</body>
+</html>

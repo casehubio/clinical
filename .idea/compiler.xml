@@ -12,37 +12,29 @@
         <sourceOutputDir name="target/generated-sources/annotations" />
         <sourceTestOutputDir name="target/generated-test-sources/test-annotations" />
         <outputRelativeToContentRoot value="true" />
-        <option name="domainFilter" value="clinical/trials,clinical/sites,clinical/patients,clinical/adverse-events,clinical/deviations,clinical/visits,clinical/vitals,clinical/lab-results,clinical/medications,clinical/study-drug,clinical/amendments,clinical/gdpr,clinical/cascade" />
+        <option name="domainFilter" value="clinical/trials,clinical/sites,clinical/patients,clinical/adverse-events,clinical/deviations,clinical/visits,clinical/vitals,clinical/lab-results,clinical/medications,clinical/study-drug,clinical/amendments,clinical/gdpr,clinical/cascade,clinical/escalation-plans,clinical/trial-dashboard" />
         <option name="generateGraphQL" value="false" />
         <processorPath useClasspath="false">
           <entry name="$MAVEN_REPOSITORY$/io/casehub/casehub-platform-graphql-generator/0.2-SNAPSHOT/casehub-platform-graphql-generator-0.2-SNAPSHOT.jar" />
           <entry name="$MAVEN_REPOSITORY$/io/casehub/casehub-platform-api/0.2-SNAPSHOT/casehub-platform-api-0.2-SNAPSHOT.jar" />
           <entry name="$MAVEN_REPOSITORY$/io/cloudevents/cloudevents-core/4.0.1/cloudevents-core-4.0.1.jar" />
           <entry name="$MAVEN_REPOSITORY$/io/cloudevents/cloudevents-api/4.0.1/cloudevents-api-4.0.1.jar" />
-          <entry name="$MAVEN_REPOSITORY$/io/smallrye/jandex/3.5.3/jandex-3.5.3.jar" />
-          <entry name="$MAVEN_REPOSITORY$/io/casehub/casehub-platform-graphql-generator/0.2-SNAPSHOT/casehub-platform-graphql-generator-0.2-SNAPSHOT.jar" />
+          <entry name="$MAVEN_REPOSITORY$/io/smallrye/jandex/3.6.0/jandex-3.6.0.jar" />
+          <entry name="$PROJECT_DIR$/api/target/classes" />
+          <entry name="$MAVEN_REPOSITORY$/io/casehub/casehub-qhorus-api/0.2-SNAPSHOT/casehub-qhorus-api-0.2-SNAPSHOT.jar" />
+          <entry name="$MAVEN_REPOSITORY$/io/casehub/casehub-ledger-api/0.2-SNAPSHOT/casehub-ledger-api-0.2-20260916.011209-271.jar" />
+          <entry name="$MAVEN_REPOSITORY$/io/casehub/casehub-eidos-api/0.2-SNAPSHOT/casehub-eidos-api-0.2-SNAPSHOT.jar" />
+          <entry name="$MAVEN_REPOSITORY$/jakarta/inject/jakarta.inject-api/2.0.1/jakarta.inject-api-2.0.1.jar" />
           <entry name="$MAVEN_REPOSITORY$/io/casehub/casehub-platform-api/0.2-SNAPSHOT/casehub-platform-api-0.2-SNAPSHOT.jar" />
           <entry name="$MAVEN_REPOSITORY$/io/cloudevents/cloudevents-core/4.0.1/cloudevents-core-4.0.1.jar" />
-          <entry name="$MAVEN_REPOSITORY$/io/cloudevents/cloudevents-api/4.0.1/cloudevents-api-4.0.1.jar" />
-          <entry name="$MAVEN_REPOSITORY$/io/smallrye/jandex/3.5.3/jandex-3.5.3.jar" />
-          <entry name="$PROJECT_DIR$/api/target/classes" />
-          <entry name="$MAVEN_REPOSITORY$/io/casehub/casehub-qhorus-api/0.2-SNAPSHOT/casehub-qhorus-api-0.2-20260914.231348-285.jar" />
-          <entry name="$MAVEN_REPOSITORY$/io/casehub/casehub-ledger-api/0.2-SNAPSHOT/casehub-ledger-api-0.2-20260915.022035-270.jar" />
-          <entry name="$MAVEN_REPOSITORY$/io/casehub/casehub-eidos-api/0.2-SNAPSHOT/casehub-eidos-api-0.2-20260915.180310-268.jar" />
-          <entry name="$MAVEN_REPOSITORY$/jakarta/inject/jakarta.inject-api/2.0.1/jakarta.inject-api-2.0.1.jar" />
-          <entry name="$MAVEN_REPOSITORY$/io/casehub/casehub-platform-api/0.2-SNAPSHOT/casehub-platform-api-0.2-20260915.232758-205.jar" />
-          <entry name="$MAVEN_REPOSITORY$/io/cloudevents/cloudevents-core/4.0.1/cloudevents-core-4.0.1.jar" />
           <entry name="$MAVEN_REPOSITORY$/io/cloudevents/cloudevents-api/3.0.0/cloudevents-api-3.0.0.jar" />
-          <entry name="$MAVEN_REPOSITORY$/io/casehub/casehub-engine-api/0.2-SNAPSHOT/casehub-engine-api-0.2-SNAPSHOT.jar" />
-          <entry name="$MAVEN_REPOSITORY$/com/fasterxml/jackson/core/jackson-databind/2.21.1/jackson-databind-2.21.1.jar" />
-          <entry name="$MAVEN_REPOSITORY$/com/fasterxml/jackson/core/jackson-annotations/2.21/jackson-annotations-2.21.jar" />
-          <entry name="$MAVEN_REPOSITORY$/com/fasterxml/jackson/core/jackson-core/2.21.1/jackson-core-2.21.1.jar" />
-          <entry name="$MAVEN_REPOSITORY$/com/fasterxml/jackson/datatype/jackson-datatype-jsr310/2.21.1/jackson-datatype-jsr310-2.21.1.jar" />
-          <entry name="$MAVEN_REPOSITORY$/jakarta/enterprise/jakarta.enterprise.cdi-api/4.1.0/jakarta.enterprise.cdi-api-4.1.0.jar" />
-          <entry name="$MAVEN_REPOSITORY$/jakarta/enterprise/jakarta.enterprise.lang-model/4.1.0/jakarta.enterprise.lang-model-4.1.0.jar" />
-          <entry name="$MAVEN_REPOSITORY$/jakarta/annotation/jakarta.annotation-api/3.0.0/jakarta.annotation-api-3.0.0.jar" />
-          <entry name="$MAVEN_REPOSITORY$/jakarta/el/jakarta.el-api/6.0.1/jakarta.el-api-6.0.1.jar" />
-          <entry name="$MAVEN_REPOSITORY$/jakarta/interceptor/jakarta.interceptor-api/2.2.0/jakarta.interceptor-api-2.2.0.jar" />
+          <entry name="$MAVEN_REPOSITORY$/io/casehub/casehub-blocks/0.2-SNAPSHOT/casehub-blocks-0.2-SNAPSHOT.jar" />
+          <entry name="$MAVEN_REPOSITORY$/io/casehub/casehub-blocks-core/0.2-SNAPSHOT/casehub-blocks-core-0.2-SNAPSHOT.jar" />
+          <entry name="$MAVEN_REPOSITORY$/io/casehub/casehub-blocks-summarisation-api/0.2-SNAPSHOT/casehub-blocks-summarisation-api-0.2-20260922.130316-32.jar" />
+          <entry name="$MAVEN_REPOSITORY$/io/casehub/casehub-work-api/0.2-SNAPSHOT/casehub-work-api-0.2-20260922.152819-348.jar" />
+          <entry name="$MAVEN_REPOSITORY$/io/casehub/casehub-worker-api/0.2-SNAPSHOT/casehub-worker-api-0.2-20260914.222740-30.jar" />
+          <entry name="$MAVEN_REPOSITORY$/io/casehub/casehub-blocks-speech-api/0.2-SNAPSHOT/casehub-blocks-speech-api-0.2-20260922.130316-38.jar" />
+          <entry name="$MAVEN_REPOSITORY$/org/jspecify/jspecify/1.0.0/jspecify-1.0.0.jar" />
           <entry name="$MAVEN_REPOSITORY$/io/quarkus/quarkus-arc/3.32.2/quarkus-arc-3.32.2.jar" />
           <entry name="$MAVEN_REPOSITORY$/io/quarkus/arc/arc/3.32.2/arc-3.32.2.jar" />
           <entry name="$MAVEN_REPOSITORY$/jakarta/transaction/jakarta.transaction-api/2.0.1/jakarta.transaction-api-2.0.1.jar" />
@@ -74,6 +66,16 @@
           <entry name="$MAVEN_REPOSITORY$/org/crac/crac/1.5.0/crac-1.5.0.jar" />
           <entry name="$MAVEN_REPOSITORY$/io/quarkus/quarkus-fs-util/1.3.0/quarkus-fs-util-1.3.0.jar" />
           <entry name="$MAVEN_REPOSITORY$/org/eclipse/microprofile/context-propagation/microprofile-context-propagation-api/1.3/microprofile-context-propagation-api-1.3.jar" />
+          <entry name="$MAVEN_REPOSITORY$/io/casehub/casehub-engine-api/0.2-SNAPSHOT/casehub-engine-api-0.2-SNAPSHOT.jar" />
+          <entry name="$MAVEN_REPOSITORY$/com/fasterxml/jackson/core/jackson-databind/2.21.1/jackson-databind-2.21.1.jar" />
+          <entry name="$MAVEN_REPOSITORY$/com/fasterxml/jackson/core/jackson-annotations/2.21/jackson-annotations-2.21.jar" />
+          <entry name="$MAVEN_REPOSITORY$/com/fasterxml/jackson/core/jackson-core/2.21.1/jackson-core-2.21.1.jar" />
+          <entry name="$MAVEN_REPOSITORY$/com/fasterxml/jackson/datatype/jackson-datatype-jsr310/2.21.1/jackson-datatype-jsr310-2.21.1.jar" />
+          <entry name="$MAVEN_REPOSITORY$/jakarta/enterprise/jakarta.enterprise.cdi-api/4.1.0/jakarta.enterprise.cdi-api-4.1.0.jar" />
+          <entry name="$MAVEN_REPOSITORY$/jakarta/enterprise/jakarta.enterprise.lang-model/4.1.0/jakarta.enterprise.lang-model-4.1.0.jar" />
+          <entry name="$MAVEN_REPOSITORY$/jakarta/annotation/jakarta.annotation-api/3.0.0/jakarta.annotation-api-3.0.0.jar" />
+          <entry name="$MAVEN_REPOSITORY$/jakarta/el/jakarta.el-api/6.0.1/jakarta.el-api-6.0.1.jar" />
+          <entry name="$MAVEN_REPOSITORY$/jakarta/interceptor/jakarta.interceptor-api/2.2.0/jakarta.interceptor-api-2.2.0.jar" />
           <entry name="$MAVEN_REPOSITORY$/org/jboss/logging/jboss-logging/3.6.2.Final/jboss-logging-3.6.2.Final.jar" />
           <entry name="$MAVEN_REPOSITORY$/net/thisptr/jackson-jq/1.6.0/jackson-jq-1.6.0.jar" />
           <entry name="$MAVEN_REPOSITORY$/org/jruby/joni/joni/2.2.6/joni-2.2.6.jar" />
@@ -107,27 +109,22 @@
           <entry name="$MAVEN_REPOSITORY$/dev/langchain4j/langchain4j-core/1.14.1/langchain4j-core-1.14.1.jar" />
           <entry name="$MAVEN_REPOSITORY$/org/apache/opennlp/opennlp-tools/2.5.9/opennlp-tools-2.5.9.jar" />
           <entry name="$MAVEN_REPOSITORY$/org/slf4j/slf4j-api/2.0.17/slf4j-api-2.0.17.jar" />
-          <entry name="$MAVEN_REPOSITORY$/io/casehub/casehub-worker-api/0.2-SNAPSHOT/casehub-worker-api-0.2-20260914.222740-30.jar" />
-          <entry name="$MAVEN_REPOSITORY$/io/casehub/casehub-platform-yaml-core/0.2-SNAPSHOT/casehub-platform-yaml-core-0.2-SNAPSHOT.jar" />
-          <entry name="$MAVEN_REPOSITORY$/org/jspecify/jspecify/1.0.0/jspecify-1.0.0.jar" />
+          <entry name="$MAVEN_REPOSITORY$/io/casehub/casehub-platform-yaml-core/0.2-SNAPSHOT/casehub-platform-yaml-core-0.2-20260923.120850-57.jar" />
           <entry name="$PROJECT_DIR$/api/target/classes" />
-          <entry name="$MAVEN_REPOSITORY$/io/casehub/casehub-qhorus-api/0.2-SNAPSHOT/casehub-qhorus-api-0.2-20260914.231348-285.jar" />
-          <entry name="$MAVEN_REPOSITORY$/io/casehub/casehub-ledger-api/0.2-SNAPSHOT/casehub-ledger-api-0.2-20260915.022035-270.jar" />
-          <entry name="$MAVEN_REPOSITORY$/io/casehub/casehub-eidos-api/0.2-SNAPSHOT/casehub-eidos-api-0.2-20260915.180310-268.jar" />
+          <entry name="$MAVEN_REPOSITORY$/io/casehub/casehub-qhorus-api/0.2-SNAPSHOT/casehub-qhorus-api-0.2-SNAPSHOT.jar" />
+          <entry name="$MAVEN_REPOSITORY$/io/casehub/casehub-ledger-api/0.2-SNAPSHOT/casehub-ledger-api-0.2-20260916.011209-271.jar" />
+          <entry name="$MAVEN_REPOSITORY$/io/casehub/casehub-eidos-api/0.2-SNAPSHOT/casehub-eidos-api-0.2-SNAPSHOT.jar" />
           <entry name="$MAVEN_REPOSITORY$/jakarta/inject/jakarta.inject-api/2.0.1/jakarta.inject-api-2.0.1.jar" />
-          <entry name="$MAVEN_REPOSITORY$/io/casehub/casehub-platform-api/0.2-SNAPSHOT/casehub-platform-api-0.2-20260915.232758-205.jar" />
+          <entry name="$MAVEN_REPOSITORY$/io/casehub/casehub-platform-api/0.2-SNAPSHOT/casehub-platform-api-0.2-SNAPSHOT.jar" />
           <entry name="$MAVEN_REPOSITORY$/io/cloudevents/cloudevents-core/4.0.1/cloudevents-core-4.0.1.jar" />
           <entry name="$MAVEN_REPOSITORY$/io/cloudevents/cloudevents-api/3.0.0/cloudevents-api-3.0.0.jar" />
-          <entry name="$MAVEN_REPOSITORY$/io/casehub/casehub-engine-api/0.2-SNAPSHOT/casehub-engine-api-0.2-SNAPSHOT.jar" />
-          <entry name="$MAVEN_REPOSITORY$/com/fasterxml/jackson/core/jackson-databind/2.21.1/jackson-databind-2.21.1.jar" />
-          <entry name="$MAVEN_REPOSITORY$/com/fasterxml/jackson/core/jackson-annotations/2.21/jackson-annotations-2.21.jar" />
-          <entry name="$MAVEN_REPOSITORY$/com/fasterxml/jackson/core/jackson-core/2.21.1/jackson-core-2.21.1.jar" />
-          <entry name="$MAVEN_REPOSITORY$/com/fasterxml/jackson/datatype/jackson-datatype-jsr310/2.21.1/jackson-datatype-jsr310-2.21.1.jar" />
-          <entry name="$MAVEN_REPOSITORY$/jakarta/enterprise/jakarta.enterprise.cdi-api/4.1.0/jakarta.enterprise.cdi-api-4.1.0.jar" />
-          <entry name="$MAVEN_REPOSITORY$/jakarta/enterprise/jakarta.enterprise.lang-model/4.1.0/jakarta.enterprise.lang-model-4.1.0.jar" />
-          <entry name="$MAVEN_REPOSITORY$/jakarta/annotation/jakarta.annotation-api/3.0.0/jakarta.annotation-api-3.0.0.jar" />
-          <entry name="$MAVEN_REPOSITORY$/jakarta/el/jakarta.el-api/6.0.1/jakarta.el-api-6.0.1.jar" />
-          <entry name="$MAVEN_REPOSITORY$/jakarta/interceptor/jakarta.interceptor-api/2.2.0/jakarta.interceptor-api-2.2.0.jar" />
+          <entry name="$MAVEN_REPOSITORY$/io/casehub/casehub-blocks/0.2-SNAPSHOT/casehub-blocks-0.2-SNAPSHOT.jar" />
+          <entry name="$MAVEN_REPOSITORY$/io/casehub/casehub-blocks-core/0.2-SNAPSHOT/casehub-blocks-core-0.2-SNAPSHOT.jar" />
+          <entry name="$MAVEN_REPOSITORY$/io/casehub/casehub-blocks-summarisation-api/0.2-SNAPSHOT/casehub-blocks-summarisation-api-0.2-20260922.130316-32.jar" />
+          <entry name="$MAVEN_REPOSITORY$/io/casehub/casehub-work-api/0.2-SNAPSHOT/casehub-work-api-0.2-20260922.152819-348.jar" />
+          <entry name="$MAVEN_REPOSITORY$/io/casehub/casehub-worker-api/0.2-SNAPSHOT/casehub-worker-api-0.2-20260914.222740-30.jar" />
+          <entry name="$MAVEN_REPOSITORY$/io/casehub/casehub-blocks-speech-api/0.2-SNAPSHOT/casehub-blocks-speech-api-0.2-20260922.130316-38.jar" />
+          <entry name="$MAVEN_REPOSITORY$/org/jspecify/jspecify/1.0.0/jspecify-1.0.0.jar" />
           <entry name="$MAVEN_REPOSITORY$/io/quarkus/quarkus-arc/3.32.2/quarkus-arc-3.32.2.jar" />
           <entry name="$MAVEN_REPOSITORY$/io/quarkus/arc/arc/3.32.2/arc-3.32.2.jar" />
           <entry name="$MAVEN_REPOSITORY$/jakarta/transaction/jakarta.transaction-api/2.0.1/jakarta.transaction-api-2.0.1.jar" />
@@ -159,6 +156,16 @@
           <entry name="$MAVEN_REPOSITORY$/org/crac/crac/1.5.0/crac-1.5.0.jar" />
           <entry name="$MAVEN_REPOSITORY$/io/quarkus/quarkus-fs-util/1.3.0/quarkus-fs-util-1.3.0.jar" />
           <entry name="$MAVEN_REPOSITORY$/org/eclipse/microprofile/context-propagation/microprofile-context-propagation-api/1.3/microprofile-context-propagation-api-1.3.jar" />
+          <entry name="$MAVEN_REPOSITORY$/io/casehub/casehub-engine-api/0.2-SNAPSHOT/casehub-engine-api-0.2-SNAPSHOT.jar" />
+          <entry name="$MAVEN_REPOSITORY$/com/fasterxml/jackson/core/jackson-databind/2.21.1/jackson-databind-2.21.1.jar" />
+          <entry name="$MAVEN_REPOSITORY$/com/fasterxml/jackson/core/jackson-annotations/2.21/jackson-annotations-2.21.jar" />
+          <entry name="$MAVEN_REPOSITORY$/com/fasterxml/jackson/core/jackson-core/2.21.1/jackson-core-2.21.1.jar" />
+          <entry name="$MAVEN_REPOSITORY$/com/fasterxml/jackson/datatype/jackson-datatype-jsr310/2.21.1/jackson-datatype-jsr310-2.21.1.jar" />
+          <entry name="$MAVEN_REPOSITORY$/jakarta/enterprise/jakarta.enterprise.cdi-api/4.1.0/jakarta.enterprise.cdi-api-4.1.0.jar" />
+          <entry name="$MAVEN_REPOSITORY$/jakarta/enterprise/jakarta.enterprise.lang-model/4.1.0/jakarta.enterprise.lang-model-4.1.0.jar" />
+          <entry name="$MAVEN_REPOSITORY$/jakarta/annotation/jakarta.annotation-api/3.0.0/jakarta.annotation-api-3.0.0.jar" />
+          <entry name="$MAVEN_REPOSITORY$/jakarta/el/jakarta.el-api/6.0.1/jakarta.el-api-6.0.1.jar" />
+          <entry name="$MAVEN_REPOSITORY$/jakarta/interceptor/jakarta.interceptor-api/2.2.0/jakarta.interceptor-api-2.2.0.jar" />
           <entry name="$MAVEN_REPOSITORY$/org/jboss/logging/jboss-logging/3.6.2.Final/jboss-logging-3.6.2.Final.jar" />
           <entry name="$MAVEN_REPOSITORY$/net/thisptr/jackson-jq/1.6.0/jackson-jq-1.6.0.jar" />
           <entry name="$MAVEN_REPOSITORY$/org/jruby/joni/joni/2.2.6/joni-2.2.6.jar" />
@@ -192,9 +199,7 @@
           <entry name="$MAVEN_REPOSITORY$/dev/langchain4j/langchain4j-core/1.14.1/langchain4j-core-1.14.1.jar" />
           <entry name="$MAVEN_REPOSITORY$/org/apache/opennlp/opennlp-tools/2.5.9/opennlp-tools-2.5.9.jar" />
           <entry name="$MAVEN_REPOSITORY$/org/slf4j/slf4j-api/2.0.17/slf4j-api-2.0.17.jar" />
-          <entry name="$MAVEN_REPOSITORY$/io/casehub/casehub-worker-api/0.2-SNAPSHOT/casehub-worker-api-0.2-20260914.222740-30.jar" />
-          <entry name="$MAVEN_REPOSITORY$/io/casehub/casehub-platform-yaml-core/0.2-SNAPSHOT/casehub-platform-yaml-core-0.2-SNAPSHOT.jar" />
-          <entry name="$MAVEN_REPOSITORY$/org/jspecify/jspecify/1.0.0/jspecify-1.0.0.jar" />
+          <entry name="$MAVEN_REPOSITORY$/io/casehub/casehub-platform-yaml-core/0.2-SNAPSHOT/casehub-platform-yaml-core-0.2-20260923.120850-57.jar" />
         </processorPath>
         <module name="casehub-clinical" />
       </profile>
@@ -202,7 +207,7 @@
   </component>
   <component name="JavacSettings">
     <option name="ADDITIONAL_OPTIONS_OVERRIDE">
-      <module name="casehub-clinical" options="-AdomainFilter=clinical/trials,clinical/sites,clinical/patients,clinical/adverse-events,clinical/deviations,clinical/visits,clinical/vitals,clinical/lab-results,clinical/medications,clinical/study-drug,clinical/amendments,clinical/gdpr,clinical/cascade -AgenerateGraphQL=false" />
+      <module name="casehub-clinical" options="-AdomainFilter=clinical/trials,clinical/sites,clinical/patients,clinical/adverse-events,clinical/deviations,clinical/visits,clinical/vitals,clinical/lab-results,clinical/medications,clinical/study-drug,clinical/amendments,clinical/gdpr,clinical/cascade,clinical/escalation-plans,clinical/trial-dashboard -AgenerateGraphQL=false" />
       <module name="casehub-clinical-api" options="-parameters" />
     </option>
   </component>

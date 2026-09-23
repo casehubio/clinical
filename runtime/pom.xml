@@ -57,6 +57,16 @@
       <artifactId>casehub-blocks</artifactId>
       <version>${version.io.casehub}</version>
     </dependency>
+    <dependency>
+      <groupId>io.casehub</groupId>
+      <artifactId>casehub-platform-pdf</artifactId>
+      <version>${version.io.casehub}</version>
+      <scope>runtime</scope>
+    </dependency>
+    <dependency>
+      <groupId>io.quarkus</groupId>
+      <artifactId>quarkus-qute</artifactId>
+    </dependency>
 
     <!-- Eidos org model — agent hierarchy + supervision chains.
          org-api: OrgStructure DSL, OrgRegistry interface.
