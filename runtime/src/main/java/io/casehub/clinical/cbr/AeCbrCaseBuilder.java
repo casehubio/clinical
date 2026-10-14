@@ -34,7 +34,7 @@ public class AeCbrCaseBuilder {
     private final ClinicalScopeResolver scopeResolver;
     private final PlanItemStore planItemStore;
     private final AeTrajectoryBuilder trajectoryBuilder;
-    private final io.casehub.ledger.runtime.repository.ActorTrustScoreRepository trustScoreRepository;
+    private final io.casehub.ledger.api.spi.ActorTrustScoreRepository trustScoreRepository;
     private final jakarta.persistence.EntityManager em;
 
     @Inject
@@ -42,7 +42,7 @@ public class AeCbrCaseBuilder {
                             ClinicalScopeResolver scopeResolver,
                             PlanItemStore planItemStore,
                             AeTrajectoryBuilder trajectoryBuilder,
-                            io.casehub.ledger.runtime.repository.ActorTrustScoreRepository trustScoreRepository,
+                            io.casehub.ledger.api.spi.ActorTrustScoreRepository trustScoreRepository,
                             jakarta.persistence.EntityManager em) {
         this.cbrService = cbrService;
         this.scopeResolver = scopeResolver;

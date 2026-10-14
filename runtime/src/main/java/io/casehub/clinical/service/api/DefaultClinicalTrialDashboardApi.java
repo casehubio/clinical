@@ -50,8 +50,8 @@ import io.casehub.ledger.api.model.LedgerEntry;
 import io.casehub.ledger.api.spi.LedgerEntryRepository;
 import io.casehub.ledger.model.WorkerDecisionEntry;
 import io.casehub.ledger.repository.CaseLedgerEntryRepository;
-import io.casehub.ledger.runtime.model.ActorTrustScore;
-import io.casehub.ledger.runtime.repository.ActorTrustScoreRepository;
+import io.casehub.ledger.api.model.ActorTrustScoreBase;
+import io.casehub.ledger.api.spi.ActorTrustScoreRepository;
 import io.casehub.neocortex.memory.cbr.CbrFilter;
 import io.casehub.neocortex.memory.cbr.CbrQuery;
 import io.casehub.neocortex.memory.cbr.FeatureField;
@@ -249,7 +249,7 @@ public class DefaultClinicalTrialDashboardApi implements ClinicalTrialDashboardA
             String dimension = cd[1];
             TrustRoutingPolicy policy = trustRoutingPolicyProvider.forCapability(capability);
 
-            List<ActorTrustScore> scores = trustScoreRepository.findAll().stream()
+            List<ActorTrustScoreBase> scores = trustScoreRepository.findAll().stream()
                     .filter(s -> capability.equals(s.capabilityKey)).toList();
 
             if (scores.isEmpty()) {

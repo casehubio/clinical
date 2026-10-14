@@ -43,6 +43,10 @@
       <groupId>io.casehub</groupId>
       <artifactId>casehub-ledger</artifactId>
     </dependency>
+    <dependency>
+      <groupId>io.casehub</groupId>
+      <artifactId>casehub-ledger-jpa-common</artifactId>
+    </dependency>
 
     <!-- Layer 7: casehub-engine-ledger — activates TrustWeightedAgentStrategy,
          WorkerDecisionEventCapture, TrustScoreCache, CaseLedgerEntryRepository by classpath presence -->
@@ -90,6 +94,12 @@
     <dependency>
       <groupId>io.casehub</groupId>
       <artifactId>casehub-platform-agent-router</artifactId>
+      <version>${version.io.casehub}</version>
+      <scope>runtime</scope>
+    </dependency>
+    <dependency>
+      <groupId>io.casehub</groupId>
+      <artifactId>casehub-platform-agent-session-core</artifactId>
       <version>${version.io.casehub}</version>
       <scope>runtime</scope>
     </dependency>

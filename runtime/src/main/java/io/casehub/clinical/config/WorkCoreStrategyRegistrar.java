@@ -7,7 +7,7 @@ import jakarta.inject.Inject;
 
 import io.quarkus.arc.Unremovable;
 import io.quarkus.runtime.StartupEvent;
-import io.casehub.engine.internal.routing.EngineStrategyResolver;
+import io.casehub.engine.runtime.routing.EngineStrategyResolver;
 import io.casehub.work.core.policy.ContinuationPolicy;
 import io.casehub.work.core.strategy.LeastLoadedStrategy;
 

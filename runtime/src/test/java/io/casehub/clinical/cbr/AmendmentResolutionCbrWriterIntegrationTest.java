@@ -81,7 +81,7 @@ class AmendmentResolutionCbrWriterIntegrationTest {
         assertThat(first.cbrRecord().problem()).isEqualTo("Extend enrollment period by 6 months");
         assertThat(first.cbrRecord().solution()).isEqualTo("PROCEED");
         assertThat(first.cbrRecord().outcome()).isEqualTo("APPROVED");
-        assertThat(first.cbrRecord().confidence()).isEqualTo(1.0);
+        assertThat(first.cbrRecord().confidence().value()).isEqualTo(1.0);
     }
 
     @Test

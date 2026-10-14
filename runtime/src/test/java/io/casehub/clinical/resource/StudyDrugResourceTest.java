@@ -27,14 +27,14 @@ class StudyDrugResourceTest {
     void setup() {
         String trialLoc = given().contentType("application/json")
                 .body("{\"protocolId\":\"DRG-" + UUID.randomUUID() + "\",\"phase\":\"PHASE_III\",\"sponsor\":\"S\",\"targetEnrollment\":10}")
-                .when().post("/trials").then().statusCode(201).extract().header("Location");
-        trialId = UUID.fromString(trialLoc.substring(trialLoc.lastIndexOf('/') + 1));
+                .when().post("/trials").then().statusCode(201).extract().body().jsonPath().getString("id");
+        trialId = UUID.fromString(trialLoc);
         String siteLoc = given().contentType("application/json").body("{\"investigatorId\":\"pi-drg\"}")
-                .when().post("/trials/{t}/sites", trialId).then().statusCode(201).extract().header("Location");
-        siteId = UUID.fromString(siteLoc.substring(siteLoc.lastIndexOf('/') + 1));
+                .when().post("/trials/{t}/sites", trialId).then().statusCode(201).extract().body().jsonPath().getString("id");
+        siteId = UUID.fromString(siteLoc);
         String enrollLoc = given().contentType("application/json").body("{\"patientId\":\"PAT-DRG-001\"}")
-                .when().post("/trials/{t}/sites/{s}/patients", trialId, siteId).then().statusCode(201).extract().header("Location");
-        enrollmentId = UUID.fromString(enrollLoc.substring(enrollLoc.lastIndexOf('/') + 1));
+                .when().post("/trials/{t}/sites/{s}/patients", trialId, siteId).then().statusCode(201).extract().body().jsonPath().getString("id");
+        enrollmentId = UUID.fromString(enrollLoc);
     }
 
     private String basePath() {
@@ -49,7 +49,7 @@ class StudyDrugResourceTest {
                      "administeredAt":"2026-08-15T10:00:00Z","administeredBy":"nurse-001",
                      "batchNumber":"PEM-2026-0815","status":"ADMINISTERED"}
                     """)
-                .when().post(basePath()).then().statusCode(201).extract().header("Location");
+                .when().post(basePath()).then().statusCode(201).extract().body().jsonPath().getString("id");
         given().when().get(loc).then().statusCode(200)
                 .body("drugName", equalTo("Pembrolizumab"))
                 .body("route", equalTo("IV"))

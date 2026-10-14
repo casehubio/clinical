@@ -2,8 +2,8 @@ package io.casehub.clinical.support;
 
 import io.casehub.api.model.CaseStatus;
 import io.casehub.engine.common.spi.cache.CaseInstanceCache;
-import io.casehub.persistence.memory.InMemoryCaseInstanceRepository;
-import io.casehub.persistence.memory.InMemoryPlanItemStore;
+import io.casehub.engine.persistence.memory.InMemoryCaseInstanceRepository;
+import io.casehub.engine.persistence.memory.InMemoryPlanItemStore;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 import org.jboss.logging.Logger;

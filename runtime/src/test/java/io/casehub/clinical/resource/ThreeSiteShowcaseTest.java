@@ -107,7 +107,7 @@ class ThreeSiteShowcaseTest {
             .body("{\"patientId\": \"PATIENT-A-001\"}")
         .when()
             .post("/trials/{t}/sites/{s}/patients", trialId, siteAId)
-        .then().statusCode(201).extract().header("Location");
+        .then().statusCode(201).extract().body().jsonPath().getString("id");
         UUID enrollmentA = extractId(patientALoc);
 
         given()
@@ -161,7 +161,7 @@ class ThreeSiteShowcaseTest {
             .body("{\"patientId\": \"PATIENT-B-001\"}")
         .when()
             .post("/trials/{t}/sites/{s}/patients", trialId, siteBId)
-        .then().statusCode(201).extract().header("Location");
+        .then().statusCode(201).extract().body().jsonPath().getString("id");
         UUID enrollmentB = extractId(patientBLoc);
 
         String aeLoc = given()
@@ -174,7 +174,7 @@ class ThreeSiteShowcaseTest {
         .then()
             .statusCode(201)
             .body("workItemId", nullValue())
-            .extract().header("Location");
+            .extract().body().jsonPath().getString("id");
         UUID aeId = extractId(aeLoc);
 
         // SLA deadline within 24h
@@ -212,7 +212,7 @@ class ThreeSiteShowcaseTest {
         .then()
             .statusCode(201)
             .body("status", equalTo("PROPOSED"))
-            .extract().header("Location");
+            .extract().body().jsonPath().getString("id");
         UUID amendmentId = extractId(amendmentLoc);
 
         // Advisor stub (DefaultProtocolAmendmentAdvisor → PROCEED) processes asynchronously
@@ -233,6 +233,6 @@ class ThreeSiteShowcaseTest {
     }
 
     private UUID extractId(String location) {
-        return UUID.fromString(location.substring(location.lastIndexOf('/') + 1));
+        return UUID.fromString(location);
     }
 }

@@ -31,7 +31,7 @@ class AeCbrCaseBuilderTest {
     private ClinicalScopeResolver scopeResolver;
     private PlanItemStore planItemStore;
     private AeTrajectoryBuilder trajectoryBuilder;
-    private io.casehub.ledger.runtime.repository.ActorTrustScoreRepository trustScoreRepository;
+    private io.casehub.ledger.api.spi.ActorTrustScoreRepository trustScoreRepository;
     private AeCbrCaseBuilder builder;
 
     private AdverseEvent ae;
@@ -45,7 +45,7 @@ class AeCbrCaseBuilderTest {
         scopeResolver = mock(ClinicalScopeResolver.class);
         planItemStore = mock(PlanItemStore.class);
         trajectoryBuilder = mock(AeTrajectoryBuilder.class);
-        trustScoreRepository = mock(io.casehub.ledger.runtime.repository.ActorTrustScoreRepository.class);
+        trustScoreRepository = mock(io.casehub.ledger.api.spi.ActorTrustScoreRepository.class);
 
         builder = spy(new AeCbrCaseBuilder(cbrService, scopeResolver, planItemStore,
             trajectoryBuilder, trustScoreRepository, null));

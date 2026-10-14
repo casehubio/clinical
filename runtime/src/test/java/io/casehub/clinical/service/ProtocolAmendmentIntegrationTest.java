@@ -71,7 +71,7 @@ class ProtocolAmendmentIntegrationTest {
         .then()
             .statusCode(201)
             .body("status", equalTo("PROPOSED"))
-            .extract().header("Location");
+            .extract().body().jsonPath().getString("id");
 
         UUID amendmentId = extractId(loc);
 
@@ -93,7 +93,7 @@ class ProtocolAmendmentIntegrationTest {
             .post("/trials/{t}/amendments", trialId)
         .then()
             .statusCode(201)
-            .extract().header("Location");
+            .extract().body().jsonPath().getString("id");
 
         UUID amendmentId = extractId(loc);
 
@@ -115,6 +115,6 @@ class ProtocolAmendmentIntegrationTest {
     }
 
     private UUID extractId(String location) {
-        return UUID.fromString(location.substring(location.lastIndexOf('/') + 1));
+        return UUID.fromString(location);
     }
 }

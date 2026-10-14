@@ -27,14 +27,14 @@ class ConcomitantMedicationResourceTest {
     void setup() {
         String trialLoc = given().contentType("application/json")
                 .body("{\"protocolId\":\"MED-" + UUID.randomUUID() + "\",\"phase\":\"PHASE_II\",\"sponsor\":\"S\",\"targetEnrollment\":10}")
-                .when().post("/trials").then().statusCode(201).extract().header("Location");
-        trialId = UUID.fromString(trialLoc.substring(trialLoc.lastIndexOf('/') + 1));
+                .when().post("/trials").then().statusCode(201).extract().body().jsonPath().getString("id");
+        trialId = UUID.fromString(trialLoc);
         String siteLoc = given().contentType("application/json").body("{\"investigatorId\":\"pi-med\"}")
-                .when().post("/trials/{t}/sites", trialId).then().statusCode(201).extract().header("Location");
-        siteId = UUID.fromString(siteLoc.substring(siteLoc.lastIndexOf('/') + 1));
+                .when().post("/trials/{t}/sites", trialId).then().statusCode(201).extract().body().jsonPath().getString("id");
+        siteId = UUID.fromString(siteLoc);
         String enrollLoc = given().contentType("application/json").body("{\"patientId\":\"PAT-MED-001\"}")
-                .when().post("/trials/{t}/sites/{s}/patients", trialId, siteId).then().statusCode(201).extract().header("Location");
-        enrollmentId = UUID.fromString(enrollLoc.substring(enrollLoc.lastIndexOf('/') + 1));
+                .when().post("/trials/{t}/sites/{s}/patients", trialId, siteId).then().statusCode(201).extract().body().jsonPath().getString("id");
+        enrollmentId = UUID.fromString(enrollLoc);
     }
 
     private String basePath() {
@@ -49,7 +49,7 @@ class ConcomitantMedicationResourceTest {
                      "dose":"500","unit":"mg","route":"ORAL","frequency":"TWICE_DAILY",
                      "startDate":"2026-08-15","ongoing":true}
                     """)
-                .when().post(basePath()).then().statusCode(201).extract().header("Location");
+                .when().post(basePath()).then().statusCode(201).extract().body().jsonPath().getString("id");
         given().when().get(loc).then().statusCode(200)
                 .body("medicationName", equalTo("Metformin"))
                 .body("route", equalTo("ORAL"))
@@ -60,7 +60,7 @@ class ConcomitantMedicationResourceTest {
     void patch_medication_discontinues() {
         String loc = given().contentType("application/json")
                 .body("{\"medicationName\":\"Aspirin\",\"dose\":\"81\",\"unit\":\"mg\",\"route\":\"ORAL\",\"frequency\":\"ONCE_DAILY\",\"startDate\":\"2026-08-01\",\"ongoing\":true}")
-                .when().post(basePath()).then().statusCode(201).extract().header("Location");
+                .when().post(basePath()).then().statusCode(201).extract().body().jsonPath().getString("id");
 
         given().contentType("application/json")
                 .body("{\"endDate\":\"2026-08-15\",\"ongoing\":false}")

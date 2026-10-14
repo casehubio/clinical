@@ -25,14 +25,14 @@ class PatientResourceTest {
         String trialLoc = given()
             .contentType("application/json")
             .body("{\"protocolId\":\"ISO-P-" + java.util.UUID.randomUUID() + "\",\"phase\":\"PHASE_I\",\"sponsor\":\"T\",\"targetEnrollment\":5}")
-            .when().post("/trials").then().statusCode(201).extract().header("Location");
-        UUID trialId = UUID.fromString(trialLoc.substring(trialLoc.lastIndexOf('/') + 1));
+            .when().post("/trials").then().statusCode(201).extract().body().jsonPath().getString("id");
+        UUID trialId = UUID.fromString(trialLoc);
 
         String siteLoc = given()
             .contentType("application/json")
             .body("{\"investigatorId\":\"pi-iso\"}")
-            .when().post("/trials/{id}/sites", trialId).then().statusCode(201).extract().header("Location");
-        UUID siteId = UUID.fromString(siteLoc.substring(siteLoc.lastIndexOf('/') + 1));
+            .when().post("/trials/{id}/sites", trialId).then().statusCode(201).extract().body().jsonPath().getString("id");
+        UUID siteId = UUID.fromString(siteLoc);
         return new UUID[]{trialId, siteId};
     }
 
@@ -41,16 +41,16 @@ class PatientResourceTest {
         String trialLoc = given()
             .contentType("application/json")
             .body("{\"protocolId\":\"PAT-TEST-" + UUID.randomUUID() + "\",\"phase\":\"PHASE_I\",\"sponsor\":\"T\",\"targetEnrollment\":5}")
-        .when().post("/trials").then().statusCode(201).extract().header("Location");
+        .when().post("/trials").then().statusCode(201).extract().body().jsonPath().getString("id");
 
-        UUID trialId = UUID.fromString(trialLoc.substring(trialLoc.lastIndexOf('/') + 1));
+        UUID trialId = UUID.fromString(trialLoc);
 
         String siteLoc = given()
             .contentType("application/json")
             .body("{\"investigatorId\":\"pi-carol-003\"}")
-        .when().post("/trials/{id}/sites", trialId).then().statusCode(201).extract().header("Location");
+        .when().post("/trials/{id}/sites", trialId).then().statusCode(201).extract().body().jsonPath().getString("id");
 
-        return UUID.fromString(siteLoc.substring(siteLoc.lastIndexOf('/') + 1));
+        return UUID.fromString(siteLoc);
     }
 
     @Test
@@ -58,13 +58,13 @@ class PatientResourceTest {
         String trialLoc = given()
             .contentType("application/json")
             .body("{\"protocolId\":\"ENROLL-001-" + UUID.randomUUID() + "\",\"phase\":\"PHASE_I\",\"sponsor\":\"T\",\"targetEnrollment\":5}")
-        .when().post("/trials").then().statusCode(201).extract().header("Location");
-        UUID tid = UUID.fromString(trialLoc.substring(trialLoc.lastIndexOf('/') + 1));
+        .when().post("/trials").then().statusCode(201).extract().body().jsonPath().getString("id");
+        UUID tid = UUID.fromString(trialLoc);
         String siteLoc = given()
             .contentType("application/json")
             .body("{\"investigatorId\":\"pi-x\"}")
-        .when().post("/trials/{id}/sites", tid).then().statusCode(201).extract().header("Location");
-        UUID sid = UUID.fromString(siteLoc.substring(siteLoc.lastIndexOf('/') + 1));
+        .when().post("/trials/{id}/sites", tid).then().statusCode(201).extract().body().jsonPath().getString("id");
+        UUID sid = UUID.fromString(siteLoc);
 
         given()
             .contentType("application/json")
@@ -73,7 +73,7 @@ class PatientResourceTest {
             .post("/trials/{trialId}/sites/{siteId}/patients", tid, sid)
         .then()
             .statusCode(201)
-            .header("Location", containsString("/patients/"));
+            .body("id", notNullValue());
     }
 
     @Test
@@ -81,13 +81,13 @@ class PatientResourceTest {
         String trialLoc = given()
             .contentType("application/json")
             .body("{\"protocolId\":\"ENROLL-002-" + UUID.randomUUID() + "\",\"phase\":\"PHASE_I\",\"sponsor\":\"T\",\"targetEnrollment\":5}")
-        .when().post("/trials").then().statusCode(201).extract().header("Location");
-        UUID tid = UUID.fromString(trialLoc.substring(trialLoc.lastIndexOf('/') + 1));
+        .when().post("/trials").then().statusCode(201).extract().body().jsonPath().getString("id");
+        UUID tid = UUID.fromString(trialLoc);
         String siteLoc = given()
             .contentType("application/json")
             .body("{\"investigatorId\":\"pi-y\"}")
-        .when().post("/trials/{id}/sites", tid).then().statusCode(201).extract().header("Location");
-        UUID sid = UUID.fromString(siteLoc.substring(siteLoc.lastIndexOf('/') + 1));
+        .when().post("/trials/{id}/sites", tid).then().statusCode(201).extract().body().jsonPath().getString("id");
+        UUID sid = UUID.fromString(siteLoc);
 
         String patientLoc = given()
             .contentType("application/json")
@@ -95,7 +95,7 @@ class PatientResourceTest {
         .when()
             .post("/trials/{trialId}/sites/{siteId}/patients", tid, sid)
         .then()
-            .statusCode(201).extract().header("Location");
+            .statusCode(201).extract().body().jsonPath().getString("id");
 
         given().when().get(patientLoc)
         .then()
@@ -110,8 +110,8 @@ class PatientResourceTest {
         String trialLoc = given()
             .contentType("application/json")
             .body("{\"protocolId\":\"ENROLL-003-" + UUID.randomUUID() + "\",\"phase\":\"PHASE_I\",\"sponsor\":\"T\",\"targetEnrollment\":5}")
-        .when().post("/trials").then().statusCode(201).extract().header("Location");
-        UUID tid = UUID.fromString(trialLoc.substring(trialLoc.lastIndexOf('/') + 1));
+        .when().post("/trials").then().statusCode(201).extract().body().jsonPath().getString("id");
+        UUID tid = UUID.fromString(trialLoc);
 
         given()
             .contentType("application/json")
@@ -128,25 +128,25 @@ class PatientResourceTest {
         String trialLocA = given()
             .contentType("application/json")
             .body("{\"protocolId\":\"WRONG-TRIAL-A-" + UUID.randomUUID() + "\",\"phase\":\"PHASE_I\",\"sponsor\":\"T\",\"targetEnrollment\":5}")
-        .when().post("/trials").then().statusCode(201).extract().header("Location");
-        UUID tidA = UUID.fromString(trialLocA.substring(trialLocA.lastIndexOf('/') + 1));
+        .when().post("/trials").then().statusCode(201).extract().body().jsonPath().getString("id");
+        UUID tidA = UUID.fromString(trialLocA);
         String siteLocA = given()
             .contentType("application/json")
             .body("{\"investigatorId\":\"pi-a\"}")
-        .when().post("/trials/{id}/sites", tidA).then().statusCode(201).extract().header("Location");
-        UUID sidA = UUID.fromString(siteLocA.substring(siteLocA.lastIndexOf('/') + 1));
+        .when().post("/trials/{id}/sites", tidA).then().statusCode(201).extract().body().jsonPath().getString("id");
+        UUID sidA = UUID.fromString(siteLocA);
         String patientLoc = given()
             .contentType("application/json")
             .body("{\"patientId\":\"PAT-CROSS\"}")
-        .when().post("/trials/{t}/sites/{s}/patients", tidA, sidA).then().statusCode(201).extract().header("Location");
-        UUID enrollmentId = UUID.fromString(patientLoc.substring(patientLoc.lastIndexOf('/') + 1));
+        .when().post("/trials/{t}/sites/{s}/patients", tidA, sidA).then().statusCode(201).extract().body().jsonPath().getString("id");
+        UUID enrollmentId = UUID.fromString(patientLoc);
 
         // Create trial B — try to access the patient via trial B
         String trialLocB = given()
             .contentType("application/json")
             .body("{\"protocolId\":\"WRONG-TRIAL-B-" + UUID.randomUUID() + "\",\"phase\":\"PHASE_I\",\"sponsor\":\"T\",\"targetEnrollment\":5}")
-        .when().post("/trials").then().statusCode(201).extract().header("Location");
-        UUID tidB = UUID.fromString(trialLocB.substring(trialLocB.lastIndexOf('/') + 1));
+        .when().post("/trials").then().statusCode(201).extract().body().jsonPath().getString("id");
+        UUID tidB = UUID.fromString(trialLocB);
 
         given().when().get("/trials/{t}/sites/{s}/patients/{e}", tidB, sidA, enrollmentId)
         .then().statusCode(404);
@@ -161,7 +161,7 @@ class PatientResourceTest {
             .contentType("application/json")
             .body("{\"patientId\":\"PAT-ISO-001\"}")
             .when().post("/trials/{t}/sites/{s}/patients", trialId, siteId)
-            .then().statusCode(201).extract().header("Location");
+            .then().statusCode(201).extract().body().jsonPath().getString("id");
 
         principal.setTenancyId("other-tenant");
         given().when().get(patientLoc).then().statusCode(404);
@@ -176,8 +176,8 @@ class PatientResourceTest {
             .contentType("application/json")
             .body("{\"patientId\":\"PAT-ISO-002\"}")
             .when().post("/trials/{t}/sites/{s}/patients", trialId, siteId)
-            .then().statusCode(201).extract().header("Location");
-        UUID enrollmentId = UUID.fromString(patientLoc.substring(patientLoc.lastIndexOf('/') + 1));
+            .then().statusCode(201).extract().body().jsonPath().getString("id");
+        UUID enrollmentId = UUID.fromString(patientLoc);
 
         principal.setTenancyId("other-tenant");
         given()
@@ -199,7 +199,7 @@ class PatientResourceTest {
             .contentType("application/json")
             .body("{\"patientId\":\"PAT-ISO-INHERIT\"}")
             .when().post("/trials/{t}/sites/{s}/patients", trialId, siteId)
-            .then().statusCode(201).extract().header("Location");
+            .then().statusCode(201).extract().body().jsonPath().getString("id");
 
         principal.reset();
         given().when().get(patientLoc).then().statusCode(200);
@@ -217,7 +217,7 @@ class PatientResourceTest {
             .contentType("application/json")
             .body("{\"patientId\":\"PAT-BYPASS-001\"}")
             .when().post("/trials/{t}/sites/{s}/patients", trialId, siteId)
-            .then().statusCode(201).extract().header("Location");
+            .then().statusCode(201).extract().body().jsonPath().getString("id");
 
         principal.setTenancyId("other-tenant");
         principal.setCrossTenantAdmin(true);

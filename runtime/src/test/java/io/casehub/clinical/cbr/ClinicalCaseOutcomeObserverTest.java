@@ -34,7 +34,7 @@ class ClinicalCaseOutcomeObserverTest {
         scopeResolver = mock(ClinicalScopeResolver.class);
         when(scopeResolver.forAdverseEvent(any())).thenReturn(java.util.Optional.of(io.casehub.platform.api.path.Path.of("trial-1", "site-1", "patient-1")));
         AeTrajectoryBuilder trajectoryBuilder = mock(AeTrajectoryBuilder.class);
-        observer = new ClinicalCaseOutcomeObserver(cbrService, store, planItemStore, trajectoryBuilder, scopeResolver, null, mock(io.casehub.ledger.runtime.repository.ActorTrustScoreRepository.class));
+        observer = new ClinicalCaseOutcomeObserver(cbrService, store, planItemStore, trajectoryBuilder, scopeResolver, null, mock(io.casehub.ledger.api.spi.ActorTrustScoreRepository.class));
     }
 
     @Test
@@ -113,7 +113,7 @@ class ClinicalCaseOutcomeObserverTest {
 
         observer.onOutcome(event);
 
-        verify(store).recordOutcome(eq(aeId.toString()), eq("test-tenant"), any(CbrOutcome.class));
+        verify(store).recordOutcome(eq(aeId.toString()), any(CbrOutcome.class), eq("test-tenant"));
     }
 
     @Test
@@ -130,7 +130,7 @@ class ClinicalCaseOutcomeObserverTest {
         observer.onOutcome(event);
 
         verify(cbrService, never()).storeIdempotent(any(), any(), any(), any(), any(), any(), any());
-        verify(store).recordOutcome(eq(deviationId.toString()), eq("test-tenant"), any(CbrOutcome.class));
+        verify(store).recordOutcome(eq(deviationId.toString()), any(CbrOutcome.class), eq("test-tenant"));
     }
 
     @Test
@@ -147,7 +147,7 @@ class ClinicalCaseOutcomeObserverTest {
         observer.onOutcome(event);
 
         verify(cbrService, never()).storeIdempotent(any(), any(), any(), any(), any(), any(), any());
-        verify(store).recordOutcome(eq(amendmentId.toString()), eq("test-tenant"), any(CbrOutcome.class));
+        verify(store).recordOutcome(eq(amendmentId.toString()), any(CbrOutcome.class), eq("test-tenant"));
     }
 
     @Test
@@ -181,7 +181,7 @@ class ClinicalCaseOutcomeObserverTest {
         observer.onOutcome(event);
 
         verify(cbrService, never()).storeIdempotent(any(), any(), any(), any(), any(), any(), any());
-        verify(store).recordOutcome(eq(aeId.toString()), eq("test-tenant"), any(CbrOutcome.class));
+        verify(store).recordOutcome(eq(aeId.toString()), any(CbrOutcome.class), eq("test-tenant"));
     }
 
     @Test
@@ -269,7 +269,7 @@ class ClinicalCaseOutcomeObserverTest {
         observer.onOutcome(event);
 
         ArgumentCaptor<CbrOutcome> outcomeCaptor = ArgumentCaptor.forClass(CbrOutcome.class);
-        verify(store).recordOutcome(eq(aeId.toString()), eq("test-tenant"), outcomeCaptor.capture());
+        verify(store).recordOutcome(eq(aeId.toString()), outcomeCaptor.capture(), eq("test-tenant"));
         assertThat(outcomeCaptor.getValue().successRate()).isEqualTo(0.0);
     }
 
@@ -287,7 +287,7 @@ class ClinicalCaseOutcomeObserverTest {
         observer.onOutcome(event);
 
         ArgumentCaptor<CbrOutcome> outcomeCaptor = ArgumentCaptor.forClass(CbrOutcome.class);
-        verify(store).recordOutcome(eq(deviationId.toString()), eq("test-tenant"), outcomeCaptor.capture());
+        verify(store).recordOutcome(eq(deviationId.toString()), outcomeCaptor.capture(), eq("test-tenant"));
         assertThat(outcomeCaptor.getValue().successRate()).isEqualTo(1.0);
     }
 

@@ -39,9 +39,9 @@ class ClinicalLayerComplianceTest {
                   "targetEnrollment": 300
                 }
                 """.formatted(UUID.randomUUID()))
-        .when().post("/trials").then().statusCode(201).extract().header("Location");
+        .when().post("/trials").then().statusCode(201).extract().body().jsonPath().getString("id");
 
-        UUID trialId = UUID.fromString(trialLoc.substring(trialLoc.lastIndexOf('/') + 1));
+        UUID trialId = UUID.fromString(trialLoc);
 
         // Add 3 sites
         UUID siteAId = addSite(trialId, "pi-site-a-001");
@@ -79,8 +79,8 @@ class ClinicalLayerComplianceTest {
         .when()
             .post("/trials/{id}/sites", trialId)
         .then()
-            .statusCode(201).extract().header("Location");
-        return UUID.fromString(loc.substring(loc.lastIndexOf('/') + 1));
+            .statusCode(201).extract().body().jsonPath().getString("id");
+        return UUID.fromString(loc);
     }
 
     private UUID enrollPatient(UUID trialId, UUID siteId, String patientId) {
@@ -90,8 +90,8 @@ class ClinicalLayerComplianceTest {
         .when()
             .post("/trials/{trialId}/sites/{siteId}/patients", trialId, siteId)
         .then()
-            .statusCode(201).extract().header("Location");
-        return UUID.fromString(loc.substring(loc.lastIndexOf('/') + 1));
+            .statusCode(201).extract().body().jsonPath().getString("id");
+        return UUID.fromString(loc);
     }
 
     private void assertSiteExists(UUID trialId, UUID siteId, String investigatorId) {
@@ -112,7 +112,7 @@ class ClinicalLayerComplianceTest {
     }
 
     private String extractId(String location) {
-        return location.substring(location.lastIndexOf('/') + 1);
+        return location;
     }
 
     @Test
@@ -127,8 +127,8 @@ class ClinicalLayerComplianceTest {
                   "targetEnrollment": 300
                 }
                 """.formatted(UUID.randomUUID()))
-            .when().post("/trials").then().statusCode(201).extract().header("Location");
-        UUID trialId = UUID.fromString(trialLoc.substring(trialLoc.lastIndexOf('/') + 1));
+            .when().post("/trials").then().statusCode(201).extract().body().jsonPath().getString("id");
+        UUID trialId = UUID.fromString(trialLoc);
 
         UUID siteAId = addSite(trialId, "pi-showcase-sae-001");
         UUID patientA = enrollPatient(trialId, siteAId, "PATIENT-SAE-A-001-" + UUID.randomUUID());
@@ -165,8 +165,8 @@ class ClinicalLayerComplianceTest {
                   "targetEnrollment": 300
                 }
                 """.formatted(UUID.randomUUID()))
-            .when().post("/trials").then().statusCode(201).extract().header("Location");
-        UUID trialId = UUID.fromString(trialLoc.substring(trialLoc.lastIndexOf('/') + 1));
+            .when().post("/trials").then().statusCode(201).extract().body().jsonPath().getString("id");
+        UUID trialId = UUID.fromString(trialLoc);
 
         UUID siteBId = addSite(trialId, "pi-showcase-g5-001");
         UUID patientB = enrollPatient(trialId, siteBId, "PATIENT-G5-B-001-" + UUID.randomUUID());
@@ -204,7 +204,7 @@ class ClinicalLayerComplianceTest {
                   "targetEnrollment": 300
                 }
                 """.formatted(UUID.randomUUID()))
-            .when().post("/trials").then().statusCode(201).extract().header("Location");
+            .when().post("/trials").then().statusCode(201).extract().body().jsonPath().getString("id");
         UUID trialId = UUID.fromString(extractId(trialLoc));
         UUID siteCId = addSite(trialId, "pi-site-c-003");
 
@@ -217,7 +217,7 @@ class ClinicalLayerComplianceTest {
                 .statusCode(201)
                 .body("piApprovalStatus", equalTo("COMMANDED"))
                 .body("escalationRequirement", equalTo("NONE"))
-            .extract().header("Location");
+            .extract().body().jsonPath().getString("id");
         String minorId = extractId(minorLoc);
 
         // POST CRITICAL deviation — expect COMMANDED with IRB_REVIEW escalation
@@ -229,7 +229,7 @@ class ClinicalLayerComplianceTest {
                 .statusCode(201)
                 .body("piApprovalStatus", equalTo("COMMANDED"))
                 .body("escalationRequirement", equalTo("IRB_REVIEW"))
-            .extract().header("Location");
+            .extract().body().jsonPath().getString("id");
         String criticalId = extractId(criticalLoc);
 
         // PI responds DONE to the minor deviation

@@ -106,9 +106,9 @@ class TrialActivationTest {
                     """)
                 .when().post("/trials")
                 .then().statusCode(201)
-                .extract().header("Location");
+                .extract().body().jsonPath().getString("id");
 
-        String id = location.substring(location.lastIndexOf('/') + 1);
+        String id = location;
         return UUID.fromString(id);
     }
 

@@ -117,7 +117,7 @@ class DeviationResolutionCbrWriterTest {
         assertThat(stored.problem()).contains("CONSENT_TIMING_DELAY", "MINOR", "NONE");
         assertThat(stored.solution()).contains("PI decision: APPROVED");
         assertThat(stored.outcome()).isEqualTo("RESOLVED");
-        assertThat(stored.confidence()).isEqualTo(1.0);
+        assertThat(stored.confidence().value()).isEqualTo(1.0);
 
         Map<String, Object> features = FeatureValue.toRawMap(stored.features());
         assertThat(features)

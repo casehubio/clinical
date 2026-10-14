@@ -31,18 +31,18 @@ class VisitResourceTest {
     void setup() {
         String trialLoc = given().contentType("application/json")
                 .body("{\"protocolId\":\"VIS-" + UUID.randomUUID() + "\",\"phase\":\"PHASE_II\",\"sponsor\":\"S\",\"targetEnrollment\":10}")
-                .when().post("/trials").then().statusCode(201).extract().header("Location");
-        trialId = UUID.fromString(trialLoc.substring(trialLoc.lastIndexOf('/') + 1));
+                .when().post("/trials").then().statusCode(201).extract().body().jsonPath().getString("id");
+        trialId = UUID.fromString(trialLoc);
 
         String siteLoc = given().contentType("application/json")
                 .body("{\"investigatorId\":\"pi-vis\"}")
-                .when().post("/trials/{t}/sites", trialId).then().statusCode(201).extract().header("Location");
-        siteId = UUID.fromString(siteLoc.substring(siteLoc.lastIndexOf('/') + 1));
+                .when().post("/trials/{t}/sites", trialId).then().statusCode(201).extract().body().jsonPath().getString("id");
+        siteId = UUID.fromString(siteLoc);
 
         String enrollLoc = given().contentType("application/json")
                 .body("{\"patientId\":\"PAT-VIS-001\"}")
-                .when().post("/trials/{t}/sites/{s}/patients", trialId, siteId).then().statusCode(201).extract().header("Location");
-        enrollmentId = UUID.fromString(enrollLoc.substring(enrollLoc.lastIndexOf('/') + 1));
+                .when().post("/trials/{t}/sites/{s}/patients", trialId, siteId).then().statusCode(201).extract().body().jsonPath().getString("id");
+        enrollmentId = UUID.fromString(enrollLoc);
     }
 
     private String basePath() {
@@ -53,7 +53,7 @@ class VisitResourceTest {
     void post_visit_returns_201_and_get_retrieves() {
         String loc = given().contentType("application/json")
                 .body("{\"visitType\":\"BASELINE\",\"visitDate\":\"2026-08-15T09:00:00Z\",\"status\":\"SCHEDULED\"}")
-                .when().post(basePath()).then().statusCode(201).extract().header("Location");
+                .when().post(basePath()).then().statusCode(201).extract().body().jsonPath().getString("id");
 
         given().when().get(loc).then().statusCode(200)
                 .body("visitType", equalTo("BASELINE"))
@@ -76,7 +76,7 @@ class VisitResourceTest {
     void patch_visit_updates_status() {
         String loc = given().contentType("application/json")
                 .body("{\"visitType\":\"FOLLOW_UP\",\"visitDate\":\"2026-08-20T09:00:00Z\",\"status\":\"SCHEDULED\"}")
-                .when().post(basePath()).then().statusCode(201).extract().header("Location");
+                .when().post(basePath()).then().statusCode(201).extract().body().jsonPath().getString("id");
 
         given().contentType("application/json")
                 .body("{\"status\":\"COMPLETED\",\"notes\":\"All assessments done\"}")

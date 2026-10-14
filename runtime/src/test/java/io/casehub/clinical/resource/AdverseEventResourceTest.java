@@ -26,8 +26,8 @@ class AdverseEventResourceTest {
                 {"protocolId":"AE-TEST-%s","phase":"PHASE_II","sponsor":"Test","targetEnrollment":10}
                 """.formatted(UUID.randomUUID()))
             .when().post("/trials")
-            .then().statusCode(201).extract().header("Location");
-        return UUID.fromString(loc.substring(loc.lastIndexOf('/') + 1));
+            .then().statusCode(201).extract().body().jsonPath().getString("id");
+        return UUID.fromString(loc);
     }
 
     private UUID addSite(UUID trialId) {
@@ -35,8 +35,8 @@ class AdverseEventResourceTest {
             .contentType("application/json")
             .body("{\"investigatorId\":\"pi-ae-test\"}")
             .when().post("/trials/{t}/sites", trialId)
-            .then().statusCode(201).extract().header("Location");
-        return UUID.fromString(loc.substring(loc.lastIndexOf('/') + 1));
+            .then().statusCode(201).extract().body().jsonPath().getString("id");
+        return UUID.fromString(loc);
     }
 
     private UUID enrollPatient(UUID trialId, UUID siteId) {
@@ -44,8 +44,8 @@ class AdverseEventResourceTest {
             .contentType("application/json")
             .body("{\"patientId\":\"PAT-" + UUID.randomUUID() + "\"}")
             .when().post("/trials/{t}/sites/{s}/patients", trialId, siteId)
-            .then().statusCode(201).extract().header("Location");
-        return UUID.fromString(loc.substring(loc.lastIndexOf('/') + 1));
+            .then().statusCode(201).extract().body().jsonPath().getString("id");
+        return UUID.fromString(loc);
     }
 
     // ── Happy path ────────────────────────────────────────────────────────────
@@ -72,7 +72,7 @@ class AdverseEventResourceTest {
             .body("workItemId", nullValue())
             .body("slaDeadline", notNullValue())
             .body("grade", equalTo("GRADE_3"))
-            .header("Location", containsString("/adverse-events/"));
+            .body("id", notNullValue());
     }
 
     @Test

@@ -50,7 +50,7 @@ Loaded from classpath. Ships with the app as part of the reference architecture.
 
 ## @ScenarioAction Methods
 
-New class: `runtime/src/main/java/io/casehub/clinical/scenario/ClinicalScenarioActions.java`
+New class: `runtime/src/main/java/io/casehub/clinical/scenario/ClinicalPlaybookActions.java`
 
 ~10 actions mirroring DemoDataSeeder operations:
 

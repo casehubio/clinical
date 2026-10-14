@@ -49,7 +49,7 @@ public class ClinicalCaseOutcomeObserver implements CaseOutcomeObserver {
                                        AeTrajectoryBuilder trajectoryBuilder,
                                        ClinicalScopeResolver scopeResolver,
                                        EntityManager em,
-                                       io.casehub.ledger.runtime.repository.ActorTrustScoreRepository trustScoreRepository) {
+                                       io.casehub.ledger.api.spi.ActorTrustScoreRepository trustScoreRepository) {
         this.cbrService        = cbrService;
         this.store             = store;
         this.planItemStore     = planItemStore;
@@ -180,7 +180,7 @@ public class ClinicalCaseOutcomeObserver implements CaseOutcomeObserver {
         };
 
         CbrOutcome outcome = CbrOutcome.of(successRate, event.outcomeLabel(), event.closedAt());
-        store.recordOutcome(entityId, event.tenancyId(), outcome);
+        store.recordOutcome(entityId, outcome, event.tenancyId());
     }
 
     interface EntityResolver {
@@ -194,9 +194,9 @@ public class ClinicalCaseOutcomeObserver implements CaseOutcomeObserver {
     }
 
     private class JpaEntityResolver implements EntityResolver {
-        private final io.casehub.ledger.runtime.repository.ActorTrustScoreRepository trustScoreRepository;
+        private final io.casehub.ledger.api.spi.ActorTrustScoreRepository trustScoreRepository;
 
-        JpaEntityResolver(io.casehub.ledger.runtime.repository.ActorTrustScoreRepository trustScoreRepository) {
+        JpaEntityResolver(io.casehub.ledger.api.spi.ActorTrustScoreRepository trustScoreRepository) {
             this.trustScoreRepository = trustScoreRepository;
         }
 

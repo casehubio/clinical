@@ -25,14 +25,14 @@ class DeviationResourceTest {
         String trialLoc = given()
             .contentType("application/json")
             .body("{\"protocolId\":\"DEV-" + UUID.randomUUID() + "\",\"phase\":\"PHASE_I\",\"sponsor\":\"S\",\"targetEnrollment\":5}")
-            .when().post("/trials").then().statusCode(201).extract().header("Location");
-        UUID trialId = UUID.fromString(trialLoc.substring(trialLoc.lastIndexOf('/') + 1));
+            .when().post("/trials").then().statusCode(201).extract().body().jsonPath().getString("id");
+        UUID trialId = UUID.fromString(trialLoc);
 
         String siteLoc = given()
             .contentType("application/json")
             .body("{\"investigatorId\":\"pi-res\"}")
-            .when().post("/trials/{id}/sites", trialId).then().statusCode(201).extract().header("Location");
-        UUID siteId = UUID.fromString(siteLoc.substring(siteLoc.lastIndexOf('/') + 1));
+            .when().post("/trials/{id}/sites", trialId).then().statusCode(201).extract().body().jsonPath().getString("id");
+        UUID siteId = UUID.fromString(siteLoc);
 
         return new UUID[]{trialId, siteId};
     }
@@ -47,13 +47,13 @@ class DeviationResourceTest {
             .body("{\"deviationType\":\"sample-window\",\"severity\":\"MINOR\"}")
             .when().post("/trials/{t}/sites/{s}/deviations", trialId, siteId)
             .then().statusCode(201)
-            .header("Location", containsString("/deviations/"))
+            .body("id", notNullValue())
             .body("piApprovalStatus", is("COMMANDED"))
             .body("responseDeadline", notNullValue())
             .extract().response();
 
         String location = response.header("Location");
-        String deviationId = location.substring(location.lastIndexOf('/') + 1);
+        String deviationId = location;
 
         given().when()
             .get("/trials/{t}/sites/{s}/deviations/{d}", trialId, siteId, deviationId)
@@ -107,7 +107,7 @@ class DeviationResourceTest {
             .when().post("/trials/{t}/sites/{s}/deviations", trialId, siteId)
             .then().statusCode(201).extract();
         String location = resp.header("Location");
-        String deviationId = location.substring(location.lastIndexOf('/') + 1);
+        String deviationId = location;
 
         principal.setTenancyId("other-tenant");
         given().when().get("/trials/{t}/sites/{s}/deviations/{d}", trialId, siteId, deviationId)
@@ -125,7 +125,7 @@ class DeviationResourceTest {
             .when().post("/trials/{t}/sites/{s}/deviations", trialId, siteId)
             .then().statusCode(201).extract();
         String location = resp.header("Location");
-        String deviationId = location.substring(location.lastIndexOf('/') + 1);
+        String deviationId = location;
 
         principal.setTenancyId("other-tenant");
         principal.setCrossTenantAdmin(true);
@@ -146,7 +146,7 @@ class DeviationResourceTest {
             .when().post("/trials/{t}/sites/{s}/deviations", trialId, siteId)
             .then().statusCode(201).extract();
         String location = resp.header("Location");
-        String deviationId = location.substring(location.lastIndexOf('/') + 1);
+        String deviationId = location;
 
         principal.reset();
         given().when().get("/trials/{t}/sites/{s}/deviations/{d}", trialId, siteId, deviationId)

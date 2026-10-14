@@ -9,6 +9,7 @@ import jakarta.enterprise.context.ApplicationScoped;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 
 @ApplicationScoped
@@ -31,8 +32,8 @@ public class StubCrossTenantEventLogRepository implements CrossTenantEventLogRep
     }
 
     @Override
-    public EventLog findById(Long id) {
-        return null;
+    public Optional<EventLog> findById(Long id) {
+        return Optional.empty();
     }
 
     @Override

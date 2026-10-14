@@ -103,20 +103,20 @@ class EligibilityAgentIntegrationTest {
         String trialLoc = given()
             .contentType("application/json")
             .body("{\"protocolId\":\"ELIG-AGENT-" + UUID.randomUUID() + "\",\"phase\":\"PHASE_I\",\"sponsor\":\"T\",\"targetEnrollment\":5}")
-        .when().post("/trials").then().statusCode(201).extract().header("Location");
-        UUID trialId = UUID.fromString(trialLoc.substring(trialLoc.lastIndexOf('/') + 1));
+        .when().post("/trials").then().statusCode(201).extract().body().jsonPath().getString("id");
+        UUID trialId = UUID.fromString(trialLoc);
 
         String siteLoc = given()
             .contentType("application/json")
             .body("{\"investigatorId\":\"pi-elig-agent\"}")
-        .when().post("/trials/{id}/sites", trialId).then().statusCode(201).extract().header("Location");
-        UUID siteId = UUID.fromString(siteLoc.substring(siteLoc.lastIndexOf('/') + 1));
+        .when().post("/trials/{id}/sites", trialId).then().statusCode(201).extract().body().jsonPath().getString("id");
+        UUID siteId = UUID.fromString(siteLoc);
 
         String patientLoc = given()
             .contentType("application/json")
             .body("{\"patientId\":\"PAT-ELIG-" + UUID.randomUUID() + "\"}")
-        .when().post("/trials/{t}/sites/{s}/patients", trialId, siteId).then().statusCode(201).extract().header("Location");
-        UUID enrollmentId = UUID.fromString(patientLoc.substring(patientLoc.lastIndexOf('/') + 1));
+        .when().post("/trials/{t}/sites/{s}/patients", trialId, siteId).then().statusCode(201).extract().body().jsonPath().getString("id");
+        UUID enrollmentId = UUID.fromString(patientLoc);
 
         return new UUID[]{trialId, siteId, enrollmentId};
     }

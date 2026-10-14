@@ -90,7 +90,7 @@ class AmendmentResolutionCbrWriterTest {
         assertThat(stored.problem()).isEqualTo("Increase dose by 20%");
         assertThat(stored.solution()).isEqualTo("PROCEED");
         assertThat(stored.outcome()).isEqualTo("APPROVED");
-        assertThat(stored.confidence()).isEqualTo(1.0);
+        assertThat(stored.confidence().value()).isEqualTo(1.0);
     }
 
     @Test

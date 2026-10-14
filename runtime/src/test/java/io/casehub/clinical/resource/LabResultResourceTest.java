@@ -31,18 +31,18 @@ class LabResultResourceTest {
     void setup() {
         String trialLoc = given().contentType("application/json")
                 .body("{\"protocolId\":\"LAB-" + UUID.randomUUID() + "\",\"phase\":\"PHASE_II\",\"sponsor\":\"S\",\"targetEnrollment\":10}")
-                .when().post("/trials").then().statusCode(201).extract().header("Location");
-        trialId = UUID.fromString(trialLoc.substring(trialLoc.lastIndexOf('/') + 1));
+                .when().post("/trials").then().statusCode(201).extract().body().jsonPath().getString("id");
+        trialId = UUID.fromString(trialLoc);
 
         String siteLoc = given().contentType("application/json")
                 .body("{\"investigatorId\":\"pi-lab\"}")
-                .when().post("/trials/{t}/sites", trialId).then().statusCode(201).extract().header("Location");
-        siteId = UUID.fromString(siteLoc.substring(siteLoc.lastIndexOf('/') + 1));
+                .when().post("/trials/{t}/sites", trialId).then().statusCode(201).extract().body().jsonPath().getString("id");
+        siteId = UUID.fromString(siteLoc);
 
         String enrollLoc = given().contentType("application/json")
                 .body("{\"patientId\":\"PAT-LAB-001\"}")
-                .when().post("/trials/{t}/sites/{s}/patients", trialId, siteId).then().statusCode(201).extract().header("Location");
-        enrollmentId = UUID.fromString(enrollLoc.substring(enrollLoc.lastIndexOf('/') + 1));
+                .when().post("/trials/{t}/sites/{s}/patients", trialId, siteId).then().statusCode(201).extract().body().jsonPath().getString("id");
+        enrollmentId = UUID.fromString(enrollLoc);
     }
 
     private String basePath() {
@@ -58,7 +58,7 @@ class LabResultResourceTest {
                      "abnormalFlag":"NORMAL","specimenType":"BLOOD",
                      "performingLab":"Central Lab","collectedAt":"2026-08-15T09:00:00Z"}
                     """)
-                .when().post(basePath()).then().statusCode(201).extract().header("Location");
+                .when().post(basePath()).then().statusCode(201).extract().body().jsonPath().getString("id");
 
         given().when().get(loc).then().statusCode(200)
                 .body("testName", equalTo("ALT"))
@@ -82,7 +82,7 @@ class LabResultResourceTest {
     void post_lab_result_with_critical_flag() {
         String loc = given().contentType("application/json")
                 .body("{\"testName\":\"Potassium\",\"value\":6.5,\"unit\":\"mmol/L\",\"abnormalFlag\":\"CRITICAL_HIGH\",\"specimenType\":\"BLOOD\",\"collectedAt\":\"2026-08-15T09:00:00Z\"}")
-                .when().post(basePath()).then().statusCode(201).extract().header("Location");
+                .when().post(basePath()).then().statusCode(201).extract().body().jsonPath().getString("id");
 
         given().when().get(loc).then().statusCode(200)
                 .body("abnormalFlag", equalTo("CRITICAL_HIGH"));

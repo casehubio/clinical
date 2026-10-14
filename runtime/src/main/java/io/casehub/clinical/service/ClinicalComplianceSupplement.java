@@ -2,7 +2,7 @@ package io.casehub.clinical.service;
 
 import io.casehub.clinical.api.model.CtcaeGrade;
 import io.casehub.ledger.api.model.supplement.ComplianceSupplement;
-import io.casehub.ledger.runtime.model.supplement.JpaComplianceSupplement;
+import io.casehub.ledger.jpa.JpaComplianceSupplement;
 import java.util.Objects;
 
 /**

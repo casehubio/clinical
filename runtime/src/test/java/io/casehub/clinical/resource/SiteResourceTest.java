@@ -29,13 +29,13 @@ class SiteResourceTest {
             .post("/trials")
         .then()
             .statusCode(201)
-            .extract().header("Location");
+            .extract().body().jsonPath().getString("id");
     }
 
     @Test
     void post_site_returns_201_with_location() {
         String trialLocation = createTrial();
-        UUID trialId = UUID.fromString(trialLocation.substring(trialLocation.lastIndexOf('/') + 1));
+        UUID trialId = UUID.fromString(trialLocation);
 
         given()
             .contentType("application/json")
@@ -46,13 +46,13 @@ class SiteResourceTest {
             .post("/trials/{id}/sites", trialId)
         .then()
             .statusCode(201)
-            .header("Location", containsString("/sites/"));
+            .body("id", notNullValue());
     }
 
     @Test
     void get_site_returns_investigator_id_and_status() {
         String trialLocation = createTrial();
-        UUID trialId = UUID.fromString(trialLocation.substring(trialLocation.lastIndexOf('/') + 1));
+        UUID trialId = UUID.fromString(trialLocation);
 
         String siteLocation =
             given()
@@ -62,7 +62,7 @@ class SiteResourceTest {
                 .post("/trials/{id}/sites", trialId)
             .then()
                 .statusCode(201)
-                .extract().header("Location");
+                .extract().body().jsonPath().getString("id");
 
         given()
         .when()
@@ -87,7 +87,7 @@ class SiteResourceTest {
     @Test
     void get_unknown_site_returns_404() {
         String trialLocation = createTrial();
-        UUID trialId = UUID.fromString(trialLocation.substring(trialLocation.lastIndexOf('/') + 1));
+        UUID trialId = UUID.fromString(trialLocation);
 
         given()
         .when()
@@ -101,14 +101,14 @@ class SiteResourceTest {
         String trialLoc = given()
             .contentType("application/json")
             .body("{\"protocolId\":\"ISO-S-001\",\"phase\":\"PHASE_I\",\"sponsor\":\"T\",\"targetEnrollment\":5}")
-            .when().post("/trials").then().statusCode(201).extract().header("Location");
-        UUID trialId = UUID.fromString(trialLoc.substring(trialLoc.lastIndexOf('/') + 1));
+            .when().post("/trials").then().statusCode(201).extract().body().jsonPath().getString("id");
+        UUID trialId = UUID.fromString(trialLoc);
 
         String siteLoc = given()
             .contentType("application/json")
             .body("{\"investigatorId\":\"pi-iso\"}")
-            .when().post("/trials/{id}/sites", trialId).then().statusCode(201).extract().header("Location");
-        UUID siteId = UUID.fromString(siteLoc.substring(siteLoc.lastIndexOf('/') + 1));
+            .when().post("/trials/{id}/sites", trialId).then().statusCode(201).extract().body().jsonPath().getString("id");
+        UUID siteId = UUID.fromString(siteLoc);
 
         principal.setTenancyId("other-tenant");
         given().when().get("/trials/{t}/sites/{s}", trialId, siteId).then().statusCode(404);
@@ -119,8 +119,8 @@ class SiteResourceTest {
         String trialLoc = given()
             .contentType("application/json")
             .body("{\"protocolId\":\"ISO-S-002\",\"phase\":\"PHASE_I\",\"sponsor\":\"T\",\"targetEnrollment\":5}")
-            .when().post("/trials").then().statusCode(201).extract().header("Location");
-        UUID trialId = UUID.fromString(trialLoc.substring(trialLoc.lastIndexOf('/') + 1));
+            .when().post("/trials").then().statusCode(201).extract().body().jsonPath().getString("id");
+        UUID trialId = UUID.fromString(trialLoc);
 
         principal.setTenancyId("other-tenant");
         given()
@@ -135,14 +135,14 @@ class SiteResourceTest {
         String trialLoc = given()
             .contentType("application/json")
             .body("{\"protocolId\":\"ISO-S-004\",\"phase\":\"PHASE_I\",\"sponsor\":\"T\",\"targetEnrollment\":5}")
-            .when().post("/trials").then().statusCode(201).extract().header("Location");
-        UUID trialId = UUID.fromString(trialLoc.substring(trialLoc.lastIndexOf('/') + 1));
+            .when().post("/trials").then().statusCode(201).extract().body().jsonPath().getString("id");
+        UUID trialId = UUID.fromString(trialLoc);
 
         String siteLoc = given()
             .contentType("application/json")
             .body("{\"investigatorId\":\"pi-iso\"}")
-            .when().post("/trials/{id}/sites", trialId).then().statusCode(201).extract().header("Location");
-        UUID siteId = UUID.fromString(siteLoc.substring(siteLoc.lastIndexOf('/') + 1));
+            .when().post("/trials/{id}/sites", trialId).then().statusCode(201).extract().body().jsonPath().getString("id");
+        UUID siteId = UUID.fromString(siteLoc);
 
         principal.setTenancyId("other-tenant");
         principal.setCrossTenantAdmin(true);
@@ -154,8 +154,8 @@ class SiteResourceTest {
         String trialLoc = given()
             .contentType("application/json")
             .body("{\"protocolId\":\"ISO-S-003\",\"phase\":\"PHASE_I\",\"sponsor\":\"T\",\"targetEnrollment\":5}")
-            .when().post("/trials").then().statusCode(201).extract().header("Location");
-        UUID trialId = UUID.fromString(trialLoc.substring(trialLoc.lastIndexOf('/') + 1));
+            .when().post("/trials").then().statusCode(201).extract().body().jsonPath().getString("id");
+        UUID trialId = UUID.fromString(trialLoc);
 
         // cross-tenant admin adds a site to a different tenant's trial
         principal.setTenancyId("admin-tenant");
@@ -163,8 +163,8 @@ class SiteResourceTest {
         String siteLoc = given()
             .contentType("application/json")
             .body("{\"investigatorId\":\"pi-iso\"}")
-            .when().post("/trials/{id}/sites", trialId).then().statusCode(201).extract().header("Location");
-        UUID siteId = UUID.fromString(siteLoc.substring(siteLoc.lastIndexOf('/') + 1));
+            .when().post("/trials/{id}/sites", trialId).then().statusCode(201).extract().body().jsonPath().getString("id");
+        UUID siteId = UUID.fromString(siteLoc);
 
         // default tenant can find the site (site.tenantId = trial.tenantId = default tenant)
         principal.reset();
@@ -178,7 +178,7 @@ class SiteResourceTest {
     @Test
     void post_site_with_target_enrollment_persists_value() {
         String trialLocation = createTrial();
-        UUID trialId = UUID.fromString(trialLocation.substring(trialLocation.lastIndexOf('/') + 1));
+        UUID trialId = UUID.fromString(trialLocation);
 
         String siteLocation =
             given()
@@ -190,7 +190,7 @@ class SiteResourceTest {
                 .post("/trials/{id}/sites", trialId)
             .then()
                 .statusCode(201)
-                .extract().header("Location");
+                .extract().body().jsonPath().getString("id");
 
         given()
         .when()

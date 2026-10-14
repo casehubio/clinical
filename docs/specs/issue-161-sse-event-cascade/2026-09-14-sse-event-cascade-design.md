@@ -482,5 +482,5 @@ Event delivery has three layers of defense:
 - `blocks-timeline/src/strategies/event-chronology.ts` — CaseHubEventType, eventChronologyStrategy, category colors
 - `blocks-ui-core/src/types/orchestration.ts` — OrchestrationAuditEvent types
 - `AdverseEventService.java` — AE reporting with after-commit CDI event firing
-- `ClinicalScenarioActions.java` — scenario actions for demo cascade triggering
+- `ClinicalPlaybookActions.java` — scenario actions for demo cascade triggering
 - Issue casehubio/clinical#160 — live LLM agent execution (prerequisite, closed)

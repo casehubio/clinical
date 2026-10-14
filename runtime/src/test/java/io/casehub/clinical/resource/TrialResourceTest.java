@@ -28,8 +28,8 @@ class TrialResourceTest {
         String location = given()
             .contentType("application/json")
             .body("{\"protocolId\":\"ISO-T-001\",\"phase\":\"PHASE_I\",\"sponsor\":\"T\",\"targetEnrollment\":5}")
-            .when().post("/trials").then().statusCode(201).extract().header("Location");
-        UUID id = UUID.fromString(location.substring(location.lastIndexOf('/') + 1));
+            .when().post("/trials").then().statusCode(201).extract().body().jsonPath().getString("id");
+        UUID id = UUID.fromString(location);
 
         principal.setTenancyId("other-tenant");
         given().when().get("/trials/{id}", id).then().statusCode(404);
@@ -40,8 +40,8 @@ class TrialResourceTest {
         String location = given()
             .contentType("application/json")
             .body("{\"protocolId\":\"ISO-T-002\",\"phase\":\"PHASE_I\",\"sponsor\":\"T\",\"targetEnrollment\":5}")
-            .when().post("/trials").then().statusCode(201).extract().header("Location");
-        UUID id = UUID.fromString(location.substring(location.lastIndexOf('/') + 1));
+            .when().post("/trials").then().statusCode(201).extract().body().jsonPath().getString("id");
+        UUID id = UUID.fromString(location);
 
         principal.setTenancyId("other-tenant");
         given()
@@ -56,8 +56,8 @@ class TrialResourceTest {
         String location = given()
             .contentType("application/json")
             .body("{\"protocolId\":\"ISO-T-003\",\"phase\":\"PHASE_I\",\"sponsor\":\"T\",\"targetEnrollment\":5}")
-            .when().post("/trials").then().statusCode(201).extract().header("Location");
-        UUID id = UUID.fromString(location.substring(location.lastIndexOf('/') + 1));
+            .when().post("/trials").then().statusCode(201).extract().body().jsonPath().getString("id");
+        UUID id = UUID.fromString(location);
 
         principal.setTenancyId("other-tenant");
         principal.setCrossTenantAdmin(true);
@@ -80,7 +80,7 @@ class TrialResourceTest {
             .post("/trials")
         .then()
             .statusCode(201)
-            .header("Location", containsString("/trials/"));
+            .body("id", notNullValue());
     }
 
     @Test
@@ -100,7 +100,7 @@ class TrialResourceTest {
                 .post("/trials")
             .then()
                 .statusCode(201)
-                .extract().header("Location");
+                .extract().body().jsonPath().getString("id");
 
         given()
         .when()
@@ -168,7 +168,7 @@ class TrialResourceTest {
                 """)
             .when().post("/trials")
             .then().statusCode(201)
-            .extract().header("Location");
+            .extract().body().jsonPath().getString("id");
 
         given()
             .contentType("application/json")
@@ -199,7 +199,7 @@ class TrialResourceTest {
                 """)
             .when().post("/trials")
             .then().statusCode(201)
-            .extract().header("Location");
+            .extract().body().jsonPath().getString("id");
 
         given()
             .contentType("application/json")
@@ -239,7 +239,7 @@ class TrialResourceTest {
                 """)
             .when().post("/trials")
             .then().statusCode(201)
-            .extract().header("Location");
+            .extract().body().jsonPath().getString("id");
 
         given()
             .contentType("application/json")
@@ -259,7 +259,7 @@ class TrialResourceTest {
                 """)
             .when().post("/trials")
             .then().statusCode(201)
-            .extract().header("Location");
+            .extract().body().jsonPath().getString("id");
 
         given()
             .contentType("application/json")
@@ -278,7 +278,7 @@ class TrialResourceTest {
                 """)
             .when().post("/trials")
             .then().statusCode(201)
-            .extract().header("Location");
+            .extract().body().jsonPath().getString("id");
 
         given()
             .contentType("application/json")
@@ -307,9 +307,9 @@ class TrialResourceTest {
             .body(body)
             .when().post("/trials")
             .then().statusCode(201)
-            .extract().header("Location");
+            .extract().body().jsonPath().getString("id");
 
-        String id = location.substring(location.lastIndexOf('/') + 1);
+        String id = location;
         given()
             .when().get("/trials/" + id)
             .then().statusCode(200)
