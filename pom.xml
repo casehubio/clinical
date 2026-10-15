@@ -6,7 +6,7 @@
 
   <groupId>io.casehub</groupId>
   <artifactId>casehub-clinical-parent</artifactId>
-  <version>0.2-SNAPSHOT</version>
+  <version>0.3</version>
   <packaging>pom</packaging>
 
   <name>CaseHub Clinical :: Parent</name>
@@ -22,7 +22,7 @@
     <maven.compiler.release>${java.version}</maven.compiler.release>
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
     <version.quarkus.platform>3.32.2</version.quarkus.platform>
-    <version.io.casehub>0.2-SNAPSHOT</version.io.casehub>
+    <version.io.casehub>0.3</version.io.casehub>
   </properties>
 
   <dependencyManagement>
