@@ -13,6 +13,7 @@ import jakarta.transaction.Transactional;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
+import io.casehub.platform.testing.FixedCurrentPrincipal;
 import java.time.Instant;
 import java.util.UUID;
 
@@ -24,6 +25,7 @@ import static io.restassured.RestAssured.given;
 class EscalationPlanResourceTest {
     @jakarta.inject.Inject
     jakarta.persistence.EntityManager em;
+    @jakarta.inject.Inject FixedCurrentPrincipal principal;
 
 
     private UUID aeId;
@@ -31,26 +33,27 @@ class EscalationPlanResourceTest {
     @BeforeEach
     @Transactional
     void setup() {
+        String tenantId = principal.tenancyId();
         ClinicalTrial trial = new ClinicalTrial();
         trial.id = UUID.randomUUID();
         trial.protocolId = "PROTO-001";
         trial.phase = TrialPhase.PHASE_III;
         trial.sponsor = "Sponsor";
-        trial.tenantId = "test-tenant";
+        trial.tenantId = tenantId;
         em.persist(trial);
 
         TrialSite site = new TrialSite();
         site.id = UUID.randomUUID();
         site.trialId = trial.id;
         site.investigatorId = "pi-1";
-        site.tenantId = "test-tenant";
+        site.tenantId = tenantId;
         em.persist(site);
 
         PatientEnrollment enrollment = new PatientEnrollment();
         enrollment.id = UUID.randomUUID();
         enrollment.siteId = site.id;
         enrollment.patientId = "P001";
-        enrollment.tenantId = "test-tenant";
+        enrollment.tenantId = tenantId;
         em.persist(enrollment);
 
         AdverseEvent ae = new AdverseEvent();
@@ -60,7 +63,7 @@ class EscalationPlanResourceTest {
         ae.eventType = "hepatotoxicity";
         ae.occurredAt = Instant.now();
         ae.reportedAt = Instant.now();
-        ae.tenantId = "test-tenant";
+        ae.tenantId = tenantId;
         em.persist(ae);
         aeId = ae.id;
     }

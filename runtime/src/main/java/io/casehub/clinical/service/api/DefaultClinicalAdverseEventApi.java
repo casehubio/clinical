@@ -100,7 +100,7 @@ public class DefaultClinicalAdverseEventApi implements ClinicalAdverseEventApi {
         TrialSite site = em.createNamedQuery("TrialSite.findByIdAndTenantId", TrialSite.class).setParameter("id", siteId).setParameter("tenantId", tenancyId).getResultStream().findFirst().orElse(null);
         if (site == null || !site.trialId.equals(trialId)) return List.of();
         AdverseEvent ae = em.createNamedQuery("AdverseEvent.findByIdAndTenantId", AdverseEvent.class).setParameter("id", aeId).setParameter("tenantId", tenancyId).getResultStream().findFirst().orElse(null);
-        if (ae == null || !ae.enrollmentId.equals(enrollmentId)) return List.of();
+        if (ae == null || !ae.enrollmentId.equals(enrollmentId)) throw new jakarta.ws.rs.NotFoundException();
 
         return em.createNamedQuery("AeGradeChange.findByAdverseEventId", AeGradeChange.class).setParameter("aeId", aeId).getResultList().stream()
                 .map(gc -> new GradeHistoryEntry(gc.id,

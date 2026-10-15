@@ -113,15 +113,19 @@ class ClinicalCaseDefinitionEquivalenceTest {
             .isEqualTo(yamlBinding.target().getClass());
         assertThat(((ContextChangeTrigger) dslBinding.getOn()).getFilter())
             .isEqualTo(((ContextChangeTrigger) yamlBinding.getOn()).getFilter());
-        var dslHT = (JudgmentTarget) dslBinding.target();
-        var yamlHT = (JudgmentTarget) yamlBinding.target();
-        assertThat(dslHT.title()).isEqualTo(yamlHT.title());
-        assertThat(dslHT.expiresIn()).isEqualTo(yamlHT.expiresIn());
-        var dslRouting = (HumanRoutingConfig) dslHT.routingConfig();
-        var yamlRouting = (HumanRoutingConfig) yamlHT.routingConfig();
-        verifyCandidateSetSpec(dslRouting.candidateGroups(), yamlRouting.candidateGroups(), dslBinding.getName());
-        assertThat(dslHT.inputMapping()).isEqualTo(yamlHT.inputMapping());
-        assertThat(dslHT.outputMapping()).isEqualTo(yamlHT.outputMapping());
+        if (dslBinding.target() instanceof JudgmentTarget dslHT) {
+            var yamlHT = (JudgmentTarget) yamlBinding.target();
+            assertThat(dslHT.title()).isEqualTo(yamlHT.title());
+            assertThat(dslHT.expiresIn()).isEqualTo(yamlHT.expiresIn());
+            var dslRouting = (HumanRoutingConfig) dslHT.routingConfig();
+            var yamlRouting = (HumanRoutingConfig) yamlHT.routingConfig();
+            verifyCandidateSetSpec(dslRouting.candidateGroups(), yamlRouting.candidateGroups(), dslBinding.getName());
+            assertThat(dslHT.inputMapping()).isEqualTo(yamlHT.inputMapping());
+            assertThat(dslHT.outputMapping()).isEqualTo(yamlHT.outputMapping());
+        } else if (dslBinding.target() instanceof io.casehub.api.model.CapabilityTarget dslCap) {
+            var yamlCap = (io.casehub.api.model.CapabilityTarget) yamlBinding.target();
+            assertThat(dslCap.capability().name()).isEqualTo(yamlCap.capability().name());
+        }
     }
 
     private static void verifyCandidateSetSpec(CandidateSetSpec actual, CandidateSetSpec expected, String bindingName) {

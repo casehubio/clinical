@@ -7,6 +7,7 @@ import io.casehub.api.model.HumanRoutingConfig;
 import io.casehub.api.model.JudgmentTarget;
 import io.casehub.api.spi.routing.CandidateSetSpec;
 import io.casehub.api.spi.routing.StaticSetStrategy;
+import io.casehub.worker.api.Capability;
 import java.time.Duration;
 import java.util.Set;
 
@@ -16,22 +17,34 @@ public final class TrialCoordinationCaseDefinition {
     private TrialCoordinationCaseDefinition() {}
 
     public static CaseDefinition build() {
+        var trialSupervision = Capability.of(
+            "trial-supervision",
+            "{ trialId: .trialId, trialPhase: .trialPhase, totalSites: .totalSites, safetyMetrics: .safetyMetrics }",
+            ".");
+
         return CaseDefinition.builder()
             .namespace("clinical")
             .name("trial-coordination")
             .version("1.0.0")
             .title("Clinical Trial Coordination — cross-site safety monitoring")
+            .capabilities(trialSupervision)
             .bindings(
                 Binding.builder()
                     .name("dsmb-rollup")
                     .on(new ContextChangeTrigger("[.grade4Active // {} | to_entries[] | select(.value == true)] | length >= 2"))
                     .judgment(JudgmentTarget.builder()
+                        .prompt("DSMB review — simultaneous Grade 4+ events at multiple sites")
                         .title("DSMB review — simultaneous Grade 4+ events at multiple sites")
                         .expiresIn(Duration.ofHours(48))
                         .human(new HumanRoutingConfig(null, new io.casehub.api.spi.routing.CandidateSetSpec.Inline(StaticSetStrategy.of("dsmb")), null, null, null))
                         .inputMapping("{ trialId: .trialId, activeSites: [.grade4Active // {} | to_entries[] | select(.value == true) | .key] }")
                         .outputMapping("{ dsmbReview: . }")
                         .build())
+                    .build(),
+                Binding.builder()
+                    .name("trial-supervision-check")
+                    .on(new ContextChangeTrigger(".safetyMetrics != null"))
+                    .capability(trialSupervision)
                     .build()
             )
             .build();

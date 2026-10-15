@@ -154,5 +154,6 @@ class SusarAgentAttestationWriterTest {
         ae.susarOversightStatus = SusarOversightStatus.REQUESTED;
         ae.susarOversightCaseId = susarOversightCaseId;
         em.persist(ae);
+        em.flush();
     }
 }

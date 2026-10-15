@@ -71,6 +71,13 @@ public class LlmSusarCriteriaEvaluator implements SusarEvaluatorFunction {
             return fallbackResult(null);
         }
 
+        if (em != null) {
+            AdverseEvent ae = em.find(AdverseEvent.class, aeId);
+            if (ae != null && ae.grade != null && ae.grade.ordinal() < io.casehub.clinical.api.model.CtcaeGrade.GRADE_4.ordinal()) {
+                return WorkerResult.of(Map.of("susarRequired", false, "susarAssessmentComplete", true));
+            }
+        }
+
         String userPrompt = buildUserPrompt(aeId);
 
         var request = new ClinicalAgentRequest<>(

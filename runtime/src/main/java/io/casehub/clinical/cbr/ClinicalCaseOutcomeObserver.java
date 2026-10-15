@@ -136,6 +136,15 @@ public class ClinicalCaseOutcomeObserver implements CaseOutcomeObserver {
         boolean dsmbEscalated = "true".equals(String.valueOf(snapshot.get("dsmbEscalation")));
 
         double agentTrustScore = 0.5;
+        List<io.casehub.engine.common.internal.model.PlanItemRecord> planItems =
+                planItemStore.findByCaseId(event.caseId(), ae.tenantId);
+        String actorId = planItems.stream()
+                .filter(pi -> pi.executorName() != null)
+                .map(io.casehub.engine.common.internal.model.PlanItemRecord::executorName)
+                .findFirst().orElse(null);
+        if (actorId != null) {
+            agentTrustScore = entityResolver.findAgentTrustScore(actorId);
+        }
 
         var ctx = new AeCbrContext(ae, enrollment, trial, safetyReviewOutcome,
                                    dsmbEscalated, priorAeCount, siteEnrollmentCount, siteTargetEnrollment, agentTrustScore);
