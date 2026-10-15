@@ -6,12 +6,15 @@ import io.casehub.clinical.api.view.DeviationView;
 import io.casehub.clinical.api.view.ReportDeviationRequest;
 import io.casehub.clinical.entity.ProtocolDeviation;
 import io.casehub.clinical.entity.TrialSite;
+import io.casehub.clinical.entity.TenantEntityLookup;
+import io.casehub.platform.api.identity.CurrentPrincipal;
 import io.casehub.clinical.service.ProtocolDeviationService;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 import jakarta.transaction.Transactional;
 import jakarta.ws.rs.BadRequestException;
 import jakarta.ws.rs.NotFoundException;
+import jakarta.ws.rs.BadRequestException;
 
 import java.util.UUID;
 
@@ -19,6 +22,7 @@ import java.util.UUID;
 public class DefaultClinicalDeviationApi implements ClinicalDeviationApi {
 
     @Inject ProtocolDeviationService deviationService;
+    @Inject CurrentPrincipal principal;
     @Inject
             jakarta.persistence.EntityManager em;
     @Inject io.casehub.platform.api.identity.CurrentPrincipal currentPrincipal;
@@ -37,6 +41,10 @@ public class DefaultClinicalDeviationApi implements ClinicalDeviationApi {
         }
         if (site == null || !site.trialId.equals(trialId))
             throw new NotFoundException("Site not found");
+        if (req == null || req.deviationType() == null || req.deviationType().isBlank()
+                || req.severity() == null) {
+            throw new BadRequestException("Deviation type and severity are required");
+        }
 
         ProtocolDeviation deviation = new ProtocolDeviation();
         deviation.id = UUID.randomUUID();

@@ -13,6 +13,10 @@ dist/
 
 # IDE
 META-INF/
+!/runtime/src/main/resources/META-INF/
+/runtime/src/main/resources/META-INF/*
+!/runtime/src/main/resources/META-INF/playbooks/
+!/runtime/src/main/resources/META-INF/playbooks/*.playbook.yaml
 
 .idea/
 .claude

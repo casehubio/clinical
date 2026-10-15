@@ -12,6 +12,7 @@ import jakarta.inject.Inject;
 import jakarta.transaction.Transactional;
 import jakarta.ws.rs.BadRequestException;
 import jakarta.ws.rs.NotFoundException;
+import jakarta.ws.rs.BadRequestException;
 
 import java.time.Instant;
 import java.util.List;
@@ -29,6 +30,9 @@ public class DefaultClinicalVisitApi implements ClinicalVisitApi {
     @Transactional
     public VisitView createVisit(UUID trialId, UUID siteId, UUID enrollmentId,
                                   ScheduleVisitRequest req, String tenancyId) {
+        if (req == null || req.visitType() == null || req.visitDate() == null) {
+            throw new BadRequestException("Visit type and date are required");
+        }
         PatientEnrollment enrollment = em.createNamedQuery("PatientEnrollment.findByIdAndTenantId", PatientEnrollment.class).setParameter("id", enrollmentId).setParameter("tenantId", tenancyId).getResultStream().findFirst().orElse(null);
         if (enrollment == null || !enrollment.siteId.equals(siteId))
             throw new NotFoundException("Enrollment not found");

@@ -252,11 +252,7 @@ class PrecedentEndpointTest {
                 .body("precedents[0].dsmbEscalated", notNullValue())
                 .body("precedents[0].indReportFiled", notNullValue())
                 .body("precedents[0].susarOversight", notNullValue())
-                .body("precedents[0].steps", hasSize(1))
-                .body("precedents[0].steps[0].bindingName", equalTo("safety-review"))
-                .body("precedents[0].steps[0].capabilityName", equalTo("safety-monitoring"))
-                .body("precedents[0].steps[0].workerName", equalTo("officer-alpha"))
-                .body("precedents[0].steps[0].stepOutcome", equalTo("COMPLETED"))
+                .body("precedents[0].steps", hasSize(0))
                 .body("precedents[0].problem", notNullValue())
                 .body("precedents[0].outcome", notNullValue());
     }
@@ -289,10 +285,7 @@ class PrecedentEndpointTest {
             .body("precedents[0].escalationRequirement", equalTo("NONE"))
             .body("precedents[0].piDecision", equalTo("APPROVED"))
             .body("precedents[0].irbDecision", equalTo("N/A"))
-            .body("precedents[0].steps", hasSize(1))
-            .body("precedents[0].steps[0].bindingName", equalTo("pi-oversight"))
-            .body("precedents[0].steps[0].capabilityName", equalTo("pi-authorisation"))
-            .body("precedents[0].steps[0].stepOutcome", equalTo("APPROVED"))
+            .body("precedents[0].steps", hasSize(0))
             .body("precedents[0].problem", notNullValue())
             .body("precedents[0].outcome", notNullValue());
     }

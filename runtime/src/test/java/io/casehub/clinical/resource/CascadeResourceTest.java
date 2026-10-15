@@ -1,6 +1,7 @@
 package io.casehub.clinical.resource;
 
 import io.casehub.clinical.api.model.ConsentStatus;
+import io.casehub.clinical.api.ClinicalGroups;
 import io.casehub.clinical.api.model.CtcaeGrade;
 import io.casehub.clinical.api.model.EnrollmentStatus;
 import io.casehub.clinical.api.model.EventActuality;

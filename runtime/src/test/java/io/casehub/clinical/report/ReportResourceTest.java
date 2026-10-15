@@ -1,8 +1,15 @@
 package io.casehub.clinical.report;
 
 import io.casehub.clinical.api.ClinicalGroups;
+import io.casehub.clinical.api.model.TrialPhase;
+import io.casehub.clinical.entity.ClinicalTrial;
+import io.casehub.platform.api.identity.CurrentPrincipal;
 import io.quarkus.test.junit.QuarkusTest;
 import io.quarkus.test.security.TestSecurity;
+import jakarta.inject.Inject;
+import jakarta.persistence.EntityManager;
+import jakarta.transaction.Transactional;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 import java.util.UUID;
@@ -15,6 +22,22 @@ import static org.hamcrest.Matchers.*;
 class ReportResourceTest {
 
     private static final UUID TRIAL_ID = UUID.fromString("316e3846-4ea7-3b18-a6f7-e01ce6582a69");
+
+    @Inject EntityManager em;
+    @Inject CurrentPrincipal principal;
+
+    @BeforeEach
+    @Transactional
+    void createReportTrial() {
+        if (em.find(ClinicalTrial.class, TRIAL_ID) != null) return;
+        ClinicalTrial trial = new ClinicalTrial();
+        trial.id = TRIAL_ID;
+        trial.protocolId = "REPORT-TRIAL";
+        trial.phase = TrialPhase.PHASE_III;
+        trial.sponsor = "Test sponsor";
+        trial.tenantId = principal.tenancyId();
+        em.persist(trial);
+    }
 
     @Test
     void indSafetyReturnsJson() {

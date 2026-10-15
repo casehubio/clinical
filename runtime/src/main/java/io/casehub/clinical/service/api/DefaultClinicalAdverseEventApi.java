@@ -18,6 +18,7 @@ import jakarta.persistence.EntityManager;
 import jakarta.transaction.Transactional;
 import jakarta.ws.rs.BadRequestException;
 import jakarta.ws.rs.NotFoundException;
+import jakarta.ws.rs.BadRequestException;
 
 import java.util.List;
 import java.util.UUID;
@@ -41,6 +42,9 @@ public class DefaultClinicalAdverseEventApi implements ClinicalAdverseEventApi {
     @Override
     public AdverseEventView reportAdverseEvent(UUID trialId, UUID siteId, UUID enrollmentId,
                                                 ReportAdverseEventRequest req, String tenancyId) {
+        if (req == null || req.grade() == null || req.occurredAt() == null) {
+            throw new BadRequestException("Grade and occurrence time are required");
+        }
         PatientEnrollment enrollment = em.createNamedQuery("PatientEnrollment.findByIdAndTenantId", PatientEnrollment.class).setParameter("id", enrollmentId).setParameter("tenantId", tenancyId).getResultStream().findFirst().orElse(null);
         if (enrollment == null || !enrollment.siteId.equals(siteId)) throw new NotFoundException("Enrollment not found");
         TrialSite site = em.createNamedQuery("TrialSite.findByIdAndTenantId", TrialSite.class).setParameter("id", siteId).setParameter("tenantId", tenancyId).getResultStream().findFirst().orElse(null);
@@ -110,7 +114,7 @@ public class DefaultClinicalAdverseEventApi implements ClinicalAdverseEventApi {
     }
 
     static AdverseEventView toView(AdverseEvent ae) {
-        return new AdverseEventView(ae.id, ae.enrollmentId, ae.grade, ae.actuality, ae.outcome,
+        return new AdverseEventView(ae.id, ae.enrollmentId, ae.workItemId, ae.grade, ae.actuality, ae.outcome,
                 ae.eventType, ae.occurredAt, ae.reportedAt, ae.slaDeadline, ae.escalationStatus,
                 ae.unexpected, ae.suspected, ae.susarOversightStatus, ae.regulatorySubmissionStatus);
     }

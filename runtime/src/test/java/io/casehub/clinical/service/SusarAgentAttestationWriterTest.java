@@ -15,38 +15,37 @@ import io.casehub.ledger.api.spi.LedgerEntryRepository;
 import io.casehub.ledger.model.WorkerDecisionEntry;
 import io.casehub.ledger.repository.CaseLedgerEntryRepository;
 import io.casehub.platform.api.identity.ActorType;
-import io.quarkus.test.InjectMock;
-import io.quarkus.test.junit.QuarkusTest;
-import jakarta.inject.Inject;
-import jakarta.transaction.Transactional;
+import jakarta.persistence.EntityManager;
+import jakarta.persistence.TypedQuery;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.mockito.Mockito;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.InjectMocks;
+import org.mockito.Mock;
+import org.mockito.junit.jupiter.MockitoExtension;
 
-import java.lang.reflect.Field;
 import java.time.Clock;
 import java.time.Instant;
 import java.util.List;
 import java.util.UUID;
+import java.util.stream.Stream;
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.never;
-import static org.mockito.Mockito.reset;
+import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-@QuarkusTest
+@ExtendWith(MockitoExtension.class)
 class SusarAgentAttestationWriterTest {
-    @jakarta.inject.Inject
-    jakarta.persistence.EntityManager em;
-
-
-    @Inject SusarAgentAttestationWriter writer;
-    CaseLedgerEntryRepository caseLedgerEntryRepository;
-    @InjectMock LedgerEntryRepository ledgerEntryRepository;
-    @InjectMock Clock clock;
+    @Mock EntityManager em;
+    @Mock TypedQuery<AdverseEvent> query;
+    @InjectMocks SusarAgentAttestationWriter writer;
+    @Mock CaseLedgerEntryRepository caseLedgerEntryRepository;
+    @Mock LedgerEntryRepository ledgerEntryRepository;
+    @Mock Clock clock;
 
     private static final Instant FIXED = Instant.parse("2026-06-16T12:00:00Z");
 
@@ -54,22 +53,22 @@ class SusarAgentAttestationWriterTest {
     private UUID workerEntryId;
 
     @BeforeEach
-    void setUp() throws Exception {
-        caseLedgerEntryRepository = Mockito.mock(CaseLedgerEntryRepository.class);
-        injectField(writer, "caseLedgerEntryRepository", caseLedgerEntryRepository);
-        reset(ledgerEntryRepository, clock);
-        when(clock.instant()).thenReturn(FIXED);
+    void setUp() {
+        when(em.createNamedQuery("AdverseEvent.findBySusarOversightCaseId", AdverseEvent.class))
+                .thenReturn(query);
+        when(query.setParameter(eq("caseId"), any(UUID.class))).thenReturn(query);
+        lenient().when(query.getResultStream()).thenReturn(Stream.empty());
+        lenient().when(clock.instant()).thenReturn(FIXED);
         susarCaseId = UUID.randomUUID();
         workerEntryId = UUID.randomUUID();
         WorkerDecisionEntry entry = new WorkerDecisionEntry();
         entry.id = workerEntryId;
         entry.capabilityTag = ClinicalCapabilities.SAFETY_MONITORING;
-        when(caseLedgerEntryRepository.findWorkerDecisionsByCaseId(susarCaseId))
+        lenient().when(caseLedgerEntryRepository.findWorkerDecisionsByCaseId(susarCaseId))
                 .thenReturn(List.of(entry));
     }
 
     @Test
-    @Transactional
     void approved_gate_writes_endorsed_with_human_attestor() {
         persistAe(susarCaseId);
         writer.onApproved(new ActionGateApprovedEvent(susarCaseId, "default", 1L, null, "dr-smith", null));
@@ -88,7 +87,6 @@ class SusarAgentAttestationWriterTest {
     }
 
     @Test
-    @Transactional
     void rejected_gate_writes_challenged_with_human_attestor() {
         persistAe(susarCaseId);
         writer.onRejected(new ActionGateRejectedEvent(susarCaseId, "default", 1L, null, "dr-jones"));
@@ -101,7 +99,6 @@ class SusarAgentAttestationWriterTest {
     }
 
     @Test
-    @Transactional
     void expired_gate_writes_challenged_with_system_attestor() {
         persistAe(susarCaseId);
         writer.onExpired(new ActionGateExpiredEvent(susarCaseId, "default", 1L));
@@ -113,14 +110,12 @@ class SusarAgentAttestationWriterTest {
     }
 
     @Test
-    @Transactional
     void non_susar_case_id_silently_skips_attestation() {
         writer.onApproved(new ActionGateApprovedEvent(UUID.randomUUID(), "default", 1L, null, "dr-smith", null));
         verify(ledgerEntryRepository, never()).saveAttestation(any(), any());
     }
 
     @Test
-    @Transactional
     void missing_worker_decision_entry_skips_attestation() {
         UUID caseId = UUID.randomUUID();
         persistAe(caseId);
@@ -130,15 +125,6 @@ class SusarAgentAttestationWriterTest {
         verify(ledgerEntryRepository, never()).saveAttestation(any(), any());
     }
 
-    private static void injectField(Object target, String fieldName, Object value) throws Exception {
-        Object actual = target;
-        try { Field d = target.getClass().getDeclaredField("delegate"); d.setAccessible(true); actual = d.get(target); } catch (NoSuchFieldException ignored) {}
-        Field f = SusarAgentAttestationWriter.class.getDeclaredField(fieldName);
-        f.setAccessible(true);
-        f.set(actual, value);
-    }
-
-    @Transactional
     void persistAe(UUID susarOversightCaseId) {
         AdverseEvent ae = new AdverseEvent();
         ae.id = UUID.randomUUID();
@@ -153,7 +139,6 @@ class SusarAgentAttestationWriterTest {
         ae.tenantId = "test-tenant";
         ae.susarOversightStatus = SusarOversightStatus.REQUESTED;
         ae.susarOversightCaseId = susarOversightCaseId;
-        em.persist(ae);
-        em.flush();
+        when(query.getResultStream()).thenReturn(Stream.of(ae));
     }
 }

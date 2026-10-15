@@ -4,6 +4,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import io.casehub.api.model.AllOfGoalExpression;
 import io.casehub.api.model.Binding;
+import io.casehub.api.model.CapabilityTarget;
 import io.casehub.api.model.ContextChangeTrigger;
 import io.casehub.api.model.GoalBasedCompletion;
 import io.casehub.api.model.HumanRoutingConfig;

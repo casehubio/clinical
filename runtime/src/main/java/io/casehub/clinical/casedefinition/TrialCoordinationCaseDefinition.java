@@ -35,6 +35,7 @@ public final class TrialCoordinationCaseDefinition {
                     .judgment(JudgmentTarget.builder()
                         .prompt("DSMB review — simultaneous Grade 4+ events at multiple sites")
                         .title("DSMB review — simultaneous Grade 4+ events at multiple sites")
+                        .prompt("DSMB review — simultaneous Grade 4+ events at multiple sites")
                         .expiresIn(Duration.ofHours(48))
                         .human(new HumanRoutingConfig(null, new io.casehub.api.spi.routing.CandidateSetSpec.Inline(StaticSetStrategy.of("dsmb")), null, null, null))
                         .inputMapping("{ trialId: .trialId, activeSites: [.grade4Active // {} | to_entries[] | select(.value == true) | .key] }")

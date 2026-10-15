@@ -10,6 +10,8 @@ import io.casehub.clinical.api.view.ScreenPatientRequest;
 import io.casehub.clinical.api.view.ScreenResponse;
 import io.casehub.clinical.entity.PatientEnrollment;
 import io.casehub.clinical.entity.TrialSite;
+import io.casehub.clinical.entity.TenantEntityLookup;
+import io.casehub.platform.api.identity.CurrentPrincipal;
 import io.casehub.clinical.service.EligibilityScreeningService;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
@@ -17,6 +19,7 @@ import jakarta.persistence.EntityManager;
 import jakarta.transaction.Transactional;
 import jakarta.ws.rs.BadRequestException;
 import jakarta.ws.rs.NotFoundException;
+import jakarta.ws.rs.BadRequestException;
 
 import java.util.List;
 import java.util.UUID;
@@ -25,6 +28,7 @@ import java.util.UUID;
 public class DefaultClinicalPatientApi implements ClinicalPatientApi {
 
     @Inject EligibilityScreeningService eligibilityScreeningService;
+    @Inject CurrentPrincipal principal;
     @Inject
             EntityManager               em;
     @Inject io.casehub.platform.api.identity.CurrentPrincipal currentPrincipal;
@@ -32,7 +36,7 @@ public class DefaultClinicalPatientApi implements ClinicalPatientApi {
 
     @Override
     public List<PatientEnrollmentView> listPatients(UUID trialId, UUID siteId, String tenancyId) {
-        TrialSite site = em.createNamedQuery("TrialSite.findByIdAndTenantId", TrialSite.class).setParameter("id", siteId).setParameter("tenantId", tenancyId).getResultStream().findFirst().orElse(null);
+        TrialSite site = TenantEntityLookup.findByIdForTenant(em, TrialSite.class, siteId, principal);
         if (site == null || !site.trialId.equals(trialId)) return List.of();
         List<PatientEnrollment> enrollments = em.createQuery("SELECT e FROM PatientEnrollment e WHERE e.siteId = :siteId AND e.tenantId = :tenantId", PatientEnrollment.class).setParameter("siteId", siteId).setParameter("tenantId", site.tenantId).getResultList();
         return enrollments.stream().map(DefaultClinicalPatientApi::toView).toList();
@@ -85,6 +89,9 @@ public class DefaultClinicalPatientApi implements ClinicalPatientApi {
     @Transactional
     public ScreenResponse screenPatient(UUID trialId, UUID siteId, UUID enrollmentId,
                                          ScreenPatientRequest req, String tenancyId) {
+        if (req == null || req.criteria() == null || req.criteria().isEmpty()) {
+            throw new BadRequestException("At least one screening criterion is required");
+        }
         TrialSite site = em.createNamedQuery("TrialSite.findByIdAndTenantId", TrialSite.class).setParameter("id", siteId).setParameter("tenantId", tenancyId).getResultStream().findFirst().orElse(null);
         if (site == null || !site.trialId.equals(trialId)) throw new NotFoundException("Site not found");
         PatientEnrollment enrollment = em.createNamedQuery("PatientEnrollment.findByIdAndTenantId", PatientEnrollment.class).setParameter("id", enrollmentId).setParameter("tenantId", tenancyId).getResultStream().findFirst().orElse(null);
@@ -102,6 +109,9 @@ public class DefaultClinicalPatientApi implements ClinicalPatientApi {
     @Transactional
     public ScreenResponse evaluateAndScreen(UUID trialId, UUID siteId, UUID enrollmentId,
                                              EvaluateScreenRequest req, String tenancyId) {
+        if (req == null || req.protocolCriteria() == null || req.protocolCriteria().isEmpty()) {
+            throw new BadRequestException("At least one protocol criterion is required");
+        }
         TrialSite site = em.createNamedQuery("TrialSite.findByIdAndTenantId", TrialSite.class).setParameter("id", siteId).setParameter("tenantId", tenancyId).getResultStream().findFirst().orElse(null);
         if (site == null || !site.trialId.equals(trialId)) throw new NotFoundException("Site not found");
         PatientEnrollment enrollment = em.createNamedQuery("PatientEnrollment.findByIdAndTenantId", PatientEnrollment.class).setParameter("id", enrollmentId).setParameter("tenantId", tenancyId).getResultStream().findFirst().orElse(null);

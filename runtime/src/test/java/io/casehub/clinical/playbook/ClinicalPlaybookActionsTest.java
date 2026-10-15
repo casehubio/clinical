@@ -1,10 +1,11 @@
-package io.casehub.clinical.scenario;
+package io.casehub.clinical.playbook;
 
 import io.casehub.clinical.api.ClinicalGroups;
 import io.casehub.clinical.entity.ClinicalTrial;
 import io.casehub.clinical.entity.PatientEnrollment;
 import io.casehub.clinical.entity.TrialSite;
 import io.casehub.pages.playbook.client.ActionContext;
+import io.casehub.pages.playbook.client.ActionRegistry;
 import io.casehub.platform.testing.FixedCurrentPrincipal;
 import io.quarkus.test.junit.QuarkusTest;
 import io.quarkus.test.security.TestSecurity;
@@ -14,6 +15,8 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 
 import java.util.Map;
+import java.util.List;
+import java.util.Set;
 import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -37,10 +40,17 @@ class ClinicalPlaybookActionsTest {
     }
 
     @Test
+    void discovers_playbook_actions_on_the_cdi_proxy() {
+        assertEquals(Set.of("createTrial", "activateTrial", "addSite", "enrollPatient",
+                "reportAdverseEvent", "reportDeviation", "verifyLedger"),
+                ActionRegistry.scan(List.of(actions)).actions());
+    }
+
+    @Test
     @Transactional
-    void createTrial_returns_trialId() {
-        var result = actions.createTrial(ctx(Map.of(
-                "protocolId", "SCENARIO-" + UUID.randomUUID(),
+    void createTrial_returns_trialId() throws Exception {
+        var result = ActionRegistry.scan(List.of(actions)).invoke("createTrial", ctx(Map.of(
+                "protocolId", "PLAYBOOK-" + UUID.randomUUID(),
                 "phase", "PHASE_III",
                 "sponsor", "Test Sponsor",
                 "targetEnrollment", 100)));

@@ -21,6 +21,7 @@ casehub-clinical/
       entity/          — Panache Active Record entities (10 entities)
       ledger/          — LedgerEntry subclasses (16 subclasses, io.casehub.clinical.ledger package)
       memory/          — structured memory: domains, context records, ClinicalMemoryService
+      playbook/        — ClinicalPlaybookActions: Pages @PlaybookAction handlers
       resource/        — REST resources (9 resources)
       routing/         — ClinicalActionRiskClassifier, ClinicalRoutingFeatureExtractor, ClinicalTrustRoutingPolicyProvider
       service/         — core services, listeners, ledger writers, SPI defaults (50+ classes)

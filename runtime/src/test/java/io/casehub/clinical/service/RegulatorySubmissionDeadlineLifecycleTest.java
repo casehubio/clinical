@@ -55,7 +55,7 @@ class RegulatorySubmissionDeadlineLifecycleTest {
 
     @Test
     void grade3_workItem_expiresAt_equals_reportedAt_plus_15_days() {
-        Instant reportedAt = Instant.parse("2026-07-01T10:00:00Z");
+        Instant reportedAt = Instant.now().truncatedTo(java.time.temporal.ChronoUnit.SECONDS);
         UUID aeId = persistAe(CtcaeGrade.GRADE_3, reportedAt);
         AdverseEventReportedEvent event = buildEvent(aeId, CtcaeGrade.GRADE_3, reportedAt);
 
@@ -66,7 +66,7 @@ class RegulatorySubmissionDeadlineLifecycleTest {
                 .untilAsserted(() -> assertThat(findAe(aeId).regulatorySubmissionCaseId).isNotNull());
         UUID caseId = findAe(aeId).regulatorySubmissionCaseId;
 
-        Instant expectedExpiry = Instant.parse("2026-07-16T10:00:00Z"); // reportedAt + 15 days
+        Instant expectedExpiry = reportedAt.plus(15, java.time.temporal.ChronoUnit.DAYS);
         await().atMost(10, SECONDS).pollInterval(100, MILLISECONDS).untilAsserted(() -> {
             var workItem = workItemQueries.scanAll().stream()
                     .filter(wi -> wi.candidateGroups() != null
@@ -85,7 +85,7 @@ class RegulatorySubmissionDeadlineLifecycleTest {
 
     @Test
     void grade4_workItem_expiresAt_equals_reportedAt_plus_7_days() {
-        Instant reportedAt = Instant.parse("2026-07-02T10:00:00Z");
+        Instant reportedAt = Instant.now().truncatedTo(java.time.temporal.ChronoUnit.SECONDS);
         UUID aeId = persistAe(CtcaeGrade.GRADE_4, reportedAt);
         AdverseEventReportedEvent event = buildEvent(aeId, CtcaeGrade.GRADE_4, reportedAt);
 
@@ -96,7 +96,7 @@ class RegulatorySubmissionDeadlineLifecycleTest {
                 .untilAsserted(() -> assertThat(findAe(aeId).regulatorySubmissionCaseId).isNotNull());
         UUID caseId = findAe(aeId).regulatorySubmissionCaseId;
 
-        Instant expectedExpiry = Instant.parse("2026-07-09T10:00:00Z"); // reportedAt + 7 days
+        Instant expectedExpiry = reportedAt.plus(7, java.time.temporal.ChronoUnit.DAYS);
         await().atMost(10, SECONDS).pollInterval(100, MILLISECONDS).untilAsserted(() -> {
             var workItem = workItemQueries.scanAll().stream()
                     .filter(wi -> wi.candidateGroups() != null
