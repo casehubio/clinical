@@ -97,7 +97,7 @@ class PatientResourceTest {
         .then()
             .statusCode(201).extract().body().jsonPath().getString("id");
 
-        given().when().get(patientLoc)
+        given().when().get("/trials/{t}/sites/{s}/patients/{e}", tid, sid, patientLoc)
         .then()
             .statusCode(200)
             .body("patientId", equalTo("PATIENT-BETA-002"))
@@ -164,7 +164,7 @@ class PatientResourceTest {
             .then().statusCode(201).extract().body().jsonPath().getString("id");
 
         principal.setTenancyId("other-tenant");
-        given().when().get(patientLoc).then().statusCode(404);
+        given().when().get("/trials/{t}/sites/{s}/patients/{e}", trialId, siteId, patientLoc).then().statusCode(404);
     }
 
     @Test
@@ -202,10 +202,10 @@ class PatientResourceTest {
             .then().statusCode(201).extract().body().jsonPath().getString("id");
 
         principal.reset();
-        given().when().get(patientLoc).then().statusCode(200);
+        given().when().get("/trials/{t}/sites/{s}/patients/{e}", trialId, siteId, patientLoc).then().statusCode(200);
 
         principal.setTenancyId("admin-tenant");
-        given().when().get(patientLoc).then().statusCode(404);
+        given().when().get("/trials/{t}/sites/{s}/patients/{e}", trialId, siteId, patientLoc).then().statusCode(404);
     }
 
     @Test
@@ -221,6 +221,6 @@ class PatientResourceTest {
 
         principal.setTenancyId("other-tenant");
         principal.setCrossTenantAdmin(true);
-        given().when().get(patientLoc).then().statusCode(200);
+        given().when().get("/trials/{t}/sites/{s}/patients/{e}", trialId, siteId, patientLoc).then().statusCode(200);
     }
 }

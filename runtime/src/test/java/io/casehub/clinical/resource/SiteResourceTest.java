@@ -66,7 +66,7 @@ class SiteResourceTest {
 
         given()
         .when()
-            .get(siteLocation)
+            .get("/trials/{t}/sites/{s}", trialId, siteLocation)
         .then()
             .statusCode(200)
             .body("investigatorId", equalTo("pi-bob-002"))
@@ -194,7 +194,7 @@ class SiteResourceTest {
 
         given()
         .when()
-            .get(siteLocation)
+            .get("/trials/{t}/sites/{s}", trialId, siteLocation)
         .then()
             .statusCode(200)
             .body("investigatorId", equalTo("pi-target-001"))

@@ -104,7 +104,7 @@ class TrialResourceTest {
 
         given()
         .when()
-            .get(location)
+            .get("/trials/" + location)
         .then()
             .statusCode(200)
             .body("protocolId", equalTo("ONCOL-002"))
@@ -176,11 +176,11 @@ class TrialResourceTest {
                 {"connectorId":"slack","destination":"https://hooks.slack.com/T999/B999/zzz"}
                 """)
         .when()
-            .patch(location + "/sponsor-config")
+            .patch("/trials/" + location + "/sponsor-config")
         .then()
             .statusCode(204);
 
-        given().when().get(location)
+        given().when().get("/trials/" + location)
             .then().statusCode(200)
             .body("sponsorNotificationConnectorId", equalTo("slack"))
             .body("sponsorNotificationDestination", equalTo("https://hooks.slack.com/T999/B999/zzz"));
@@ -207,11 +207,11 @@ class TrialResourceTest {
                 {"connectorId":null,"destination":null}
                 """)
         .when()
-            .patch(location + "/sponsor-config")
+            .patch("/trials/" + location + "/sponsor-config")
         .then()
             .statusCode(204);
 
-        given().when().get(location)
+        given().when().get("/trials/" + location)
             .then().statusCode(200)
             .body("sponsorNotificationConnectorId", nullValue())
             .body("sponsorNotificationDestination", nullValue());
@@ -245,7 +245,7 @@ class TrialResourceTest {
             .contentType("application/json")
             .body("{\"connectorId\":\"" + "x".repeat(65) + "\",\"destination\":\"https://example.com\"}")
         .when()
-            .patch(location + "/sponsor-config")
+            .patch("/trials/" + location + "/sponsor-config")
         .then()
             .statusCode(400);
     }
@@ -264,7 +264,7 @@ class TrialResourceTest {
         given()
             .contentType("application/json")
         .when()
-            .patch(location + "/sponsor-config")
+            .patch("/trials/" + location + "/sponsor-config")
         .then()
             .statusCode(400);
     }
@@ -284,7 +284,7 @@ class TrialResourceTest {
             .contentType("application/json")
             .body("{\"connectorId\":\"slack\",\"destination\":\"https://example.com/" + "x".repeat(2048) + "\"}")
         .when()
-            .patch(location + "/sponsor-config")
+            .patch("/trials/" + location + "/sponsor-config")
         .then()
             .statusCode(400);
     }
