@@ -55,7 +55,7 @@ class VisitResourceTest {
                 .body("{\"visitType\":\"BASELINE\",\"visitDate\":\"2026-08-15T09:00:00Z\",\"status\":\"SCHEDULED\"}")
                 .when().post(basePath()).then().statusCode(201).extract().body().jsonPath().getString("id");
 
-        given().when().get(loc).then().statusCode(200)
+        given().when().get(basePath() + "/" + loc).then().statusCode(200)
                 .body("visitType", equalTo("BASELINE"))
                 .body("status", equalTo("SCHEDULED"));
     }
@@ -80,7 +80,7 @@ class VisitResourceTest {
 
         given().contentType("application/json")
                 .body("{\"status\":\"COMPLETED\",\"notes\":\"All assessments done\"}")
-                .when().patch(loc).then().statusCode(200)
+                .when().patch(basePath() + "/" + loc).then().statusCode(200)
                 .body("status", equalTo("COMPLETED"))
                 .body("notes", equalTo("All assessments done"));
     }

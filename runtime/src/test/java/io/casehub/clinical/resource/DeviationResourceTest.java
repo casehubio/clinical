@@ -52,8 +52,7 @@ class DeviationResourceTest {
             .body("responseDeadline", notNullValue())
             .extract().response();
 
-        String location = response.header("Location");
-        String deviationId = location;
+        String deviationId = response.body().jsonPath().getString("id");
 
         given().when()
             .get("/trials/{t}/sites/{s}/deviations/{d}", trialId, siteId, deviationId)
@@ -106,8 +105,7 @@ class DeviationResourceTest {
             .body("{\"deviationType\":\"consent-gap\",\"severity\":\"MINOR\"}")
             .when().post("/trials/{t}/sites/{s}/deviations", trialId, siteId)
             .then().statusCode(201).extract();
-        String location = resp.header("Location");
-        String deviationId = location;
+        String deviationId = resp.body().jsonPath().getString("id");
 
         principal.setTenancyId("other-tenant");
         given().when().get("/trials/{t}/sites/{s}/deviations/{d}", trialId, siteId, deviationId)
@@ -124,8 +122,7 @@ class DeviationResourceTest {
             .body("{\"deviationType\":\"consent-gap\",\"severity\":\"MINOR\"}")
             .when().post("/trials/{t}/sites/{s}/deviations", trialId, siteId)
             .then().statusCode(201).extract();
-        String location = resp.header("Location");
-        String deviationId = location;
+        String deviationId = resp.body().jsonPath().getString("id");
 
         principal.setTenancyId("other-tenant");
         principal.setCrossTenantAdmin(true);
@@ -145,8 +142,7 @@ class DeviationResourceTest {
             .body("{\"deviationType\":\"sample-window\",\"severity\":\"MINOR\"}")
             .when().post("/trials/{t}/sites/{s}/deviations", trialId, siteId)
             .then().statusCode(201).extract();
-        String location = resp.header("Location");
-        String deviationId = location;
+        String deviationId = resp.body().jsonPath().getString("id");
 
         principal.reset();
         given().when().get("/trials/{t}/sites/{s}/deviations/{d}", trialId, siteId, deviationId)

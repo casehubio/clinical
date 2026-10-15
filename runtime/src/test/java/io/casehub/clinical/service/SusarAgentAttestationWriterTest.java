@@ -21,7 +21,9 @@ import jakarta.inject.Inject;
 import jakarta.transaction.Transactional;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.mockito.Mockito;
 
+import java.lang.reflect.Field;
 import java.time.Clock;
 import java.time.Instant;
 import java.util.List;
@@ -42,7 +44,7 @@ class SusarAgentAttestationWriterTest {
 
 
     @Inject SusarAgentAttestationWriter writer;
-    @InjectMock CaseLedgerEntryRepository caseLedgerEntryRepository;
+    CaseLedgerEntryRepository caseLedgerEntryRepository;
     @InjectMock LedgerEntryRepository ledgerEntryRepository;
     @InjectMock Clock clock;
 
@@ -52,8 +54,10 @@ class SusarAgentAttestationWriterTest {
     private UUID workerEntryId;
 
     @BeforeEach
-    void setUp() {
-        reset(caseLedgerEntryRepository, ledgerEntryRepository, clock);
+    void setUp() throws Exception {
+        caseLedgerEntryRepository = Mockito.mock(CaseLedgerEntryRepository.class);
+        injectField(writer, "caseLedgerEntryRepository", caseLedgerEntryRepository);
+        reset(ledgerEntryRepository, clock);
         when(clock.instant()).thenReturn(FIXED);
         susarCaseId = UUID.randomUUID();
         workerEntryId = UUID.randomUUID();
@@ -124,6 +128,14 @@ class SusarAgentAttestationWriterTest {
                 .thenReturn(List.of());
         writer.onApproved(new ActionGateApprovedEvent(caseId, "default", 1L, null, "dr-smith", null));
         verify(ledgerEntryRepository, never()).saveAttestation(any(), any());
+    }
+
+    private static void injectField(Object target, String fieldName, Object value) throws Exception {
+        Object actual = target;
+        try { Field d = target.getClass().getDeclaredField("delegate"); d.setAccessible(true); actual = d.get(target); } catch (NoSuchFieldException ignored) {}
+        Field f = SusarAgentAttestationWriter.class.getDeclaredField(fieldName);
+        f.setAccessible(true);
+        f.set(actual, value);
     }
 
     @Transactional

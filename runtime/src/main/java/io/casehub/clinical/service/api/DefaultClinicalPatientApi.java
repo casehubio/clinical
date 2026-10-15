@@ -15,6 +15,7 @@ import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 import jakarta.persistence.EntityManager;
 import jakarta.transaction.Transactional;
+import jakarta.ws.rs.BadRequestException;
 import jakarta.ws.rs.NotFoundException;
 
 import java.util.List;
@@ -26,7 +27,7 @@ public class DefaultClinicalPatientApi implements ClinicalPatientApi {
     @Inject EligibilityScreeningService eligibilityScreeningService;
     @Inject
             EntityManager               em;
-
+    @Inject io.casehub.platform.api.identity.CurrentPrincipal currentPrincipal;
     @Inject io.casehub.clinical.cbr.SiteEnrollmentAlertService siteEnrollmentAlertService;
 
     @Override
@@ -40,7 +41,12 @@ public class DefaultClinicalPatientApi implements ClinicalPatientApi {
     @Override
     @Transactional
     public PatientEnrollmentView enrollPatient(UUID trialId, UUID siteId, EnrollPatientRequest req, String tenancyId) {
-        TrialSite site = em.createNamedQuery("TrialSite.findByIdAndTenantId", TrialSite.class).setParameter("id", siteId).setParameter("tenantId", tenancyId).getResultStream().findFirst().orElse(null);
+        TrialSite site;
+        if (currentPrincipal.isCrossTenantAdmin()) {
+            site = em.find(TrialSite.class, siteId);
+        } else {
+            site = em.createNamedQuery("TrialSite.findByIdAndTenantId", TrialSite.class).setParameter("id", siteId).setParameter("tenantId", tenancyId).getResultStream().findFirst().orElse(null);
+        }
         if (site == null || !site.trialId.equals(trialId))
             throw new NotFoundException("Site not found");
 
@@ -58,9 +64,19 @@ public class DefaultClinicalPatientApi implements ClinicalPatientApi {
 
     @Override
     public PatientEnrollmentView getPatient(UUID trialId, UUID siteId, UUID enrollmentId, String tenancyId) {
-        PatientEnrollment enrollment = em.createNamedQuery("PatientEnrollment.findByIdAndTenantId", PatientEnrollment.class).setParameter("id", enrollmentId).setParameter("tenantId", tenancyId).getResultStream().findFirst().orElse(null);
+        PatientEnrollment enrollment;
+        if (currentPrincipal.isCrossTenantAdmin()) {
+            enrollment = em.find(PatientEnrollment.class, enrollmentId);
+        } else {
+            enrollment = em.createNamedQuery("PatientEnrollment.findByIdAndTenantId", PatientEnrollment.class).setParameter("id", enrollmentId).setParameter("tenantId", tenancyId).getResultStream().findFirst().orElse(null);
+        }
         if (enrollment == null || !enrollment.siteId.equals(siteId)) return null;
-        TrialSite site = em.createNamedQuery("TrialSite.findByIdAndTenantId", TrialSite.class).setParameter("id", siteId).setParameter("tenantId", tenancyId).getResultStream().findFirst().orElse(null);
+        TrialSite site;
+        if (currentPrincipal.isCrossTenantAdmin()) {
+            site = em.find(TrialSite.class, siteId);
+        } else {
+            site = em.createNamedQuery("TrialSite.findByIdAndTenantId", TrialSite.class).setParameter("id", siteId).setParameter("tenantId", tenancyId).getResultStream().findFirst().orElse(null);
+        }
         if (site == null || !site.trialId.equals(trialId)) return null;
         return toView(enrollment);
     }
@@ -76,6 +92,7 @@ public class DefaultClinicalPatientApi implements ClinicalPatientApi {
         if (enrollment.screeningResult != null)
             throw new jakarta.ws.rs.ClientErrorException("Patient already screened", 409);
 
+        if (req.criteria() == null || req.criteria().isEmpty()) throw new BadRequestException("criteria must not be empty");
         eligibilityScreeningService.screen(enrollment, req.criteria());
         return new ScreenResponse(enrollment.enrollmentStatus.name(),
                 enrollment.screeningResult != null ? enrollment.screeningResult.name() : null);

@@ -10,6 +10,7 @@ import io.casehub.clinical.service.VisitLedgerWriter;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 import jakarta.transaction.Transactional;
+import jakarta.ws.rs.BadRequestException;
 import jakarta.ws.rs.NotFoundException;
 
 import java.time.Instant;
@@ -31,6 +32,8 @@ public class DefaultClinicalVisitApi implements ClinicalVisitApi {
         PatientEnrollment enrollment = em.createNamedQuery("PatientEnrollment.findByIdAndTenantId", PatientEnrollment.class).setParameter("id", enrollmentId).setParameter("tenantId", tenancyId).getResultStream().findFirst().orElse(null);
         if (enrollment == null || !enrollment.siteId.equals(siteId))
             throw new NotFoundException("Enrollment not found");
+
+        if (req.visitDate() == null) throw new BadRequestException("visitDate is required");
 
         Visit visit = new Visit();
         visit.id = UUID.randomUUID();

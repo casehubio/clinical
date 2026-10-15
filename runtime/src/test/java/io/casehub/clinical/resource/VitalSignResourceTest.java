@@ -46,7 +46,7 @@ class VitalSignResourceTest {
         String loc = given().contentType("application/json")
                 .body("{\"type\":\"BP_SYSTOLIC\",\"value\":120,\"unit\":\"mmHg\",\"measuredAt\":\"2026-08-15T09:00:00Z\"}")
                 .when().post(basePath()).then().statusCode(201).extract().body().jsonPath().getString("id");
-        given().when().get(loc).then().statusCode(200)
+        given().when().get(basePath() + "/" + loc).then().statusCode(200)
                 .body("type", equalTo("BP_SYSTOLIC"))
                 .body("unit", equalTo("mmHg"));
     }

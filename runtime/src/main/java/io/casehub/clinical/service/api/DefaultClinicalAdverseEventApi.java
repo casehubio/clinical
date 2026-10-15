@@ -16,6 +16,7 @@ import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 import jakarta.persistence.EntityManager;
 import jakarta.transaction.Transactional;
+import jakarta.ws.rs.BadRequestException;
 import jakarta.ws.rs.NotFoundException;
 
 import java.util.List;
@@ -44,6 +45,9 @@ public class DefaultClinicalAdverseEventApi implements ClinicalAdverseEventApi {
         if (enrollment == null || !enrollment.siteId.equals(siteId)) throw new NotFoundException("Enrollment not found");
         TrialSite site = em.createNamedQuery("TrialSite.findByIdAndTenantId", TrialSite.class).setParameter("id", siteId).setParameter("tenantId", tenancyId).getResultStream().findFirst().orElse(null);
         if (site == null || !site.trialId.equals(trialId)) throw new NotFoundException("Site not found");
+
+        if (req.grade() == null) throw new BadRequestException("grade is required");
+        if (req.occurredAt() == null) throw new BadRequestException("occurredAt is required");
 
         AdverseEvent ae = new AdverseEvent();
         ae.id = UUID.randomUUID();
@@ -75,13 +79,14 @@ public class DefaultClinicalAdverseEventApi implements ClinicalAdverseEventApi {
     public AdverseEventView regradeAdverseEvent(UUID trialId, UUID siteId, UUID enrollmentId,
                                                   UUID aeId, RegradeRequest req,
                                                   String tenancyId, String actorId) {
+        if (req.reason() == null || req.reason().isBlank()) throw new BadRequestException("reason is required");
+        if (req.reason().length() > 500) throw new BadRequestException("reason must be 500 characters or fewer");
         PatientEnrollment enrollment = em.createNamedQuery("PatientEnrollment.findByIdAndTenantId", PatientEnrollment.class).setParameter("id", enrollmentId).setParameter("tenantId", tenancyId).getResultStream().findFirst().orElse(null);
         if (enrollment == null || !enrollment.siteId.equals(siteId)) throw new NotFoundException("Enrollment not found");
         TrialSite site = em.createNamedQuery("TrialSite.findByIdAndTenantId", TrialSite.class).setParameter("id", siteId).setParameter("tenantId", tenancyId).getResultStream().findFirst().orElse(null);
         if (site == null || !site.trialId.equals(trialId)) throw new NotFoundException("Site not found");
         AdverseEvent ae = em.createNamedQuery("AdverseEvent.findByIdAndTenantId", AdverseEvent.class).setParameter("id", aeId).setParameter("tenantId", tenancyId).getResultStream().findFirst().orElse(null);
         if (ae == null || !ae.enrollmentId.equals(enrollmentId)) throw new NotFoundException("Adverse event not found");
-
         adverseEventService.regradeAdverseEvent(aeId, req.grade(), actorId, req.reason());
         ae = em.find(AdverseEvent.class, aeId);
         return toView(ae);

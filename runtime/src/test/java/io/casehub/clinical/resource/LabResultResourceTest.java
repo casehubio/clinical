@@ -60,7 +60,7 @@ class LabResultResourceTest {
                     """)
                 .when().post(basePath()).then().statusCode(201).extract().body().jsonPath().getString("id");
 
-        given().when().get(loc).then().statusCode(200)
+        given().when().get(basePath() + "/" + loc).then().statusCode(200)
                 .body("testName", equalTo("ALT"))
                 .body("abnormalFlag", equalTo("NORMAL"))
                 .body("specimenType", equalTo("BLOOD"));
@@ -84,7 +84,7 @@ class LabResultResourceTest {
                 .body("{\"testName\":\"Potassium\",\"value\":6.5,\"unit\":\"mmol/L\",\"abnormalFlag\":\"CRITICAL_HIGH\",\"specimenType\":\"BLOOD\",\"collectedAt\":\"2026-08-15T09:00:00Z\"}")
                 .when().post(basePath()).then().statusCode(201).extract().body().jsonPath().getString("id");
 
-        given().when().get(loc).then().statusCode(200)
+        given().when().get(basePath() + "/" + loc).then().statusCode(200)
                 .body("abnormalFlag", equalTo("CRITICAL_HIGH"));
     }
 }

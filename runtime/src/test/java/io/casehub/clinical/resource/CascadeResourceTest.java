@@ -25,7 +25,7 @@ import static io.restassured.RestAssured.given;
 import static org.hamcrest.Matchers.equalTo;
 
 @QuarkusTest
-@TestSecurity(user = "test-actor", roles = {"SPONSOR", "INVESTIGATOR", "COORDINATOR"})
+@TestSecurity(user = "test-actor", roles = {io.casehub.clinical.api.ClinicalGroups.SPONSOR, io.casehub.clinical.api.ClinicalGroups.INVESTIGATOR, io.casehub.clinical.api.ClinicalGroups.COORDINATOR})
 class CascadeResourceTest {
 
     @Inject CurrentPrincipal principal;

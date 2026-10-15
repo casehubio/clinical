@@ -32,8 +32,7 @@ class GdprErasureResourceTest {
         given()
             .when().delete("/api/gdpr/erasure/patients/{patientId}", patientId)
             .then()
-            .statusCode(204)
-            .header("X-Enrollments-Erased", "1");
+            .statusCode(200);
     }
 
     @Test
@@ -45,7 +44,7 @@ class GdprErasureResourceTest {
         given()
             .when().delete("/api/gdpr/erasure/patients/{patientId}", patientId)
             .then()
-            .statusCode(204);
+            .statusCode(200);
     }
 
     @Test

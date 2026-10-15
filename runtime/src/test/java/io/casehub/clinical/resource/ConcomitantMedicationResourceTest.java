@@ -50,7 +50,7 @@ class ConcomitantMedicationResourceTest {
                      "startDate":"2026-08-15","ongoing":true}
                     """)
                 .when().post(basePath()).then().statusCode(201).extract().body().jsonPath().getString("id");
-        given().when().get(loc).then().statusCode(200)
+        given().when().get(basePath() + "/" + loc).then().statusCode(200)
                 .body("medicationName", equalTo("Metformin"))
                 .body("route", equalTo("ORAL"))
                 .body("ongoing", equalTo(true));
@@ -64,7 +64,7 @@ class ConcomitantMedicationResourceTest {
 
         given().contentType("application/json")
                 .body("{\"endDate\":\"2026-08-15\",\"ongoing\":false}")
-                .when().patch(loc).then().statusCode(200)
+                .when().patch(basePath() + "/" + loc).then().statusCode(200)
                 .body("ongoing", equalTo(false))
                 .body("endDate", equalTo("2026-08-15"));
     }

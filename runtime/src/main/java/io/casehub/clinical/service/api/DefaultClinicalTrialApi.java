@@ -11,6 +11,7 @@ import io.casehub.clinical.service.TrialActivationService;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 import jakarta.transaction.Transactional;
+import jakarta.ws.rs.BadRequestException;
 import jakarta.ws.rs.NotFoundException;
 
 import java.util.List;
@@ -20,6 +21,7 @@ import java.util.UUID;
 public class DefaultClinicalTrialApi implements ClinicalTrialApi {
 
     @Inject TrialActivationService trialActivationService;
+    @Inject io.casehub.platform.api.identity.CurrentPrincipal currentPrincipal;
     @Inject
             jakarta.persistence.EntityManager em;
 
@@ -35,6 +37,8 @@ public class DefaultClinicalTrialApi implements ClinicalTrialApi {
     @Override
     @Transactional
     public TrialView registerTrial(RegisterTrialRequest req, String tenancyId) {
+        if (req.protocolId() == null || req.protocolId().isBlank()) throw new BadRequestException("protocolId is required");
+        if (req.phase() == null) throw new BadRequestException("phase is required");
         ClinicalTrial trial = new ClinicalTrial();
         trial.id = UUID.randomUUID();
         trial.protocolId = req.protocolId();
@@ -51,7 +55,12 @@ public class DefaultClinicalTrialApi implements ClinicalTrialApi {
 
     @Override
     public TrialView getTrial(UUID id, String tenancyId) {
-        ClinicalTrial trial = em.createNamedQuery("ClinicalTrial.findByIdAndTenantId", ClinicalTrial.class).setParameter("id", id).setParameter("tenantId", tenancyId).getResultStream().findFirst().orElse(null);
+        ClinicalTrial trial;
+        if (currentPrincipal.isCrossTenantAdmin()) {
+            trial = em.find(ClinicalTrial.class, id);
+        } else {
+            trial = em.createNamedQuery("ClinicalTrial.findByIdAndTenantId", ClinicalTrial.class).setParameter("id", id).setParameter("tenantId", tenancyId).getResultStream().findFirst().orElse(null);
+        }
         if (trial == null) return null;
         return toView(trial);
     }
@@ -59,6 +68,9 @@ public class DefaultClinicalTrialApi implements ClinicalTrialApi {
     @Override
     @Transactional
     public void updateSponsorConfig(UUID id, SponsorConfigRequest req, String tenancyId) {
+        if (req == null) throw new BadRequestException("Request body is required");
+        if (req.connectorId() != null && req.connectorId().length() > 64) throw new BadRequestException("connectorId must be 64 characters or fewer");
+        if (req.destination() != null && req.destination().length() > 2048) throw new BadRequestException("destination must be 2048 characters or fewer");
         ClinicalTrial trial = em.createNamedQuery("ClinicalTrial.findByIdAndTenantId", ClinicalTrial.class).setParameter("id", id).setParameter("tenantId", tenancyId).getResultStream().findFirst().orElse(null);
         if (trial == null) throw new NotFoundException("Trial not found: " + id);
         trial.sponsorNotificationConnectorId = req.connectorId();

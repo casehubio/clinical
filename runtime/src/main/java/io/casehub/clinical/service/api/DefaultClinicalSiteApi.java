@@ -16,12 +16,19 @@ import java.util.UUID;
 public class DefaultClinicalSiteApi implements ClinicalSiteApi {
     @jakarta.inject.Inject
     jakarta.persistence.EntityManager em;
+    @jakarta.inject.Inject
+    io.casehub.platform.api.identity.CurrentPrincipal currentPrincipal;
 
 
     @Override
     @Transactional
     public SiteView addSite(UUID trialId, AddSiteRequest req, String tenancyId) {
-        ClinicalTrial trial = em.createNamedQuery("ClinicalTrial.findByIdAndTenantId", ClinicalTrial.class).setParameter("id", trialId).setParameter("tenantId", tenancyId).getResultStream().findFirst().orElse(null);
+        ClinicalTrial trial;
+        if (currentPrincipal.isCrossTenantAdmin()) {
+            trial = em.find(ClinicalTrial.class, trialId);
+        } else {
+            trial = em.createNamedQuery("ClinicalTrial.findByIdAndTenantId", ClinicalTrial.class).setParameter("id", trialId).setParameter("tenantId", tenancyId).getResultStream().findFirst().orElse(null);
+        }
         if (trial == null) throw new NotFoundException("Trial not found: " + trialId);
 
         TrialSite site = new TrialSite();
@@ -37,7 +44,12 @@ public class DefaultClinicalSiteApi implements ClinicalSiteApi {
 
     @Override
     public SiteView getSite(UUID trialId, UUID siteId, String tenancyId) {
-        TrialSite site = em.createNamedQuery("TrialSite.findByIdAndTenantId", TrialSite.class).setParameter("id", siteId).setParameter("tenantId", tenancyId).getResultStream().findFirst().orElse(null);
+        TrialSite site;
+        if (currentPrincipal.isCrossTenantAdmin()) {
+            site = em.find(TrialSite.class, siteId);
+        } else {
+            site = em.createNamedQuery("TrialSite.findByIdAndTenantId", TrialSite.class).setParameter("id", siteId).setParameter("tenantId", tenancyId).getResultStream().findFirst().orElse(null);
+        }
         if (site == null || !site.trialId.equals(trialId)) return null;
         return toView(site);
     }

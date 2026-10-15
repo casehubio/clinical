@@ -10,6 +10,7 @@ import io.casehub.clinical.service.ProtocolDeviationService;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 import jakarta.transaction.Transactional;
+import jakarta.ws.rs.BadRequestException;
 import jakarta.ws.rs.NotFoundException;
 
 import java.util.UUID;
@@ -20,13 +21,20 @@ public class DefaultClinicalDeviationApi implements ClinicalDeviationApi {
     @Inject ProtocolDeviationService deviationService;
     @Inject
             jakarta.persistence.EntityManager em;
+    @Inject io.casehub.platform.api.identity.CurrentPrincipal currentPrincipal;
 
 
     @Override
     @Transactional
     public DeviationView reportDeviation(UUID trialId, UUID siteId,
                                           ReportDeviationRequest req, String tenancyId) {
-        TrialSite site = em.createNamedQuery("TrialSite.findByIdAndTenantId", TrialSite.class).setParameter("id", siteId).setParameter("tenantId", tenancyId).getResultStream().findFirst().orElse(null);
+        if (req.severity() == null) throw new BadRequestException("severity is required");
+        TrialSite site;
+        if (currentPrincipal.isCrossTenantAdmin()) {
+            site = em.find(TrialSite.class, siteId);
+        } else {
+            site = em.createNamedQuery("TrialSite.findByIdAndTenantId", TrialSite.class).setParameter("id", siteId).setParameter("tenantId", tenancyId).getResultStream().findFirst().orElse(null);
+        }
         if (site == null || !site.trialId.equals(trialId))
             throw new NotFoundException("Site not found");
 
@@ -44,9 +52,19 @@ public class DefaultClinicalDeviationApi implements ClinicalDeviationApi {
 
     @Override
     public DeviationView getDeviation(UUID trialId, UUID siteId, UUID deviationId, String tenancyId) {
-        ProtocolDeviation dev = em.createNamedQuery("ProtocolDeviation.findByIdAndTenantId", ProtocolDeviation.class).setParameter("id", deviationId).setParameter("tenantId", tenancyId).getResultStream().findFirst().orElse(null);
+        ProtocolDeviation dev;
+        if (currentPrincipal.isCrossTenantAdmin()) {
+            dev = em.find(ProtocolDeviation.class, deviationId);
+        } else {
+            dev = em.createNamedQuery("ProtocolDeviation.findByIdAndTenantId", ProtocolDeviation.class).setParameter("id", deviationId).setParameter("tenantId", tenancyId).getResultStream().findFirst().orElse(null);
+        }
         if (dev == null || !dev.siteId.equals(siteId)) return null;
-        TrialSite site = em.createNamedQuery("TrialSite.findByIdAndTenantId", TrialSite.class).setParameter("id", siteId).setParameter("tenantId", tenancyId).getResultStream().findFirst().orElse(null);
+        TrialSite site;
+        if (currentPrincipal.isCrossTenantAdmin()) {
+            site = em.find(TrialSite.class, siteId);
+        } else {
+            site = em.createNamedQuery("TrialSite.findByIdAndTenantId", TrialSite.class).setParameter("id", siteId).setParameter("tenantId", tenancyId).getResultStream().findFirst().orElse(null);
+        }
         if (site == null || !site.trialId.equals(trialId)) return null;
         return toView(dev);
     }

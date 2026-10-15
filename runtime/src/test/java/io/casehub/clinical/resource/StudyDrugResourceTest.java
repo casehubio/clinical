@@ -50,7 +50,7 @@ class StudyDrugResourceTest {
                      "batchNumber":"PEM-2026-0815","status":"ADMINISTERED"}
                     """)
                 .when().post(basePath()).then().statusCode(201).extract().body().jsonPath().getString("id");
-        given().when().get(loc).then().statusCode(200)
+        given().when().get(basePath() + "/" + loc).then().statusCode(200)
                 .body("drugName", equalTo("Pembrolizumab"))
                 .body("route", equalTo("IV"))
                 .body("status", equalTo("ADMINISTERED"))
