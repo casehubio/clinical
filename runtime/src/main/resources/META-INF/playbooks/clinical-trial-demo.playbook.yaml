@@ -1,7 +1,7 @@
 playbook: "1.0"
 schema: client
 ---
-scenario: clinical-trial-demo
+playbook: clinical-trial-demo
 
 chapters:
   - label: "Trial Setup"
@@ -14,64 +14,52 @@ chapters:
     sections:
       - label: "Create Trial"
         steps:
-          - name: create-trial
+          - step: create-trial
             target: server
-            commands:
-              - action: createTrial
-                data:
-                  protocolId: "ONCO-2026-DEMO"
-                  phase: "PHASE_III"
-                  sponsor: "Acme Pharma"
-                  targetEnrollment: 100
+            createTrial:
+              protocolId: "ONCO-2026-DEMO"
+              phase: "PHASE_III"
+              sponsor: "Acme Pharma"
+              targetEnrollment: 100
 
       - label: "Activate Trial"
         steps:
-          - name: activate
+          - step: activate
             target: server
-            commands:
-              - action: activateTrial
-                data:
-                  trialId: "${create-trial.trialId}"
+            activateTrial:
+              trialId: "${create-trial.trialId}"
 
       - label: "Add Sites"
         steps:
-          - name: site-a
+          - step: site-a
             target: server
-            commands:
-              - action: addSite
-                data:
-                  trialId: "${create-trial.trialId}"
-                  investigatorId: "dr-chen"
-          - name: site-b
+            addSite:
+              trialId: "${create-trial.trialId}"
+              investigatorId: "dr-chen"
+          - step: site-b
             target: server
-            commands:
-              - action: addSite
-                data:
-                  trialId: "${create-trial.trialId}"
-                  investigatorId: "dr-patel"
-          - name: site-c
+            addSite:
+              trialId: "${create-trial.trialId}"
+              investigatorId: "dr-patel"
+          - step: site-c
             target: server
-            commands:
-              - action: addSite
-                data:
-                  trialId: "${create-trial.trialId}"
-                  investigatorId: "dr-martinez"
+            addSite:
+              trialId: "${create-trial.trialId}"
+              investigatorId: "dr-martinez"
 
       - label: "Enroll Patients"
         steps:
-          - name: patient-a1
+          - step: patient-a1
             target: server
-            commands:
-              - action: enrollPatient
-                mode: bulk
-                data:
-                  items:
-                    - { trialId: "${create-trial.trialId}", siteId: "${site-a.siteId}", patientId: "PAT-001" }
-                    - { trialId: "${create-trial.trialId}", siteId: "${site-a.siteId}", patientId: "PAT-002" }
-                    - { trialId: "${create-trial.trialId}", siteId: "${site-b.siteId}", patientId: "PAT-003" }
-                    - { trialId: "${create-trial.trialId}", siteId: "${site-b.siteId}", patientId: "PAT-004" }
-                    - { trialId: "${create-trial.trialId}", siteId: "${site-c.siteId}", patientId: "PAT-005" }
+            enrollPatient:
+              items:
+                - { trialId: "${create-trial.trialId}", siteId: "${site-a.siteId}", patientId: "PAT-001" }
+                - { trialId: "${create-trial.trialId}", siteId: "${site-a.siteId}", patientId: "PAT-002" }
+                - { trialId: "${create-trial.trialId}", siteId: "${site-b.siteId}", patientId: "PAT-003" }
+                - { trialId: "${create-trial.trialId}", siteId: "${site-b.siteId}", patientId: "PAT-004" }
+                - { trialId: "${create-trial.trialId}", siteId: "${site-c.siteId}", patientId: "PAT-005" }
 
+            mode: bulk
   - label: "Accountability in Action"
     content: |
       ## When a Protocol Deviation Occurs
@@ -108,12 +96,10 @@ chapters:
           The PI reviews and approves the deviation. The commitment lifecycle
           tracks every state transition with a named actor and timestamp.
         steps:
-          - name: approve-pi
+          - step: approve-pi
             target: server
-            commands:
-              - action: approvePiResponse
-                data:
-                  deviationId: "${report-deviation.deviationId}"
+            approvePiResponse:
+              deviationId: "${report-deviation.deviationId}"
           - spotlight:
               role: region
               name: "PI Commitment"
@@ -168,12 +154,10 @@ chapters:
           The platform records the approval, updates the agent's trust score
           via Bayesian inference, and files the IND report.
         steps:
-          - name: approve-gate
+          - step: approve-gate
             target: server
-            commands:
-              - action: approveSusarGate
-                data:
-                  aeId: "${report-ae.aeId}"
+            approveSusarGate:
+              aeId: "${report-ae.aeId}"
           - spotlight:
               role: region
               name: "Trust Score"
@@ -193,12 +177,10 @@ chapters:
     sections:
       - label: "Verify Merkle Chain"
         steps:
-          - name: verify
+          - step: verify
             target: server
-            commands:
-              - action: verifyLedger
-                data:
-                  enrollmentId: "${patient-a1.enrollmentId}"
+            verifyLedger:
+              enrollmentId: "${patient-a1.enrollmentId}"
           - spotlight:
               role: alert
               name: "Verification Result"

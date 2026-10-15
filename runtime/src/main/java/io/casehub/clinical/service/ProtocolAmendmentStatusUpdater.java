@@ -9,6 +9,7 @@ import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.enterprise.event.Event;
 import jakarta.inject.Inject;
 import jakarta.persistence.EntityManager;
+import jakarta.persistence.LockModeType;
 import jakarta.transaction.Transactional;
 import org.jboss.logging.Logger;
 
@@ -27,7 +28,8 @@ public class ProtocolAmendmentStatusUpdater {
 
     @Transactional(Transactional.TxType.REQUIRES_NEW)
     public void applyRecommendation(UUID amendmentId, String recommendation) {
-        ProtocolAmendment amendment = em.find(ProtocolAmendment.class, amendmentId);
+        ProtocolAmendment amendment = em.find(ProtocolAmendment.class, amendmentId,
+                LockModeType.PESSIMISTIC_WRITE);
         if (amendment == null) return;
         if (amendment.supervisorRecommendation != null) return;
 

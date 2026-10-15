@@ -1,4 +1,4 @@
-package io.casehub.clinical.scenario;
+package io.casehub.clinical.playbook;
 
 import io.casehub.clinical.api.model.ConsentStatus;
 import io.casehub.clinical.api.model.CtcaeGrade;

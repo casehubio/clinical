@@ -6,6 +6,8 @@ import io.casehub.clinical.api.view.AddSiteRequest;
 import io.casehub.clinical.api.view.SiteView;
 import io.casehub.clinical.entity.ClinicalTrial;
 import io.casehub.clinical.entity.TrialSite;
+import io.casehub.clinical.entity.TenantEntityLookup;
+import io.casehub.platform.api.identity.CurrentPrincipal;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.transaction.Transactional;
 import jakarta.ws.rs.NotFoundException;

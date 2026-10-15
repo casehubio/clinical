@@ -39,6 +39,7 @@ public final class DeviationReviewCaseDefinition {
                     .judgment(JudgmentTarget.builder()
                         .prompt("IRB consultation required — protocol deviation")
                         .title("IRB consultation required — protocol deviation")
+                        .prompt("IRB consultation required — protocol deviation")
                         .expiresIn(Duration.ofHours(72))
                         .human(new HumanRoutingConfig(null, new io.casehub.api.spi.routing.CandidateSetSpec.Inline(StaticSetStrategy.of("irb-committee")), null, null, null))
                         .inputMapping("{ deviationId: .deviationId, severity: .severity }")

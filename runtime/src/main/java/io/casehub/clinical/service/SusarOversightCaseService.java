@@ -1,6 +1,7 @@
 package io.casehub.clinical.service;
 
 import io.casehub.clinical.api.AdverseEventReportedEvent;
+import io.casehub.clinical.api.model.CtcaeGrade;
 import io.casehub.clinical.api.model.SusarOversightStatus;
 import io.casehub.clinical.entity.AdverseEvent;
 import jakarta.enterprise.context.ApplicationScoped;
@@ -55,7 +56,8 @@ public class SusarOversightCaseService {
         AdverseEvent ae = em.find(AdverseEvent.class, aeId);
         if (ae == null) {return;}
         if (ae.susarOversightStatus != SusarOversightStatus.NONE) {return;}
-        if (!ae.unexpected || !ae.suspected) {return;}
+        if (!ae.unexpected || !ae.suspected
+                || (ae.grade != CtcaeGrade.GRADE_4 && ae.grade != CtcaeGrade.GRADE_5)) {return;}
 
         var event = new AdverseEventReportedEvent(
                 aeId, ae.enrollmentId, siteId, ae.grade, ae.reportedAt, tenantId);
@@ -82,6 +84,9 @@ public class SusarOversightCaseService {
         if (ae.susarOversightStatus != SusarOversightStatus.NONE) {
             LOG.debugf("SusarOversightCaseService: aeId=%s already processed (status=%s) — skipping",
                     event.aeId(), ae.susarOversightStatus);
+            return null;
+        }
+        if (ae.grade != CtcaeGrade.GRADE_4 && ae.grade != CtcaeGrade.GRADE_5) {
             return null;
         }
         // Criteria check via SPI — honours CDI displacement for ML-based evaluator

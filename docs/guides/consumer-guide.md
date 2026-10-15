@@ -314,3 +314,9 @@ ClinicalAgent (peer-reviewed baseline, arXiv 2404.14777) structurally cannot pro
 - LLM invocation primitive (AgentProvider SPI) — **casehub-platform-agent-api**
 - Page rendering, site loading, dataset binding — **casehub-pages**
 - UI component library (data-table, approval-gate, etc.) — **casehub-blocks-ui**
+
+## Playbook demo integration
+
+The runtime uses `io.casehub:casehub-pages-playbook-client` from Pages. Clinical action handlers live in `io.casehub.clinical.playbook.ClinicalPlaybookActions` and use `@PlaybookAction` with the Pages `ActionContext`.
+
+The bundled demo is `META-INF/playbooks/clinical-trial-demo.playbook.yaml`. It uses the `playbook:` envelope, `step:` identifiers and compact action maps. The removed `scenario-client` artifact, `io.casehub.pages.scenario.client` package and legacy `commands:` resource format are no longer used.

@@ -7,12 +7,16 @@ import io.casehub.clinical.api.view.SponsorConfigRequest;
 import io.casehub.clinical.api.view.TrialListView;
 import io.casehub.clinical.api.view.TrialView;
 import io.casehub.clinical.entity.ClinicalTrial;
+import io.casehub.clinical.entity.TenantEntityLookup;
 import io.casehub.clinical.service.TrialActivationService;
+import io.casehub.platform.api.identity.CurrentPrincipal;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 import jakarta.transaction.Transactional;
 import jakarta.ws.rs.BadRequestException;
 import jakarta.ws.rs.NotFoundException;
+import jakarta.ws.rs.BadRequestException;
+import jakarta.ws.rs.WebApplicationException;
 
 import java.util.List;
 import java.util.UUID;
@@ -79,7 +83,13 @@ public class DefaultClinicalTrialApi implements ClinicalTrialApi {
 
     @Override
     public void activateTrial(UUID id, String tenancyId) {
-        trialActivationService.activate(id);
+        try {
+            trialActivationService.activate(id);
+        } catch (TrialActivationService.TrialNotFoundException e) {
+            throw new NotFoundException(e.getMessage(), e);
+        } catch (TrialActivationService.TrialNotInPlanningStatusException e) {
+            throw new WebApplicationException(e.getMessage(), 409);
+        }
     }
 
     private static TrialView toView(ClinicalTrial t) {

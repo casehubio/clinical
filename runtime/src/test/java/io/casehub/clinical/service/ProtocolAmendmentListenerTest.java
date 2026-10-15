@@ -2,58 +2,38 @@ package io.casehub.clinical.service;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
-import io.casehub.clinical.api.model.AmendmentCaseStatus;
-import io.casehub.clinical.api.model.ProtocolAmendmentStatus;
-import io.casehub.clinical.entity.ProtocolAmendment;
 import io.casehub.engine.common.spi.event.CaseLifecycleEvent;
-import io.quarkus.test.InjectMock;
-import io.quarkus.test.junit.QuarkusTest;
-import jakarta.inject.Inject;
-import jakarta.transaction.Transactional;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.Mock;
+import org.mockito.junit.jupiter.MockitoExtension;
 
-import java.time.Instant;
 import java.util.UUID;
 
-import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
-import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 
-@QuarkusTest
+@ExtendWith(MockitoExtension.class)
 class ProtocolAmendmentListenerTest {
 
     private static final ObjectMapper MAPPER = new ObjectMapper();
 
-    @Inject ProtocolAmendmentListener listener;
-    @InjectMock ProtocolAmendmentStatusUpdater statusUpdater;
-    @Inject
-                jakarta.persistence.EntityManager em;
+    ProtocolAmendmentListener listener;
+    @Mock ProtocolAmendmentStatusUpdater statusUpdater;
 
 
     UUID amendmentId;
     UUID caseId;
 
     @BeforeEach
-    @Transactional
     void setup() {
         amendmentId = UUID.randomUUID();
         caseId = UUID.randomUUID();
-
-        ProtocolAmendment a = new ProtocolAmendment();
-        a.id = amendmentId;
-        a.trialId = UUID.randomUUID();
-        a.proposedChange = "Dose escalation v2";
-        a.status = ProtocolAmendmentStatus.PROPOSED;
-        a.amendmentCaseStatus = AmendmentCaseStatus.REQUESTED;
-        a.tenantId = "default";
-        a.proposedAt = Instant.now();
-        em.persist(a);
-
-        doNothing().when(statusUpdater).applyRecommendation(any(), any());
+        listener = new ProtocolAmendmentListener();
+        listener.statusUpdater = statusUpdater;
     }
 
     private CaseLifecycleEvent goalReached(UUID caseId, ObjectNode snapshot) {

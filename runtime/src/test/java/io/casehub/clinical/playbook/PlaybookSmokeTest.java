@@ -1,4 +1,4 @@
-package io.casehub.clinical.scenario;
+package io.casehub.clinical.playbook;
 
 import io.casehub.clinical.api.ClinicalGroups;
 import io.casehub.clinical.entity.ClinicalTrial;
@@ -38,7 +38,7 @@ class PlaybookSmokeTest {
 
     @Test
     @Transactional
-    void full_scenario_server_steps_produce_expected_entities() {
+    void full_playbook_server_steps_produce_expected_entities() {
         var trial = actions.createTrial(ctx(Map.of(
                 "protocolId", "SMOKE-" + UUID.randomUUID(),
                 "phase", "PHASE_III",

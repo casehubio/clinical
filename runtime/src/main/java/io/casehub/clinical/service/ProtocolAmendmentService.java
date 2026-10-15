@@ -8,6 +8,9 @@ import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.enterprise.event.Event;
 import jakarta.inject.Inject;
 import jakarta.persistence.EntityManager;
+import jakarta.transaction.Status;
+import jakarta.transaction.Synchronization;
+import jakarta.transaction.TransactionSynchronizationRegistry;
 import jakarta.transaction.Transactional;
 import java.time.Instant;
 import java.util.UUID;
@@ -17,14 +20,24 @@ public class ProtocolAmendmentService {
 
     @Inject ProtocolAmendmentLedgerWriter ledgerWriter;
     @Inject Event<ProtocolAmendmentProposedEvent> proposedEvents;
+    @Inject TransactionSynchronizationRegistry txSync;
     @Inject
             EntityManager                         em;
 
 
+    @Transactional
     public ProtocolAmendment propose(UUID trialId, String proposedChange, String tenantId) {
         ProtocolAmendment amendment = persistProposal(trialId, proposedChange, tenantId);
-        proposedEvents.fireAsync(new ProtocolAmendmentProposedEvent(
-            amendment.id, trialId, proposedChange, tenantId));
+        var event = new ProtocolAmendmentProposedEvent(amendment.id, trialId, proposedChange, tenantId);
+        txSync.registerInterposedSynchronization(new Synchronization() {
+            @Override
+            public void beforeCompletion() {}
+
+            @Override
+            public void afterCompletion(int status) {
+                if (status == Status.STATUS_COMMITTED) proposedEvents.fireAsync(event);
+            }
+        });
         return amendment;
     }
 

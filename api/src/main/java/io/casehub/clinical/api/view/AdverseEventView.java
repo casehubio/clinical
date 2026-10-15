@@ -10,7 +10,7 @@ import io.casehub.clinical.api.model.SusarOversightStatus;
 import java.time.Instant;
 import java.util.UUID;
 
-public record AdverseEventView(UUID id, UUID enrollmentId, CtcaeGrade grade,
+public record AdverseEventView(UUID id, UUID enrollmentId, UUID workItemId, CtcaeGrade grade,
                                  EventActuality actuality, AeOutcome outcome,
                                  String eventType, Instant occurredAt, Instant reportedAt,
                                  Instant slaDeadline, AeEscalationStatus escalationStatus,
