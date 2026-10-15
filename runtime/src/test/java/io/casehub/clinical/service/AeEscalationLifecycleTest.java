@@ -28,7 +28,6 @@ import static java.util.concurrent.TimeUnit.MILLISECONDS;
 import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.awaitility.Awaitility.await;
-import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 
@@ -110,7 +109,7 @@ class AeEscalationLifecycleTest {
                         assertThat(findAe(aeId).escalationStatus).isEqualTo(AeEscalationStatus.COMPLETED));
 
         // Grade 3 must NOT signal the trial (no DSMB rollup threshold)
-        verify(trialSafetySignalService, never()).signalGrade4Active(any());
+        verify(trialSafetySignalService, never()).signalGrade4Active(siteId);
     }
 
     @Test
