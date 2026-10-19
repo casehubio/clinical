@@ -28,7 +28,7 @@ class SusarAgentIntegrationTest {
     void setup() {
         when(agentProvider.invoke(any())).thenReturn(Multi.createFrom().items(
                 new AgentEvent.TextDelta("{\"susarRequired\":true,\"causalityAssessment\":\"probable\",\"expectednessAssessment\":\"unexpected\",\"reasoning\":\"test\",\"confidence\":0.9}"),
-                new AgentEvent.InvocationComplete(10, 20, 0, 0, 0, 0.001, 500L, 400L, "sess-1", 1, false)));
+                new AgentEvent.InvocationComplete(10, 20, 0, 0, 0, 0.001, 500L, 400L, "sess-1", 1, false, null, null)));
     }
 
     @Test

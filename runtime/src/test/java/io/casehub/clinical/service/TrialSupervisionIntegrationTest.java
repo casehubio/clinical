@@ -29,7 +29,7 @@ class TrialSupervisionIntegrationTest {
     void setup() {
         when(agentProvider.invoke(any())).thenReturn(Multi.createFrom().items(
                 new AgentEvent.TextDelta("{\"overallHealth\":\"HEALTHY\",\"findings\":[],\"summary\":\"All good\"}"),
-                new AgentEvent.InvocationComplete(10, 20, 0, 0, 0, 0.001, 500L, 400L, "sess-1", 1, false)));
+                new AgentEvent.InvocationComplete(10, 20, 0, 0, 0, 0.001, 500L, 400L, "sess-1", 1, false, null, null)));
     }
 
     @Test

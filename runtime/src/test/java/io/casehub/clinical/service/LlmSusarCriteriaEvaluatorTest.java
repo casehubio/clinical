@@ -36,7 +36,7 @@ class LlmSusarCriteriaEvaluatorTest {
                 {"susarRequired":true,"causalityAssessment":"probable","expectednessAssessment":"unexpected","reasoning":"temporal relationship, dose-response","confidence":0.85}""";
         when(agentProvider.invoke(any())).thenReturn(Multi.createFrom().items(
                 new AgentEvent.TextDelta(json),
-                new AgentEvent.InvocationComplete(200, 100, 0, 0, 0, 0.005, 2000L, 1800L, "sess-1", 1, false)));
+                new AgentEvent.InvocationComplete(200, 100, 0, 0, 0, 0.005, 2000L, 1800L, "sess-1", 1, false, null, null)));
 
         Map<String, Object> context = Map.of("aeId", UUID.randomUUID().toString());
         WorkerResult<Map<String, Object>> result = evaluator.apply(context);
@@ -55,7 +55,7 @@ class LlmSusarCriteriaEvaluatorTest {
                 {"susarRequired":false,"causalityAssessment":"unrelated","expectednessAssessment":"expected","reasoning":"known side effect","confidence":0.92}""";
         when(agentProvider.invoke(any())).thenReturn(Multi.createFrom().items(
                 new AgentEvent.TextDelta(json),
-                new AgentEvent.InvocationComplete(200, 100, 0, 0, 0, 0.005, 2000L, 1800L, "sess-2", 1, false)));
+                new AgentEvent.InvocationComplete(200, 100, 0, 0, 0, 0.005, 2000L, 1800L, "sess-2", 1, false, null, null)));
 
         Map<String, Object> context = Map.of("aeId", UUID.randomUUID().toString());
         WorkerResult<Map<String, Object>> result = evaluator.apply(context);
@@ -84,7 +84,7 @@ class LlmSusarCriteriaEvaluatorTest {
     void malformedJson_returnsFallbackSusarRequired() {
         when(agentProvider.invoke(any())).thenReturn(Multi.createFrom().items(
                 new AgentEvent.TextDelta("I cannot assess this AE properly"),
-                new AgentEvent.InvocationComplete(100, 50, 0, 0, 0, null, 1000L, 900L, "sess-4", 1, false)));
+                new AgentEvent.InvocationComplete(100, 50, 0, 0, 0, null, 1000L, 900L, "sess-4", 1, false, null, null)));
 
         Map<String, Object> context = Map.of("aeId", UUID.randomUUID().toString());
         WorkerResult<Map<String, Object>> result = evaluator.apply(context);
@@ -106,7 +106,7 @@ class LlmSusarCriteriaEvaluatorTest {
     void invocationCompleteIsError_returnsFallbackSusarRequired() {
         when(agentProvider.invoke(any())).thenReturn(Multi.createFrom().items(
                 new AgentEvent.TextDelta("{\"susarRequired\":false}"),
-                new AgentEvent.InvocationComplete(100, 50, 0, 0, 0, null, 1000L, 900L, "sess-err", 1, true)));
+                new AgentEvent.InvocationComplete(100, 50, 0, 0, 0, null, 1000L, 900L, "sess-err", 1, true, null, null)));
 
         Map<String, Object> context = Map.of("aeId", UUID.randomUUID().toString());
         WorkerResult<Map<String, Object>> result = evaluator.apply(context);

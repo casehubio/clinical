@@ -33,7 +33,7 @@ class EligibilityAgentIntegrationTest {
     void setup() {
         when(agentProvider.invoke(any())).thenReturn(Multi.createFrom().items(
                 new AgentEvent.TextDelta("{\"criteria\":[{\"criterionId\":\"criterion-0\",\"met\":true,\"marginal\":false,\"reasoning\":\"ok\"}]}"),
-                new AgentEvent.InvocationComplete(10, 20, 0, 0, 0, 0.001, 500L, 400L, "sess-1", 1, false)));
+                new AgentEvent.InvocationComplete(10, 20, 0, 0, 0, 0.001, 500L, 400L, "sess-1", 1, false, null, null)));
     }
 
     @Test
@@ -61,7 +61,7 @@ class EligibilityAgentIntegrationTest {
     void evaluateAndScreen_llmReturnsMarginal_triggersIrbPath() {
         when(agentProvider.invoke(any())).thenReturn(Multi.createFrom().items(
                 new AgentEvent.TextDelta("{\"criteria\":[{\"criterionId\":\"criterion-0\",\"met\":false,\"marginal\":true,\"reasoning\":\"borderline\"}]}"),
-                new AgentEvent.InvocationComplete(10, 20, 0, 0, 0, 0.001, 500L, 400L, "sess-2", 1, false)));
+                new AgentEvent.InvocationComplete(10, 20, 0, 0, 0, 0.001, 500L, 400L, "sess-2", 1, false, null, null)));
 
         UUID[] ids = createTrialSitePatient();
         UUID trialId = ids[0], siteId = ids[1], enrollmentId = ids[2];
