@@ -43,7 +43,7 @@ class LlmEligibilityCriteriaEvaluatorTest {
                 ]}""";
         when(agentProvider.invoke(any())).thenReturn(Multi.createFrom().items(
                 new AgentEvent.TextDelta(json),
-                new AgentEvent.InvocationComplete(100, 50, 0, 0, 0, 0.002, 1000L, 900L, "sess-1", 1, false)));
+                new AgentEvent.InvocationComplete(100, 50, 0, 0, 0, 0.002, 1000L, 900L, "sess-1", 1, false, null, null)));
 
         List<CriterionResult> results = evaluator.evaluate(
                 UUID.randomUUID(), "default",
@@ -62,7 +62,7 @@ class LlmEligibilityCriteriaEvaluatorTest {
     void malformedJson_returnsAllMarginalFallback() {
         when(agentProvider.invoke(any())).thenReturn(Multi.createFrom().items(
                 new AgentEvent.TextDelta("I cannot evaluate this patient"),
-                new AgentEvent.InvocationComplete(50, 30, 0, 0, 0, null, 500L, 400L, "sess-2", 1, false)));
+                new AgentEvent.InvocationComplete(50, 30, 0, 0, 0, null, 500L, 400L, "sess-2", 1, false, null, null)));
 
         List<CriterionResult> results = evaluator.evaluate(
                 UUID.randomUUID(), "default",
@@ -102,7 +102,7 @@ class LlmEligibilityCriteriaEvaluatorTest {
     void invocationCompleteIsError_returnsAllMarginalFallback() {
         when(agentProvider.invoke(any())).thenReturn(Multi.createFrom().items(
                 new AgentEvent.TextDelta("{\"criteria\":[{\"criterionId\":\"c-0\",\"met\":true,\"marginal\":false,\"reasoning\":\"ok\"}]}"),
-                new AgentEvent.InvocationComplete(50, 30, 0, 0, 0, null, 500L, 400L, "sess-err", 1, true)));
+                new AgentEvent.InvocationComplete(50, 30, 0, 0, 0, null, 500L, 400L, "sess-err", 1, true, null, null)));
 
         List<CriterionResult> results = evaluator.evaluate(
                 UUID.randomUUID(), "default",
@@ -117,7 +117,7 @@ class LlmEligibilityCriteriaEvaluatorTest {
         String json = "{\"criteria\":[{\"criterionId\":\"c-0\",\"met\":true,\"marginal\":false,\"reasoning\":\"ok\"}]}";
         when(agentProvider.invoke(any())).thenReturn(Multi.createFrom().items(
                 new AgentEvent.TextDelta(json),
-                new AgentEvent.InvocationComplete(50, 30, 0, 0, 0, null, 500L, 400L, "sess-3", 1, false)));
+                new AgentEvent.InvocationComplete(50, 30, 0, 0, 0, null, 500L, 400L, "sess-3", 1, false, null, null)));
 
         evaluator.evaluate(UUID.randomUUID(), "default", List.of("Age 18-65"));
 

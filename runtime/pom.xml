@@ -18,13 +18,13 @@
         <dependency>
             <groupId>io.casehub</groupId>
             <artifactId>casehub-neocortex-memory-api</artifactId>
-            <version>${casehub.version}</version>
+            <version>${version.io.casehub}</version>
         </dependency>
 
         <dependency>
             <groupId>io.casehub</groupId>
             <artifactId>casehub-neocortex-memory</artifactId>
-            <version>${casehub.version}</version>
+            <version>${version.io.casehub}</version>
             <scope>runtime</scope>
         </dependency>
     <dependency>
@@ -315,12 +315,12 @@
     <dependency>
       <groupId>io.casehub</groupId>
       <artifactId>casehub-pages-push</artifactId>
-      <version>${casehub.version}</version>
+      <version>${version.io.casehub}</version>
     </dependency>
     <dependency>
       <groupId>io.casehub</groupId>
       <artifactId>casehub-pages-push-runtime</artifactId>
-      <version>${casehub.version}</version>
+      <version>${version.io.casehub}</version>
     </dependency>
     <dependency>
       <groupId>io.quarkus</groupId>
@@ -330,17 +330,17 @@
     <dependency>
       <groupId>io.casehub</groupId>
       <artifactId>casehub-pages-playbook-client</artifactId>
-      <version>${casehub.version}</version>
+      <version>${version.io.casehub}</version>
     </dependency>
     <dependency>
       <groupId>io.casehub</groupId>
       <artifactId>casehub-pages-npm</artifactId>
-      <version>${casehub.version}</version>
+      <version>${version.io.casehub}</version>
     </dependency>
     <dependency>
       <groupId>io.casehub</groupId>
       <artifactId>casehub-blocks-ui-npm</artifactId>
-      <version>${casehub.version}</version>
+      <version>0.3-SNAPSHOT</version>
     </dependency>
   </dependencies>
 

@@ -48,7 +48,7 @@ class LlmSafetySignalAnalyzerTest {
                 "overallAssessment":"Moderate concern — monitoring recommended","additionalPatterns":["Temporal clustering in week 3"]}""";
         when(agentProvider.invoke(any())).thenReturn(Multi.createFrom().items(
                 new AgentEvent.TextDelta(json),
-                new AgentEvent.InvocationComplete(300, 150, 0, 0, 0, 0.008, 3000L, 2800L, "sess-1", 1, false)));
+                new AgentEvent.InvocationComplete(300, 150, 0, 0, 0, 0.008, 3000L, 2800L, "sess-1", 1, false, null, null)));
 
         SignalAnalysis result = analyzer.analyze(sampleContext());
 
@@ -64,7 +64,7 @@ class LlmSafetySignalAnalyzerTest {
     void malformedJson_returnsFlagForReviewFallback() {
         when(agentProvider.invoke(any())).thenReturn(Multi.createFrom().items(
                 new AgentEvent.TextDelta("Cannot analyze these signals"),
-                new AgentEvent.InvocationComplete(100, 50, 0, 0, 0, null, 1000L, 900L, "sess-2", 1, false)));
+                new AgentEvent.InvocationComplete(100, 50, 0, 0, 0, null, 1000L, 900L, "sess-2", 1, false, null, null)));
 
         SignalAnalysis result = analyzer.analyze(sampleContext());
 

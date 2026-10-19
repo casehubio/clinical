@@ -34,7 +34,7 @@ class ClinicalAgentSupportTest {
     void validJsonResponse_parsedCorrectly() {
         when(agentProvider.invoke(any())).thenReturn(Multi.createFrom().items(
                 new AgentEvent.TextDelta("{\"value\":\"hello\",\"count\":42}"),
-                new AgentEvent.InvocationComplete(10, 20, 0, 0, 0, 0.001, 500L, 400L, "sess-1", 1, false)));
+                new AgentEvent.InvocationComplete(10, 20, 0, 0, 0, 0.001, 500L, 400L, "sess-1", 1, false, null, null)));
         var request = new ClinicalAgentRequest<>("system", "user", TestResponse.class,
                 new TestResponse("fallback", 0), "test", "corr-1", null);
         var result = support.invoke(request);
@@ -51,7 +51,7 @@ class ClinicalAgentSupportTest {
     void markdownFencedJson_extractedCorrectly() {
         when(agentProvider.invoke(any())).thenReturn(Multi.createFrom().items(
                 new AgentEvent.TextDelta("Here is the result:\n```json\n{\"value\":\"hi\",\"count\":1}\n```\n"),
-                new AgentEvent.InvocationComplete(5, 10, 0, 0, 0, null, 200L, 150L, "sess-2", 1, false)));
+                new AgentEvent.InvocationComplete(5, 10, 0, 0, 0, null, 200L, 150L, "sess-2", 1, false, null, null)));
         var request = new ClinicalAgentRequest<>("system", "user", TestResponse.class,
                 new TestResponse("fallback", 0), "test", "corr-2", null);
         var result = support.invoke(request);
@@ -63,7 +63,7 @@ class ClinicalAgentSupportTest {
     void malformedJson_returnsFallback() {
         when(agentProvider.invoke(any())).thenReturn(Multi.createFrom().items(
                 new AgentEvent.TextDelta("not valid json at all"),
-                new AgentEvent.InvocationComplete(5, 10, 0, 0, 0, null, 200L, 150L, "sess-3", 1, false)));
+                new AgentEvent.InvocationComplete(5, 10, 0, 0, 0, null, 200L, 150L, "sess-3", 1, false, null, null)));
         var request = new ClinicalAgentRequest<>("system", "user", TestResponse.class,
                 new TestResponse("fallback", 0), "test", "corr-3", null);
         var result = support.invoke(request);
@@ -84,7 +84,7 @@ class ClinicalAgentSupportTest {
     void invocationCompleteIsError_returnsFallback() {
         when(agentProvider.invoke(any())).thenReturn(Multi.createFrom().items(
                 new AgentEvent.TextDelta("{\"value\":\"ok\",\"count\":1}"),
-                new AgentEvent.InvocationComplete(5, 10, 0, 0, 0, null, 200L, 150L, "sess-5", 1, true)));
+                new AgentEvent.InvocationComplete(5, 10, 0, 0, 0, null, 200L, 150L, "sess-5", 1, true, null, null)));
         var request = new ClinicalAgentRequest<>("system", "user", TestResponse.class,
                 new TestResponse("fallback", 0), "test", "corr-5", null);
         var result = support.invoke(request);
@@ -107,7 +107,7 @@ class ClinicalAgentSupportTest {
     void modelPassedToAgentSessionConfig() {
         when(agentProvider.invoke(any())).thenReturn(Multi.createFrom().items(
                 new AgentEvent.TextDelta("{\"value\":\"ok\",\"count\":1}"),
-                new AgentEvent.InvocationComplete(5, 10, 0, 0, 0, null, 200L, 150L, "sess-7", 1, false)));
+                new AgentEvent.InvocationComplete(5, 10, 0, 0, 0, null, 200L, 150L, "sess-7", 1, false, null, null)));
         var request = new ClinicalAgentRequest<>("system", "user", TestResponse.class,
                 new TestResponse("fallback", 0), "safety", "corr-7", null);
         support.invoke(request);
@@ -139,7 +139,7 @@ class ClinicalAgentSupportTest {
     void metricsModelSourcedFromConfig() {
         when(agentProvider.invoke(any())).thenReturn(Multi.createFrom().items(
                 new AgentEvent.TextDelta("{\"value\":\"ok\",\"count\":1}"),
-                new AgentEvent.InvocationComplete(5, 10, 0, 0, 0, 0.002, 200L, 150L, "sess-8", 1, false)));
+                new AgentEvent.InvocationComplete(5, 10, 0, 0, 0, 0.002, 200L, 150L, "sess-8", 1, false, null, null)));
         var request = new ClinicalAgentRequest<>("system", "user", TestResponse.class,
                 new TestResponse("fallback", 0), "test", "corr-8", null);
         var result = support.invoke(request);
