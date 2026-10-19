@@ -340,7 +340,7 @@
     <dependency>
       <groupId>io.casehub</groupId>
       <artifactId>casehub-blocks-ui-npm</artifactId>
-      <version>0.3-SNAPSHOT</version>
+      <version>${version.blocks-ui}</version>
     </dependency>
   </dependencies>
 
@@ -383,13 +383,13 @@
                 <artifactItem>
                   <groupId>io.casehub</groupId>
                   <artifactId>casehub-pages-npm</artifactId>
-                  <version>0.3</version>
+                  <version>${version.io.casehub}</version>
                   <outputDirectory>${project.basedir}/src/main/webui/.casehub-packages</outputDirectory>
                 </artifactItem>
                 <artifactItem>
                   <groupId>io.casehub</groupId>
                   <artifactId>casehub-blocks-ui-npm</artifactId>
-                  <version>0.3</version>
+                  <version>${version.blocks-ui}</version>
                   <outputDirectory>${project.basedir}/src/main/webui/.casehub-packages</outputDirectory>
                 </artifactItem>
               </artifactItems>
