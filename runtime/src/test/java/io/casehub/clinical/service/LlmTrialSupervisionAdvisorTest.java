@@ -43,7 +43,7 @@ class LlmTrialSupervisionAdvisorTest {
                 "summary":"One site lagging enrollment target"}""";
         when(agentProvider.invoke(any())).thenReturn(Multi.createFrom().items(
                 new AgentEvent.TextDelta(json),
-                new AgentEvent.InvocationComplete(300, 150, 0, 0, 0, 0.008, 3000L, 2800L, "sess-1", 1, false)));
+                new AgentEvent.InvocationComplete(300, 150, 0, 0, 0, 0.008, 3000L, 2800L, "sess-1", 1, false, null, null)));
 
         SupervisionAssessment result = advisor.assess(sampleContext());
 
@@ -57,7 +57,7 @@ class LlmTrialSupervisionAdvisorTest {
     void malformedJson_returnsFallback() {
         when(agentProvider.invoke(any())).thenReturn(Multi.createFrom().items(
                 new AgentEvent.TextDelta("I need more data"),
-                new AgentEvent.InvocationComplete(100, 50, 0, 0, 0, null, 1000L, 900L, "sess-2", 1, false)));
+                new AgentEvent.InvocationComplete(100, 50, 0, 0, 0, null, 1000L, 900L, "sess-2", 1, false, null, null)));
 
         SupervisionAssessment result = advisor.assess(sampleContext());
 
