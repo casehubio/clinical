@@ -1,10 +1,10 @@
 import { loadSite, registerPanel } from "@casehubio/pages-runtime";
 import { onPagesEvent } from "@casehubio/pages-component";
-import "@casehubio/blocks-ui-work-item-inbox";
-import "@casehubio/blocks-ui-orchestration-workbench";
-import "@casehubio/blocks-ui-trust-workbench";
-import "@casehubio/blocks-ui-conversation-viewer";
-import "@casehubio/blocks-ui-routing-rationale";
+import "@casehubio/mosaic-work-item-inbox";
+import "@casehubio/mosaic-orchestration-workbench";
+import "@casehubio/mosaic-trust-workbench";
+import "@casehubio/mosaic-conversation-viewer";
+import "@casehubio/mosaic-routing-rationale";
 import { app } from "./app.js";
 import { ClinicalCommitmentLifecycle } from "./components/commitment-lifecycle.js";
 import { ClinicalCbrPrecedentsPanel } from "./components/cbr-precedents-panel.js";
