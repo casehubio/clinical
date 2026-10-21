@@ -339,7 +339,7 @@
     </dependency>
     <dependency>
       <groupId>io.casehub</groupId>
-      <artifactId>casehub-blocks-ui-npm</artifactId>
+      <artifactId>casehub-mosaic-npm</artifactId>
       <version>${version.mosaic}</version>
     </dependency>
   </dependencies>
@@ -388,7 +388,7 @@
                 </artifactItem>
                 <artifactItem>
                   <groupId>io.casehub</groupId>
-                  <artifactId>casehub-blocks-ui-npm</artifactId>
+                  <artifactId>casehub-mosaic-npm</artifactId>
                   <version>${version.mosaic}</version>
                   <outputDirectory>${project.basedir}/src/main/webui/.casehub-packages</outputDirectory>
                 </artifactItem>
