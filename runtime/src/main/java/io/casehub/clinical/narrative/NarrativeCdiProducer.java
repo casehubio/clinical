@@ -1,8 +1,8 @@
 package io.casehub.clinical.narrative;
 
-import io.casehub.blocks.summarisation.EventStreamBus;
-import io.casehub.blocks.summarisation.narrative.DecisionNarrativePipeline;
-import io.casehub.blocks.summarisation.narrative.DecisionSignal;
+import io.casehub.agency.summarisation.EventStreamBus;
+import io.casehub.agency.summarisation.narrative.DecisionNarrativePipeline;
+import io.casehub.agency.summarisation.narrative.DecisionSignal;
 import io.casehub.platform.agent.AgentProvider;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.enterprise.inject.Produces;

@@ -319,7 +319,7 @@ These apply to any consumer adding casehub-engine. Documented from clinical Laye
 
 ## Web UI Architecture
 
-TypeScript frontend at `runtime/src/main/webui/`. Uses casehub-pages DSL for page composition and casehub-blocks-ui for components.
+TypeScript frontend at `runtime/src/main/webui/`. Uses casehub-pages DSL for page composition and casehub-agency-ui for components.
 
 **Views** (`src/views/`):
 - `work-queue.ts` — compliance officer work queue
@@ -337,7 +337,7 @@ TypeScript frontend at `runtime/src/main/webui/`. Uses casehub-pages DSL for pag
 
 **Test suite:** Vitest tests in `src/__tests__/` covering all views and components.
 
-**Build:** Quinoa (quarkus-quinoa) with esbuild. NPM packages resolved from Maven artifacts via `casehub-pages-npm` and `casehub-blocks-ui-npm` (unpacked to `.casehub-packages/` at Maven initialize phase).
+**Build:** Quinoa (quarkus-quinoa) with esbuild. NPM packages resolved from Maven artifacts via `casehub-pages-npm` and `casehub-agency-ui-npm` (unpacked to `.casehub-packages/` at Maven initialize phase).
 
 ## Key Epics
 

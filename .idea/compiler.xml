@@ -23,7 +23,7 @@
           <entry name="$PROJECT_DIR$/api/target/classes" />
           <entry name="$MAVEN_REPOSITORY$/io/casehub/casehub-qhorus-api/0.2-SNAPSHOT/casehub-qhorus-api-0.2-SNAPSHOT.jar" />
           <entry name="$MAVEN_REPOSITORY$/io/casehub/casehub-platform-api/0.2-SNAPSHOT/casehub-platform-api-0.2-SNAPSHOT.jar" />
-          <entry name="$MAVEN_REPOSITORY$/io/casehub/casehub-blocks/0.2-SNAPSHOT/casehub-blocks-0.2-SNAPSHOT.jar" />
+          <entry name="$MAVEN_REPOSITORY$/io/casehub/casehub-agency/0.2-SNAPSHOT/casehub-agency-0.2-SNAPSHOT.jar" />
           <entry name="$MAVEN_REPOSITORY$/io/casehub/casehub-engine-api/0.2-SNAPSHOT/casehub-engine-api-0.2-SNAPSHOT.jar" />
           <entry name="$MAVEN_REPOSITORY$/io/casehub/casehub-ledger-api/0.2-SNAPSHOT/casehub-ledger-api-0.2-SNAPSHOT.jar" />
           <entry name="$MAVEN_REPOSITORY$/io/casehub/casehub-eidos-api/0.2-SNAPSHOT/casehub-eidos-api-0.2-SNAPSHOT.jar" />
@@ -109,7 +109,7 @@
           <entry name="$PROJECT_DIR$/api/target/classes" />
           <entry name="$MAVEN_REPOSITORY$/io/casehub/casehub-qhorus-api/0.2-SNAPSHOT/casehub-qhorus-api-0.2-SNAPSHOT.jar" />
           <entry name="$MAVEN_REPOSITORY$/io/casehub/casehub-platform-api/0.2-SNAPSHOT/casehub-platform-api-0.2-SNAPSHOT.jar" />
-          <entry name="$MAVEN_REPOSITORY$/io/casehub/casehub-blocks/0.2-SNAPSHOT/casehub-blocks-0.2-SNAPSHOT.jar" />
+          <entry name="$MAVEN_REPOSITORY$/io/casehub/casehub-agency/0.2-SNAPSHOT/casehub-agency-0.2-SNAPSHOT.jar" />
           <entry name="$MAVEN_REPOSITORY$/io/casehub/casehub-engine-api/0.2-SNAPSHOT/casehub-engine-api-0.2-SNAPSHOT.jar" />
           <entry name="$MAVEN_REPOSITORY$/io/casehub/casehub-ledger-api/0.2-SNAPSHOT/casehub-ledger-api-0.2-SNAPSHOT.jar" />
           <entry name="$MAVEN_REPOSITORY$/io/casehub/casehub-eidos-api/0.2-SNAPSHOT/casehub-eidos-api-0.2-SNAPSHOT.jar" />

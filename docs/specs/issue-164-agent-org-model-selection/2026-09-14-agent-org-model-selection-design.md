@@ -99,7 +99,7 @@ public class ClinicalNarrativeSignalStrategy extends AbstractNarrativeSignalStra
 ```
 
 **CDI wiring:** Add to `quarkus.arc.selected-alternatives`. Requires
-`casehub-blocks-summarisation` on classpath (provides
+`casehub-agency-summarisation` on classpath (provides
 `AbstractNarrativeSignalStrategy`, `DecisionNarrativePipeline`,
 `EventStreamBus<DecisionSignal>`).
 
@@ -309,11 +309,11 @@ In `webui/src/index.ts`, add `registerPanel()` calls alongside existing
 `customElements.define()`:
 
 ```typescript
-import "@casehubio/blocks-ui-narrative-timeline";
-import "@casehubio/blocks-ui-orchestration-workbench";
-import "@casehubio/blocks-ui-trust-workbench";
-import "@casehubio/blocks-ui-conversation-viewer";
-import "@casehubio/blocks-ui-routing-rationale";
+import "@casehubio/agency-ui-narrative-timeline";
+import "@casehubio/agency-ui-orchestration-workbench";
+import "@casehubio/agency-ui-trust-workbench";
+import "@casehubio/agency-ui-conversation-viewer";
+import "@casehubio/agency-ui-routing-rationale";
 
 registerPanel("narrative-timeline", "blocks-narrative-timeline");
 registerPanel("orchestration-workbench", "blocks-orchestration-workbench");
@@ -425,7 +425,7 @@ both narratives and model registry.
 <!-- Narrative signals (verify exact artifactId from blocks repo) -->
 <dependency>
   <groupId>io.casehub</groupId>
-  <artifactId>casehub-blocks-summarisation</artifactId>
+  <artifactId>casehub-agency-summarisation</artifactId>
 </dependency>
 
 <!-- Org model -->
@@ -443,11 +443,11 @@ both narratives and model registry.
 ### npm (webui/package.json)
 
 ```json
-"@casehubio/blocks-ui-narrative-timeline": "*",
-"@casehubio/blocks-ui-orchestration-workbench": "*",
-"@casehubio/blocks-ui-trust-workbench": "*",
-"@casehubio/blocks-ui-conversation-viewer": "*",
-"@casehubio/blocks-ui-routing-rationale": "*"
+"@casehubio/agency-ui-narrative-timeline": "*",
+"@casehubio/agency-ui-orchestration-workbench": "*",
+"@casehubio/agency-ui-trust-workbench": "*",
+"@casehubio/agency-ui-conversation-viewer": "*",
+"@casehubio/agency-ui-routing-rationale": "*"
 ```
 
 ## References

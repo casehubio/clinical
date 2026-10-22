@@ -1,7 +1,7 @@
 package io.casehub.clinical.narrative;
 
-import io.casehub.blocks.summarisation.narrative.DecisionNarrative;
-import io.casehub.blocks.summarisation.narrative.DecisionNarrativePipeline;
+import io.casehub.agency.summarisation.narrative.DecisionNarrative;
+import io.casehub.agency.summarisation.narrative.DecisionNarrativePipeline;
 import io.casehub.clinical.api.spi.ClinicalNarrativeApi;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;

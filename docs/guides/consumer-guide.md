@@ -205,7 +205,7 @@ Four structured memory domains defined in `ClinicalMemoryDomains`:
 
 ### Web UI
 
-Lit-based web UI built with casehub-blocks-ui components and casehub-pages. Served via Quinoa (esbuild). Source at `runtime/src/main/webui/`.
+Lit-based web UI built with casehub-agency-ui components and casehub-pages. Served via Quinoa (esbuild). Source at `runtime/src/main/webui/`.
 
 **Views** (`src/views/`):
 - **Work Queue** (`work-queue.ts`) — compliance officer work queue with `work-item-inbox`
@@ -281,10 +281,10 @@ casehub-clinical
   -> casehub-neocortex-memory-inmem       (test scope — @Alternative CaseMemoryStore)
   -> casehub-neocortex-memory-cbr-inmem   (CBR — InMemoryCbrCaseMemoryStore for precedent retrieval)
   -> casehub-engine-ledger                (TrustWeightedAgentStrategy, WorkerDecisionEventCapture, TrustScoreCache)
-  -> casehub-blocks                       (CBR: RoutingFeatureExtractor SPI — ClinicalRoutingFeatureExtractor)
+  -> casehub-agency                       (CBR: RoutingFeatureExtractor SPI — ClinicalRoutingFeatureExtractor)
   -> casehub-worker-api                   (WorkerResult, PlannedAction, Worker primitives)
   -> casehub-pages-npm                    (Web UI: page(), tree(), loadSite() — Quinoa frontend)
-  -> casehub-blocks-ui-npm                (Web UI: data-table, approval-gate, sla-indicator, kpi-metric-row)
+  -> casehub-agency-ui-npm                (Web UI: data-table, approval-gate, sla-indicator, kpi-metric-row)
 ```
 
 ## The Compliance Gap It Closes
@@ -309,11 +309,11 @@ ClinicalAgent (peer-reviewed baseline, arXiv 2404.14777) structurally cannot pro
 - Merkle audit trail, ledger erasure, compliance supplements — **casehub-ledger**
 - Connector delivery (Slack, SMS, WhatsApp) — **casehub-connectors**
 - Trust scoring infrastructure, Bayesian Beta computation — **casehub-engine-ledger**
-- CBR memory store, similarity search, feature schemas — **casehub-neocortex-memory** (formerly casehub-blocks)
+- CBR memory store, similarity search, feature schemas — **casehub-neocortex-memory** (formerly casehub-agency)
 - Worker primitives (WorkerResult, PlannedAction) — **casehub-worker-api**
 - LLM invocation primitive (AgentProvider SPI) — **casehub-platform-agent-api**
 - Page rendering, site loading, dataset binding — **casehub-pages**
-- UI component library (data-table, approval-gate, etc.) — **casehub-blocks-ui**
+- UI component library (data-table, approval-gate, etc.) — **casehub-agency-ui**
 
 ## Playbook demo integration
 

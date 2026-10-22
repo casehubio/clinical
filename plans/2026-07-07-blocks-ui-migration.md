@@ -13,12 +13,12 @@
 
 **Architecture:** Sidebar navigation via pages-runtime `tree()`. Two split-pane workbenches (Safety, Protocol) for distinct AE and deviation workflows. Dual-mode datasets (inline mock CSV + live REST endpoints) switchable via `VITE_DEMO_MODE` build flag. Six Lit web components built locally for eventual blocks-ui promotion.
 
-**Tech Stack:** TypeScript 5.6+, Lit 3, esbuild, @casehubio/pages-ui + pages-runtime, @casehubio/blocks-ui-* components, vitest + happy-dom for testing. Java 21 / Quarkus for the commitment endpoint.
+**Tech Stack:** TypeScript 5.6+, Lit 3, esbuild, @casehubio/pages-ui + pages-runtime, @casehubio/agency-ui-* components, vitest + happy-dom for testing. Java 21 / Quarkus for the commitment endpoint.
 
 ## Global Constraints
 
 - All pages-ui DSL imports from `@casehubio/pages-ui`
-- All blocks-ui component imports from `@casehubio/blocks-ui-*` packages
+- All blocks-ui component imports from `@casehubio/agency-ui-*` packages
 - Column IDs cast as `never` (pages-ui convention — see AML reference)
 - Lit components use `@casehubio/pages-ui-tokens` CSS custom properties (`--pages-*`)
 - Lit components emit events via `emitPagesEvent()` from `@casehubio/pages-component`
@@ -89,12 +89,12 @@ Add blocks-ui components, Lit, pages-ui-tokens, vitest, happy-dom:
     "@casehubio/pages-component": "file:../../../../../pages/packages/pages-component",
     "@casehubio/pages-data": "file:../../../../../pages/packages/pages-data",
     "@casehubio/pages-ui-tokens": "file:../../../../../pages/packages/pages-ui-tokens",
-    "@casehubio/blocks-ui-core": "file:../../../../../blocks-ui/packages/blocks-ui-core",
-    "@casehubio/blocks-ui-approval-gate": "file:../../../../../blocks-ui/components/approval-gate",
-    "@casehubio/blocks-ui-sla-indicator": "file:../../../../../blocks-ui/components/sla-indicator",
-    "@casehubio/blocks-ui-kpi-metric-row": "file:../../../../../blocks-ui/components/kpi-metric-row",
-    "@casehubio/blocks-ui-data-table": "file:../../../../../blocks-ui/components/data-table",
-    "@casehubio/blocks-ui-work-item-inbox": "file:../../../../../blocks-ui/components/work-item-inbox"
+    "@casehubio/agency-ui-core": "file:../../../../../blocks-ui/packages/blocks-ui-core",
+    "@casehubio/agency-ui-approval-gate": "file:../../../../../blocks-ui/components/approval-gate",
+    "@casehubio/agency-ui-sla-indicator": "file:../../../../../blocks-ui/components/sla-indicator",
+    "@casehubio/agency-ui-kpi-metric-row": "file:../../../../../blocks-ui/components/kpi-metric-row",
+    "@casehubio/agency-ui-data-table": "file:../../../../../blocks-ui/components/data-table",
+    "@casehubio/agency-ui-work-item-inbox": "file:../../../../../blocks-ui/components/work-item-inbox"
   },
   "devDependencies": {
     "esbuild": "^0.25.0",

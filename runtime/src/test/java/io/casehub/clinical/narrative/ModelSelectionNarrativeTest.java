@@ -1,10 +1,10 @@
 package io.casehub.clinical.narrative;
 
-import io.casehub.blocks.summarisation.EventStreamBus;
-import io.casehub.blocks.summarisation.LevelEvent;
-import io.casehub.blocks.summarisation.narrative.DecisionNarrativePipeline;
-import io.casehub.blocks.summarisation.narrative.DecisionSignal;
-import io.casehub.blocks.summarisation.narrative.StepOutcome;
+import io.casehub.agency.summarisation.EventStreamBus;
+import io.casehub.agency.summarisation.LevelEvent;
+import io.casehub.agency.summarisation.narrative.DecisionNarrativePipeline;
+import io.casehub.agency.summarisation.narrative.DecisionSignal;
+import io.casehub.agency.summarisation.narrative.StepOutcome;
 import io.casehub.clinical.agent.ModelSelectionEvent;
 import io.casehub.platform.api.model.ModelTier;
 import org.junit.jupiter.api.BeforeEach;

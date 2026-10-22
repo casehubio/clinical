@@ -1,8 +1,8 @@
 # Clinical Product UI — blocks-ui Migration Design Spec
 
 **Date:** 2026-07-07
-**Parent epic:** casehubio/blocks-ui#35 (cross-repo component migration tracking)
-**Child epic:** casehubio/blocks-ui#38 (clinical migration plan)
+**Parent epic:** casehubio/agency-ui#35 (cross-repo component migration tracking)
+**Child epic:** casehubio/agency-ui#38 (clinical migration plan)
 **Supersedes:** `specs/2026-06-27-clinical-demo-ui-design.md` (guided demo UI — retained for reference)
 
 ## Purpose
@@ -158,7 +158,7 @@ A single workbench would need type-conditional columns, conditional tab visibili
 | `<trust-score-panel>` | DSL `table()` with trust score columns | #11 | blocks-ui stub package (exports `COMPONENT_NAME` only) |
 | `<case-timeline>` | Omit initially | #10 | blocks-ui stub package (exports `COMPONENT_NAME` only) |
 
-**Note:** `<audit-trail-viewer>` has no package in blocks-ui at all, unlike the other two. Clinical's stub is entirely local code. When blocks-ui#9 ships, clinical swaps from its local `table()` stub to the blocks-ui import. Import paths differ from the other two components — clinical imports from `./stubs/audit-trail-viewer` (local) rather than `@casehubio/blocks-ui-audit-trail-viewer`.
+**Note:** `<audit-trail-viewer>` has no package in blocks-ui at all, unlike the other two. Clinical's stub is entirely local code. When blocks-ui#9 ships, clinical swaps from its local `table()` stub to the blocks-ui import. Import paths differ from the other two components — clinical imports from `./stubs/audit-trail-viewer` (local) rather than `@casehubio/agency-ui-audit-trail-viewer`.
 
 ### Blocked on AML promotion
 
@@ -486,14 +486,14 @@ Clinical's child epic is blocks-ui#38. Updated parent epic includes clinical's p
 
 ## Related Issues
 
-- casehubio/blocks-ui#35 — parent cross-repo migration tracking epic
-- casehubio/blocks-ui#38 — clinical child epic
-- casehubio/blocks-ui#9 — Audit Trail Viewer (blocks clinical audit tab)
-- casehubio/blocks-ui#10 — Case Timeline
-- casehubio/blocks-ui#11 — Trust Score Panel (blocks clinical trust tab)
+- casehubio/agency-ui#35 — parent cross-repo migration tracking epic
+- casehubio/agency-ui#38 — clinical child epic
+- casehubio/agency-ui#9 — Audit Trail Viewer (blocks clinical audit tab)
+- casehubio/agency-ui#10 — Case Timeline
+- casehubio/agency-ui#11 — Trust Score Panel (blocks clinical trust tab)
 - casehubio/aml#91 — AML workbench UI port (case-workbench promotion source)
 - casehubio/aml#101 — dual-mode dataset proposal
-- casehubio/blocks-ui#36 — OpenClaw migration plan
-- casehubio/blocks-ui#37 — AML migration plan
-- casehubio/blocks-ui#40 — approval-gate: response payload in gate.decided event (nice-to-have)
-- casehubio/blocks-ui#42 — WorkItemResponse TypeScript type missing `types` field (blocks Work Queue navigation)
+- casehubio/agency-ui#36 — OpenClaw migration plan
+- casehubio/agency-ui#37 — AML migration plan
+- casehubio/agency-ui#40 — approval-gate: response payload in gate.decided event (nice-to-have)
+- casehubio/agency-ui#42 — WorkItemResponse TypeScript type missing `types` field (blocks Work Queue navigation)
