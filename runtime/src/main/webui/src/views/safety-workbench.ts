@@ -36,11 +36,11 @@ export function safetyWorkbench(trialId: string): Component {
       html('<div id="ae-overview"><p style="color: var(--pages-neutral-9); font-style: italic; padding: 1rem;">Select an adverse event from the list to view details.</p></div>'),
     )],
     ["SUSAR Evaluation", panel("SUSAR Evaluation",
-      html(`<blocks-approval-gate id="susar-gate"
+      html(`<agency-approval-gate id="susar-gate"
         data-trial-id="${trialId}" data-source-dataset="adverse-events"
         prompt="Review SUSAR determination for this adverse event"
         context-text="Grade 4+ unexpected suspected adverse reaction — SUSAR criteria evaluation"
-      ></blocks-approval-gate>`),
+      ></agency-approval-gate>`),
     )],
     ["Trust & Attestation", panel("Trust Feedback",
       html('<trust-feedback-display id="ae-trust-feedback"></trust-feedback-display>'),
