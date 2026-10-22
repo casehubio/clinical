@@ -38,11 +38,11 @@ export function protocolWorkbench(trialId: string): Component {
       html(`<commitment-lifecycle id="dev-commitment" data-trial-id="${trialId}" data-source-dataset="deviations"></commitment-lifecycle>`),
     )],
     ["IRB Review", panel("IRB Review",
-      html(`<blocks-approval-gate id="irb-gate"
+      html(`<agency-approval-gate id="irb-gate"
         data-trial-id="${trialId}" data-source-dataset="deviations"
         prompt="Review protocol deviation for IRB approval"
         context-text="Protocol deviation requires ethics committee review — 72h deadline"
-      ></blocks-approval-gate>`),
+      ></agency-approval-gate>`),
     )],
     ["Precedents", panel("Similar Past Deviations",
       dataTable({

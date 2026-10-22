@@ -32,10 +32,10 @@ for (const [name, ctor] of components) {
   if (!customElements.get(name)) customElements.define(name, ctor);
 }
 
-registerPanel("orchestration-workbench", "blocks-orchestration-workbench");
+registerPanel("orchestration-workbench", "agency-orchestration-workbench");
 registerPanel("trust-workbench", "blocks-trust-workbench");
-registerPanel("conversation-viewer", "blocks-conversation-workbench");
-registerPanel("routing-rationale", "blocks-routing-rationale");
+registerPanel("conversation-viewer", "agency-conversation-workbench");
+registerPanel("routing-rationale", "agency-routing-rationale");
 
 const CLINICAL_IDENTITY = {
   userId: "demo-coordinator",
