@@ -2,14 +2,14 @@ package io.casehub.clinical.narrative;
 
 import io.casehub.api.spi.StepOutcomeEvent;
 import io.casehub.api.spi.routing.RoutingOutcome;
-import io.casehub.blocks.summarisation.EventStreamBus;
-import io.casehub.blocks.summarisation.LevelEvent;
-import io.casehub.blocks.summarisation.narrative.CbrRetrieval;
-import io.casehub.blocks.summarisation.narrative.DecisionNarrativePipeline;
-import io.casehub.blocks.summarisation.narrative.DecisionSignal;
-import io.casehub.blocks.summarisation.narrative.RoutingDecision;
-import io.casehub.blocks.summarisation.narrative.StepOutcome;
-import io.casehub.blocks.summarisation.narrative.TrustAssessment;
+import io.casehub.agency.summarisation.EventStreamBus;
+import io.casehub.agency.summarisation.LevelEvent;
+import io.casehub.agency.perception.narrative.CbrRetrieval;
+import io.casehub.agency.perception.narrative.DecisionNarrativePipeline;
+import io.casehub.agency.perception.narrative.DecisionSignal;
+import io.casehub.agency.perception.narrative.RoutingDecision;
+import io.casehub.agency.perception.narrative.StepOutcome;
+import io.casehub.agency.perception.narrative.TrustAssessment;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 

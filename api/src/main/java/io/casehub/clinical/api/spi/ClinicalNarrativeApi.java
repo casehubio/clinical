@@ -1,6 +1,6 @@
 package io.casehub.clinical.api.spi;
 
-import io.casehub.blocks.summarisation.narrative.DecisionNarrative;
+import io.casehub.agency.perception.narrative.DecisionNarrative;
 import io.casehub.clinical.api.ClinicalGroups;
 import io.casehub.platform.api.mcp.McpDomain;
 import io.casehub.platform.api.mcp.PathParam;

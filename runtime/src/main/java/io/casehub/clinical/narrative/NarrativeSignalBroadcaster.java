@@ -1,6 +1,6 @@
 package io.casehub.clinical.narrative;
 
-import io.casehub.blocks.summarisation.narrative.DecisionSignal;
+import io.casehub.agency.perception.narrative.DecisionSignal;
 import io.casehub.pages.push.EventBroadcaster;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
