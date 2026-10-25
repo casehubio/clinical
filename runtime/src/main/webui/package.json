@@ -27,6 +27,7 @@
     "@casehubio/pages-ui-components": "*",
     "@casehubio/pages-ui-tokens": "*",
     "@casehubio/pages-viz": "*",
+    "echarts": "^5.6.0",
     "lit": "^3.0.0",
     "yaml": "^2.0.0"
   },
