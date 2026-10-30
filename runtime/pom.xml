@@ -400,7 +400,7 @@
       <plugin>
         <groupId>io.quarkus.platform</groupId>
         <artifactId>quarkus-maven-plugin</artifactId>
-        <version>${version.quarkus.platform}</version>
+        <version>${quarkus.platform.version}</version>
         <executions>
           <execution>
             <goals>
