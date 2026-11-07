@@ -14,7 +14,7 @@ chapters:
     sections:
       - label: "Create Trial"
         steps:
-          - step: create-trial
+          - name: create-trial
             target: server
             createTrial:
               protocolId: "ONCO-2026-DEMO"
@@ -24,24 +24,24 @@ chapters:
 
       - label: "Activate Trial"
         steps:
-          - step: activate
+          - name: activate
             target: server
             activateTrial:
               trialId: "${create-trial.trialId}"
 
       - label: "Add Sites"
         steps:
-          - step: site-a
+          - name: site-a
             target: server
             addSite:
               trialId: "${create-trial.trialId}"
               investigatorId: "dr-chen"
-          - step: site-b
+          - name: site-b
             target: server
             addSite:
               trialId: "${create-trial.trialId}"
               investigatorId: "dr-patel"
-          - step: site-c
+          - name: site-c
             target: server
             addSite:
               trialId: "${create-trial.trialId}"
@@ -49,7 +49,7 @@ chapters:
 
       - label: "Enroll Patients"
         steps:
-          - step: patient-a1
+          - name: patient-a1
             target: server
             enrollPatient:
               items:
@@ -96,7 +96,7 @@ chapters:
           The PI reviews and approves the deviation. The commitment lifecycle
           tracks every state transition with a named actor and timestamp.
         steps:
-          - step: approve-pi
+          - name: approve-pi
             target: server
             approvePiResponse:
               deviationId: "${report-deviation.deviationId}"
@@ -154,7 +154,7 @@ chapters:
           The platform records the approval, updates the agent's trust score
           via Bayesian inference, and files the IND report.
         steps:
-          - step: approve-gate
+          - name: approve-gate
             target: server
             approveSusarGate:
               aeId: "${report-ae.aeId}"
@@ -177,7 +177,7 @@ chapters:
     sections:
       - label: "Verify Merkle Chain"
         steps:
-          - step: verify
+          - name: verify
             target: server
             verifyLedger:
               enrollmentId: "${patient-a1.enrollmentId}"
