@@ -223,6 +223,11 @@
       <name>casehubio GitHub Packages</name>
       <url>https://maven.pkg.github.com/casehubio/clinical</url>
     </repository>
+    <snapshotRepository>
+      <id>github</id>
+      <name>casehubio GitHub Packages</name>
+      <url>https://maven.pkg.github.com/casehubio/clinical</url>
+    </snapshotRepository>
   </distributionManagement>
 
 </project>
