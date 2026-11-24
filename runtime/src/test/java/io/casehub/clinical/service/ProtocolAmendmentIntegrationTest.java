@@ -7,9 +7,14 @@ import io.casehub.clinical.ledger.ProtocolAmendmentLedgerEntry;
 import io.casehub.clinical.support.EngineStateCleaner;
 import io.casehub.engine.common.spi.cache.CaseInstanceCache;
 import io.casehub.ledger.api.spi.LedgerEntryRepository;
+import io.casehub.platform.agent.AgentEvent;
+import io.casehub.platform.agent.AgentProvider;
+import io.casehub.platform.agent.AgentSessionConfig;
 import io.casehub.platform.testing.FixedCurrentPrincipal;
+import io.quarkus.test.InjectMock;
 import io.quarkus.test.junit.QuarkusTest;
 import io.quarkus.test.security.TestSecurity;
+import io.smallrye.mutiny.Multi;
 import jakarta.inject.Inject;
 import jakarta.transaction.Transactional;
 import org.junit.jupiter.api.BeforeEach;
@@ -25,6 +30,8 @@ import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.awaitility.Awaitility.await;
 import static org.hamcrest.Matchers.equalTo;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.when;
 
 @QuarkusTest
 @TestSecurity(user = "test-actor", roles = {ClinicalGroups.SPONSOR, ClinicalGroups.INVESTIGATOR, ClinicalGroups.COORDINATOR})
@@ -37,12 +44,16 @@ class ProtocolAmendmentIntegrationTest {
     @Inject FixedCurrentPrincipal principal;
     @Inject
             jakarta.persistence.EntityManager em;
+    @InjectMock AgentProvider agentProvider;
 
 
     UUID trialId;
 
     @BeforeEach
     void setup() {
+        when(agentProvider.invoke(any(AgentSessionConfig.class)))
+            .thenReturn(Multi.createFrom().item(
+                new AgentEvent.TextDelta("{\"recommendation\": \"PROCEED\", \"reasoning\": \"Test stub\"}")));
         engineStateCleaner.cancelAllAndClear();
         persistTestData();
     }
@@ -97,7 +108,7 @@ class ProtocolAmendmentIntegrationTest {
 
         UUID amendmentId = extractId(loc);
 
-        // DefaultProtocolAmendmentAdvisor → PROCEED; await engine case completion
+        // LlmProtocolAmendmentAdvisor → PROCEED (AgentProvider mocked); await engine case completion
         await().atMost(15, SECONDS).untilAsserted(() ->
             given().when()
                 .get("/trials/{t}/amendments/{id}", trialId, amendmentId)
