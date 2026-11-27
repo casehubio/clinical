@@ -16,7 +16,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 
-@WebSocket(path = "/ws/push")
+@WebSocket(path = "/ws/clinical/push")
 public class ClinicalPushEndpoint {
 
     private static final Logger LOG = Logger.getLogger(ClinicalPushEndpoint.class);
